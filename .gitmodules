@@ -1,0 +1,3 @@
+[submodule "singularity-ui"]
+	path = singularity-ui
+	url = file:///Users/guigouz/Work/Bravado/singularity-ui
