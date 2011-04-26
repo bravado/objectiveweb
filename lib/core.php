@@ -2,7 +2,7 @@
 /**
  * ObjectiveWeb
  *
- * Framework Core
+ * Platform Core
  *
  * User: guigouz
  * Date: 14/04/11
@@ -24,6 +24,7 @@ defined('OW_VERSION') or define('OW_VERSION', 'ow_version');
 defined('OW_LINKS') or define('OW_LINKS', 'ow_links');
 defined('OW_ACL') or define('OW_ACL', 'ow_acl');
 defined('OW_SEQUENCE') or define('OW_SEQUENCE', 'ow_sequence');
+
 
 $db = new mysqli(MYSQL_HOST, MYSQL_USER, MYSQL_PASS, MYSQL_DB);
 
@@ -49,10 +50,9 @@ $db->set_charset(DB_CHARSET);
 function ow_write($domain, $key, $data = null, $params = array())
 {
     $defaults = array(
-        'versioning' => false,
-        'extra' => array(),
-        'extends' => array(),
         'key' => 'id',
+        'versioning' => false,
+        'join' => array(),
         'index' => array(),
         'acl' => array()
     );
@@ -65,7 +65,7 @@ function ow_write($domain, $key, $data = null, $params = array())
     $join = array();
     if (!empty($params['join'])) {
         //
-        // ['extends'] = array (
+        // ['join'] = array (
         //   'one_table' => array('field1', 'field2, 'field3'),
         //   'another_table' => array('field4, field5') );
         //
@@ -88,7 +88,7 @@ function ow_write($domain, $key, $data = null, $params = array())
 
     $data[$params['key']] = $key;
 
-    $oid = ow_oid($domain, $key);
+    $oid = ow_oid($domain, $key, $params['key']);
 
     if ($oid == null) {
         $oid = ow_insert($domain, $oid, $data);
@@ -105,9 +105,21 @@ function ow_write($domain, $key, $data = null, $params = array())
         }
     }
 
-    if(!empty($params['acl'])) {
-        foreach($params['acl'] as $acl_oid => $acl_flags) {
-            ow_acl($acl_oid, $acl_flags);
+    if (!empty($params['acl'])) {
+        foreach ($params['acl'] as $acl_oid => $acl_flags) {
+            ow_acl($oid, $acl_oid, $acl_flags);
+        }
+    }
+
+
+    if (!empty($params['index'])) {
+        foreach ($params['index'] as $index_field) {
+
+
+            if (!empty($data[$index_field])) {
+                ow_index($oid, $index_field, $data[$index_field]);
+            }
+
         }
     }
 
@@ -122,42 +134,23 @@ function ow_write($domain, $key, $data = null, $params = array())
 
 /**
  * Reads an object from a domain given its key
- * 
+ *
  * @param  $domain
  * @param  $key
  * @return void
  */
-function ow_read($domain, $key, $params = array()) {
+function ow_read($domain, $key, $params = array())
+{
 
     $defaults = array(
-            'key' => 'id'
-        );
+        'key' => 'id'
+    );
 
     $params = array_merge($defaults, $params);
 
     return ow_select($domain, array($params['key'] => $key), $params);
 }
 
-/**
- *
- * Searches the ObjectiveWeb index
- *
- * @param  $domain The search domain or NULL for all domains
- * @param  $cond The search conditions Array
- * @param  $params ow_select() parameters
- * @return If the domain is specified, returns a list of Objects, otherwise returns a list of OIDs
- */
-function ow_search($domain, $cond, $params = array()) {
-    $defaults = array(
-        'domain' => null,
-        'fields' => '*',
-        'join' => array(),
-        'order' => array()
-    );
-
-
-    // TODO SELECT FROM ow_index ... inner join domain (se tiver)
-}
 
 /**
  *
@@ -198,22 +191,45 @@ function ow_oid($domain, $key, $key_field = 'id')
 
 
 /**
+ *
+ * Searches the ObjectiveWeb index
+ *
+ * @param  $domain The search domain or NULL for all domains
+ * @param  $cond The search conditions Array
+ * @param  $params ow_select() parameters
+ * @return If the domain is specified, returns a list of Objects, otherwise returns a list of OIDs
+ */
+function ow_search($domain, $cond, $params = array())
+{
+    $defaults = array(
+        'domain' => null,
+        'fields' => '*',
+        'join' => array(),
+        'order' => array()
+    );
+
+
+    // TODO SELECT FROM ow_index ... inner join domain (se tiver)
+}
+
+
+/**
  * Manipulates an object's Access Control List
  *
  * @param  $oid The object's id
  * @param int $flags If specified, update the ACL. Otherwise, returns the object's ACL array.
  * @return void
  */
-function ow_acl($oid, $flags = null) {
+function ow_acl($oid, $owner, $flags = null)
+{
 
-    if($flags) {
+    if ($flags) {
         // TODO INSERT on duplicate key UPDATE...
 
         return $flags;
     }
     else {
         // TODO SELECT * FROM ow_permissions WHERE oid = $oid
-
 
 
     }
@@ -229,7 +245,8 @@ function ow_acl($oid, $flags = null) {
  * @param  $start Starting counter for new sequences. Defaults to 1
  * @return void
  */
-function ow_nexval($sequence_id, $start = 1) {
+function ow_nexval($sequence_id, $start = 1)
+{
     // TODO copiar código do cms original
 }
 
@@ -242,10 +259,25 @@ function ow_nexval($sequence_id, $start = 1) {
  * @param array $params
  * @return void
  */
-function ow_get($domain, $oid, $params = array()) {
+function ow_get($domain, $oid, $params = array())
+{
 
     return ow_select($domain, array('oid' => $oid), $params);
 
+}
+
+
+/**
+ * Indexes a field for the given oid
+ *
+ * @param  $oid
+ * @param  $index_field
+ * @param  $index_value
+ * @return void
+ */
+function ow_index($oid, $index_field, $index_value)
+{
+    // TODO ow_insert(OW_INDEX, $oid, array('field' => $index_field, 'value' => $index_value)); ...
 }
 
 
@@ -257,16 +289,64 @@ function ow_get($domain, $oid, $params = array()) {
  * @param array $params
  * @return void
  */
-function ow_select($domain, $cond, $params = array()) {
+function ow_select($domain, $cond, $params = array())
+{
+
+    global $db;
+
     $defaults = array(
         'fields' => '*',
         'join' => array(),
-        'order' => array(),
+        'order' => '',
         'acl' => array()
     );
 
     $params = array_merge($defaults, $params);
 
+
+    $query = "select {$params['fields']} from {$domain}";
+
+    if (!empty($params['join'])) {
+        // TODO implementar JOIN
+        throw new Exception('JOIN não implementado');
+    }
+
+
+    if (!empty($params['acl'])) {
+        // TODO implementar ACL
+        throw new Exception('ACL não implementado');
+    }
+
+
+    if (!empty($cond)) {
+        // TODO usar prepared statements / escape()
+
+        $query .= " where ".implode(" and ", $cond);
+
+    }
+
+
+    if(!empty($params['order'])) {
+        // TODO if is array...
+        $query .= " order by ".$params['order'];
+    }
+
+
+    $result = $db->query($query);
+
+
+    if($result === FALSE) {
+        throw new Exception($db->error);
+    }
+
+    $results = array();
+    while ($data = $result->fetch_assoc()) {
+        $results[] = $data;
+    }
+
+
+    return $results;
+    
     // TODO query
     // TODO se todos podem ler - vai vir o usuário logado até aqui quando ?
     // porque se passar acl => user, um oid pra todomundo não vai ter essa acl (user)
@@ -278,6 +358,10 @@ function ow_select($domain, $cond, $params = array()) {
 
     // dono de um conteúdo não precisa estar no ACL pq ele sempre pode tudo
     // campo específico do módulo content, não tem porque trazer até aqui
+
+
+
+
 }
 
 
@@ -315,10 +399,9 @@ function ow_insert($domain, $oid, $data)
 
 
     if ($oid == null) {
-        // insert new object
         $oid = uniqid();
     }
-    
+
     $values = '?';
     for ($i = 1; $i < count($query_fields); $i++) {
         $values .= ',?';
@@ -343,7 +426,6 @@ function ow_insert($domain, $oid, $data)
 }
 
 
-
 /**
  *
  * Low level SQL UPDATE helper
@@ -359,7 +441,7 @@ function ow_update($domain, $oid, $data)
 
     global $db;
 
-    if(empty($oid)) throw new Exception('OID is required for UPDATEs');
+    if (empty($oid)) throw new Exception('OID is required for UPDATEs');
 
 
     $bind_params = array('');
@@ -386,7 +468,7 @@ function ow_update($domain, $oid, $data)
     $stmt = $db->prepare($query);
 
     echo $query;
-    if($stmt === FALSE) throw new Exception($db->error);
+    if ($stmt === FALSE) throw new Exception($db->error);
 
     call_user_func_array(array($stmt, 'bind_param'), $bind_params);
 

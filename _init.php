@@ -19,4 +19,5 @@ require_once ROOT.'/config.php';
 require_once OW_LIB.'/core.php';
 require_once OW_LIB.'/directory.php';
 require_once OW_LIB.'/content.php';
+require_once OW_LIB.'/request.php';
 require_once OW_LIB.'/session.php';

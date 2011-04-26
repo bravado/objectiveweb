@@ -16,15 +16,75 @@ $schema = array("user" => array());
 
 
 
-function ow_directory_list($kind = null) {
+function directory_list($schema = null) {
+
+    $cond = array();
+    if($schema) {
+        $cond[] = "schema = $schema";
+    }
+
+    return ow_select('OW_DIRECTORY', $cond);
+}
+
+
+function directory_update($uid, $attrs) {
+    $entry = directory_get($uid);
+
+
+    
+}
+
+
+function directory_add($uid, $attrs) {
+
+    $entry = directory_get($uid);
+
+
+    if($entry) {
+        throw new Exception('UID already exists');
+    }
+    else {
+        directory_write($uid, $attrs);
+    }
+}
+
+/**
+ * @param  $object
+ * { uid: unique_id,
+ *   cn: "Common name",
+ *   contacts: [ { contact1 }, { contact2 }, ...]
+ * }
+ *
+ * @return void
+ */
+function directory_write($uid, $attrs, $join = array()) { // TODO como vai ficar o JOIN aqui?
+
+    // TODO validation
+
+    $params = array('key' => 'uid', 'join' => $join);
+
+    return ow_write(OW_DIRECTORY, $uid, $attrs, $params);
 
 }
 
-function ow_directory_add($object) {
+
+function directory_get($uid, $join = array()) {
+
+    $data = ow_select(OW_DIRECTORY, array("uid = '$uid'"));
+
+    if(!empty($data)) {
+        return $data[0];
+    }
+    else {
+        return null;
+    }
+}
+
+function directory_rename($old_uid, $new_uid) {
 
 }
 
-function ow_directory_delete($object) {
-
+function directory_delete($object, $join = array()) {
+    // TODO ow_delete
 }
 

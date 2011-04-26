@@ -7,38 +7,85 @@
 <body>
 
 
-<div id="directoryMain">
+<script id="directoryEntryTemplate" type="text/html">
+    
+    <a href="#" data-bind="click: function() { $item.edit($data.uid) }"><span data-bind="text:uid"></span></a>
 
+</script>
+
+
+<div id="directoryMain" data-bind-ui="visible: currentView() == 'list'">
+
+    <div data-bind-ui="template: { name: 'directoryEntryTemplate',
+     foreach: entries,
+     templateOptions: {
+      edit: editEntry
+     }
+    }">
+        
+    </div>
+
+    
 </div>
 
 
-<div id="directoryEditor">
-    <input data-bind-editor="value: oi" type="text"/>
+
+
+<div id="directoryEditor"  data-bind-ui="visible: currentView() == 'editor'">
+    <input data-bind="value: uid" type="text"/>
 
     <button data-bind="click: postData" >Post data</button>
+    <button data-bind-ui="click: function() { uiModel.currentView('list')}">Back</button>
 </div>
 
 
 <script type="text/javascript">
 
-    var editorModel = {
-        oi: ko.observable("oi")
-    };
-    var viewModel = {
+    var uiModel = {
         title: ko.observable(),
+        entries: ko.observableArray(),
+        currentView: ko.observable('list'),
+        editEntry: function(uid) {
+
+            console.log('edit');
+            $.getJSON('directory.php?uid=' + uid, function(data) {
+                viewModel.uid(data.uid)
+                uiModel.currentView('editor');
+            });
+
+            
+        }
+
+
+    }
+
+    var viewModel = {
+
+        uid: ko.observable(),
+        
+
 
         postData: function() {
 
-            var data = ko.toJSON(editorModel);
-
+            var data = ko.toJSON(viewModel);
 
             $.post('/objectiveweb/directory.php', data );
         }
-    };
+
+    }
 
 
+    ko.applyBindings(uiModel, 'ui');
     ko.applyBindings(viewModel);
-    ko.applyBindings(editorModel, 'editor');
+
+
+    jQuery(function($) {
+        $.getJSON('/objectiveweb/directory.php', function(data) {
+
+            uiModel.entries(data);
+    })
+    })
+
 
 </script>
 
