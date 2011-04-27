@@ -14,8 +14,11 @@ defined('OW_DIRECTORY') or define('OW_DIRECTORY', 'ow_directory');
 
 $SCHEMA = array("user" => array());
 
-
-
+/**
+ * Fetches data from the directory
+ * @param null $schema If specified, restricts the list to this schema
+ * @return void
+ */
 function directory_fetch($schema = null) {
 
     global $SCHEMA;
@@ -73,8 +76,11 @@ function directory_write($oid, $attrs, $schema = null) { // TODO como vai ficar 
     $params = array();
     if($schema) {
         $params['join'] = $SCHEMA[$schema]['join'];
-    }
 
+    }
+    $attrs['`schema`'] = $schema;
+
+    //print_r($attrs);
     //echo "directory write";
     return ow_write(OW_DIRECTORY, $oid, $attrs, $params);
 

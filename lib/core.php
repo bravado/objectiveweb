@@ -61,6 +61,8 @@ function ow_write($domain, $oid, $data = null, $params = array())
     $orig_data = $data;
 
     // joined tables
+
+    // TODO usar transaction
     $join = array();
     if (!empty($params['join'])) {
         //
@@ -122,26 +124,6 @@ function ow_write($domain, $oid, $data = null, $params = array())
     }
 
     return $oid;
-}
-
-
-/**
- * Reads an object from a domain given its key
- *
- * @param  $domain
- * @param  $key
- * @return void
- */
-function ow_read($domain, $key, $params = array())
-{
-
-    $defaults = array(
-        'key' => 'id'
-    );
-
-    $params = array_merge($defaults, $params);
-
-    return ow_select($domain, array($params['key'] => $key), $params);
 }
 
 
@@ -478,7 +460,7 @@ function ow_update($domain, $oid, $data)
 
     $stmt = $db->prepare($query);
 
-    echo $query;
+    //echo $query;
     if ($stmt === FALSE) throw new Exception($db->error);
 
     call_user_func_array(array($stmt, 'bind_param'), $bind_params);

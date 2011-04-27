@@ -22,4 +22,4 @@ require_once OW_LIB.'/content.php';
 require_once OW_LIB.'/request.php';
 require_once OW_LIB.'/session.php';
 
-require_once ROOT.'/apps.php';
+require_once ROOT.'/apps.php'; // TODO schema_register() e não usar isso aqui ?
