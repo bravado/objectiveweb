@@ -114,8 +114,6 @@ function ow_write($domain, $key, $data = null, $params = array())
 
     if (!empty($params['index'])) {
         foreach ($params['index'] as $index_field) {
-
-
             if (!empty($data[$index_field])) {
                 ow_index($oid, $index_field, $data[$index_field]);
             }

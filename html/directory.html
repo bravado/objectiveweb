@@ -9,7 +9,7 @@
 
 <script id="directoryEntryTemplate" type="text/html">
     
-    <a href="#" data-bind="click: function() { $item.edit($data.uid) }"><span data-bind="text:uid"></span></a>
+    <p><a href="#" data-bind="click: function() { $item.edit($data.uid) }, text:uid"></a></p>
 
 </script>
 
@@ -32,9 +32,14 @@
 
 
 <div id="directoryEditor"  data-bind-ui="visible: currentView() == 'editor'">
-    <input data-bind="value: uid" type="text"/>
+    <fieldset>
+        <legend data-bind="text: uid" ></legend>
 
-    <button data-bind="click: postData" >Post data</button>
+        <label>Nome: <input data-bind="value: cn" type="text"/></label>
+    </fieldset>
+
+
+    <button data-bind="click: postData" >Atualizar</button>
     <button data-bind-ui="click: function() { uiModel.currentView('list')}">Back</button>
 </div>
 
@@ -49,7 +54,8 @@
 
             console.log('edit');
             $.getJSON('directory.php?uid=' + uid, function(data) {
-                viewModel.uid(data.uid)
+                viewModel.uid(data.uid);
+                viewModel.cn(data.cn);
                 uiModel.currentView('editor');
             });
 
@@ -62,14 +68,14 @@
     var viewModel = {
 
         uid: ko.observable(),
-        
+        cn: ko.observable(),
 
 
         postData: function() {
 
             var data = ko.toJSON(viewModel);
 
-            $.post('/objectiveweb/directory.php', data );
+            $.post('/objectiveweb/directory.php?uid=' + viewModel.uid(), data );
         }
 
     }

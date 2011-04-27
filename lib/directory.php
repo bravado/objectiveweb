@@ -20,7 +20,7 @@ function directory_list($schema = null) {
 
     $cond = array();
     if($schema) {
-        $cond[] = "schema = $schema";
+        $cond[] = "schema = '$schema'";
     }
 
     return ow_select('OW_DIRECTORY', $cond);
@@ -30,7 +30,11 @@ function directory_list($schema = null) {
 function directory_update($uid, $attrs) {
     $entry = directory_get($uid);
 
+    if(!$entry) {
+        throw new Exception('UPDATING unknown entry, were you trying to create it ?');
+    }
 
+    directory_write($uid, $attrs);
     
 }
 
@@ -63,6 +67,7 @@ function directory_write($uid, $attrs, $join = array()) { // TODO como vai ficar
 
     $params = array('key' => 'uid', 'join' => $join);
 
+    //echo "directory write";
     return ow_write(OW_DIRECTORY, $uid, $attrs, $params);
 
 }

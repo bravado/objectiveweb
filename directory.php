@@ -22,27 +22,28 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         $data = parse_post_body();
 
         // TODO validation
-
+// TODO verificar permissões
         if(!empty($_GET['uid'])) {
-            // UPDATE
+
 
             if($data['uid'] != $_GET['uid']) {
                 // RENAME
+                directory_rename($_GET['uid'], $data['uid']);
             }
             else {
-
+                // UPDATE
+                directory_update($data['uid'], $data);
             }
-
 
         }
         else {
             // New directory item
+            directory_add($data['uid'], $data);
         }
 
 
-        // TODO verificar permissões
 
-        directory_write($_POST['uid'], $_POST['resource']);
+
 
     }
     catch(Exception $ex) {
@@ -71,27 +72,3 @@ else {
     }
 
 }
-return;
-$oid = ow_write('ow_directory', 'test2',
-                array('value' => array('nome' => 'guigouz', 'tel' => '1234'), 'extrafield' => 700));
-
-echo "wrote $oid";
-
-
-// extend to another table
-
-$oid = ow_write('ow_directory', 'test47',
-                array('value' => array('oi', 'tchau', 'até'), 'matricula' => '777', '`schema`' => 'aluno'),
-                array(
-                     'extends' => array('alunos' => array('matricula')),
-                     'versioning' => true
-                ));
-
-echo "wrote extended $oid";
-
-
-ow_directory_add(array(
-                      'schema' => 'user',
-
-
-                 ));
