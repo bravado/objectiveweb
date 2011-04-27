@@ -21,3 +21,5 @@ require_once OW_LIB.'/directory.php';
 require_once OW_LIB.'/content.php';
 require_once OW_LIB.'/request.php';
 require_once OW_LIB.'/session.php';
+
+require_once ROOT.'/apps.php';

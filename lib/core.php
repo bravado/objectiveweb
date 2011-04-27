@@ -42,15 +42,14 @@ $db->set_charset(DB_CHARSET);
  * Writes an Object to a domain
  *
  * @param  $domain The target domain
- * @param  $key The object's key on the domain
+ * @param  $oid The object's unique id or null to create a new OID
  * @param null $data The object's data
  * @param array $params The write parameters
  * @return string|The object's oid. If the object didn't exist, a new oid is created
  */
-function ow_write($domain, $key, $data = null, $params = array())
+function ow_write($domain, $oid, $data = null, $params = array())
 {
     $defaults = array(
-        'key' => 'id',
         'versioning' => false,
         'join' => array(),
         'index' => array(),
@@ -85,10 +84,6 @@ function ow_write($domain, $key, $data = null, $params = array())
             }
         }
     }
-
-    $data[$params['key']] = $key;
-
-    $oid = ow_oid($domain, $key, $params['key']);
 
     if ($oid == null) {
         $oid = ow_insert($domain, $oid, $data);
@@ -152,31 +147,43 @@ function ow_read($domain, $key, $params = array())
 
 /**
  *
- * Returns an Object Identifier (oid) for the requested id on a given domain.
+ * Returns an Object Identifier (oid) for the given key on a domain
  *
  * @throws Exception on database errors
  * @param  $domain - The requested domain
- * @param  $key - The requested key
+ * @param  $key - The requested key, as an associative array
+ *  array( 'id' => '123') or array('id' => '123', 'lang' => 'pt') for a composite key
  * @param string $id_field - The id field on the database (defaults to "id")
  * @return The object's oid or null if the object does not exist
  */
-function ow_oid($domain, $key, $key_field = 'id')
+function ow_oid($domain, $key)
 {
     global $db;
     $oid = null;
 
-    $stmt = $db->prepare("select oid from $domain where $key_field = ?");
+    $bind_params = array('');
+    $cond = array();
+    foreach($key as $field => $value) {
+        $cond[] = "$field = ?";
+        $bind_params[0] .= 's';
+        $bind_params[] = &$key[$field];
+
+
+    }
+
+    $query = sprintf("select oid from $domain where %s", implode(" and ", $cond));
+    //echo $query;
+    $stmt = $db->prepare($query);
 
     if ($stmt === FALSE) throw new Exception($stmt->error);
 
-    $stmt->bind_param('s', $key);
-
+    call_user_func_array(array($stmt, 'bind_param'), $bind_params);
 
     if ($stmt->execute() === FALSE) throw new Exception($stmt->error);
 
     $stmt->bind_result($oid);
     $stmt->store_result();
-
+    //print_r($bind_params);
     if ($stmt->num_rows > 0) {
         $stmt->fetch();
     }
@@ -306,7 +313,10 @@ function ow_select($domain, $cond, $params = array())
 
     if (!empty($params['join'])) {
         // TODO implementar JOIN
-        throw new Exception('JOIN não implementado');
+        foreach(array_keys($params['join']) as $table) {
+            $query .= " inner join $table on $domain.oid = $table.oid";
+        }
+        
     }
 
 
@@ -329,7 +339,7 @@ function ow_select($domain, $cond, $params = array())
         $query .= " order by ".$params['order'];
     }
 
-
+    //echo $query;
     $result = $db->query($query);
 
 
@@ -377,6 +387,11 @@ function ow_insert($domain, $oid, $data)
 
     global $db;
 
+
+    if ($oid == null) {
+        $oid = uniqid();
+    }
+
     $bind_params = array('');
     $query_fields = array();
 
@@ -396,9 +411,7 @@ function ow_insert($domain, $oid, $data)
     $bind_params[] = &$oid;
 
 
-    if ($oid == null) {
-        $oid = uniqid();
-    }
+
 
     $values = '?';
     for ($i = 1; $i < count($query_fields); $i++) {

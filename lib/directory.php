@@ -9,49 +9,52 @@
  * Time: 01:05
  */
 
+
 defined('OW_DIRECTORY') or define('OW_DIRECTORY', 'ow_directory');
 
-
-$schema = array("user" => array());
-
+$SCHEMA = array("user" => array());
 
 
-function directory_list($schema = null) {
 
-    $cond = array();
+function directory_fetch($schema = null) {
+
+    global $SCHEMA;
+
+    $join = array();
     if($schema) {
-        $cond[] = "schema = '$schema'";
+        $join = $SCHEMA[$schema]['join'];
     }
 
-    return ow_select('OW_DIRECTORY', $cond);
+    return ow_select(OW_DIRECTORY, array(), array('join' => $join));
 }
 
 
-function directory_update($uid, $attrs) {
-    $entry = directory_get($uid);
+function directory_update($oid, $attrs, $schema = null) {
+
+    $entry = directory_get($oid);
 
     if(!$entry) {
-        throw new Exception('UPDATING unknown entry, were you trying to create it ?');
+        throw new Exception('Trying to update unknown entry. Were you trying to create one ?');
     }
-
-    directory_write($uid, $attrs);
+    
+    
+    return directory_write($oid, $attrs, $schema);
     
 }
 
 
-function directory_add($uid, $attrs) {
+function directory_add($attrs, $schema = null) {
 
-    $entry = directory_get($uid);
+    if(!empty($attrs['oid'])) {
+            throw new Exception("You can't specify an OID when adding");
+        }
 
-
-    if($entry) {
-        throw new Exception('UID already exists');
-    }
-    else {
-        directory_write($uid, $attrs);
-    }
+    return directory_write(null, $attrs, $schema);
 }
 
+// TODO suportar SCHEMA e não JOIN (Join deve ser LOW LEVEL)
+// QUANDO passado o SCHEMA, os joins, etc acontecem automaticamente
+// E pode ser acessado como directory.php?schema=xxxxx
 /**
  * @param  $object
  * { uid: unique_id,
@@ -61,23 +64,39 @@ function directory_add($uid, $attrs) {
  *
  * @return void
  */
-function directory_write($uid, $attrs, $join = array()) { // TODO como vai ficar o JOIN aqui?
+function directory_write($oid, $attrs, $schema = null) { // TODO como vai ficar o JOIN aqui?
 
-    // TODO validation
+    global $SCHEMA;
 
-    $params = array('key' => 'uid', 'join' => $join);
+    // TODO validation baseada no schema
+
+    $params = array();
+    if($schema) {
+        $params['join'] = $SCHEMA[$schema]['join'];
+    }
 
     //echo "directory write";
-    return ow_write(OW_DIRECTORY, $uid, $attrs, $params);
+    return ow_write(OW_DIRECTORY, $oid, $attrs, $params);
 
 }
 
 
-function directory_get($uid, $join = array()) {
+function directory_get($oid, $schema = null) {
 
-    $data = ow_select(OW_DIRECTORY, array("uid = '$uid'"));
+    global $SCHEMA;
+
+    $cond = array(OW_DIRECTORY.".oid = '$oid'");
+
+    $params = array();
+
+    if($schema) {
+        $params['join'] = $SCHEMA[$schema]['join'];
+    }
+
+    $data = ow_select(OW_DIRECTORY, $cond, $params);
 
     if(!empty($data)) {
+
         return $data[0];
     }
     else {

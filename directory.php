@@ -14,6 +14,7 @@ include "_init.php";
 
 header('Content-type: application/json');
 
+$schema = empty($_GET['schema']) ? null: $_GET['schema'];
 
 if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 
@@ -23,22 +24,15 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 
         // TODO validation
 // TODO verificar permissões
-        if(!empty($_GET['uid'])) {
+        if(empty($_GET['oid'])) {
 
 
-            if($data['uid'] != $_GET['uid']) {
-                // RENAME
-                directory_rename($_GET['uid'], $data['uid']);
-            }
-            else {
-                // UPDATE
-                directory_update($data['uid'], $data);
-            }
-
+            // New directory item
+            directory_add($data, $schema);
+            
         }
         else {
-            // New directory item
-            directory_add($data['uid'], $data);
+            directory_update($_GET['oid'], $data, $schema);
         }
 
 
@@ -52,16 +46,21 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     }
 }
 else {
-    if (empty($_GET['uid'])) {
+
+
+
+    if (empty($_GET['oid'])) {
         // lista todos os ítens
         // TODO paginação já no esquema datatables
 
-        echo json_encode(directory_list(), true);
+        echo json_encode(directory_fetch($schema), true);
 
 
     }
     else {
-        $entry = directory_get($_GET['uid']);
+
+
+        $entry = directory_get($_GET['oid'], $schema);
 
         if(!$entry) {
             exit('Does not exist');

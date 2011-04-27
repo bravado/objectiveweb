@@ -9,7 +9,7 @@
 
 <script id="directoryEntryTemplate" type="text/html">
     
-    <p><a href="#" data-bind="click: function() { $item.edit($data.uid) }, text:uid"></a></p>
+    <p><a href="#" data-bind="click: function() { $item.edit($data.oid) }, text:uid"></a></p>
 
 </script>
 
@@ -19,13 +19,12 @@
     <div data-bind-ui="template: { name: 'directoryEntryTemplate',
      foreach: entries,
      templateOptions: {
-      edit: editEntry
+      edit: editEntry,
+      oid: currentOID
      }
     }">
         
     </div>
-
-    
 </div>
 
 
@@ -50,20 +49,23 @@
         title: ko.observable(),
         entries: ko.observableArray(),
         currentView: ko.observable('list'),
+        currentOID: null,
         editEntry: function(uid) {
 
             console.log('edit');
-            $.getJSON('directory.php?uid=' + uid, function(data) {
+            $.getJSON('directory.php?oid=' + uid, function(data) {
+
                 viewModel.uid(data.uid);
                 viewModel.cn(data.cn);
                 uiModel.currentView('editor');
+                uiModel.currentOID = uid;
             });
 
-            
+
         }
 
 
-    }
+    };
 
     var viewModel = {
 
@@ -75,10 +77,10 @@
 
             var data = ko.toJSON(viewModel);
 
-            $.post('/objectiveweb/directory.php?uid=' + viewModel.uid(), data );
+            $.post('/objectiveweb/directory.php?oid=' + uiModel.currentOID, data);
         }
 
-    }
+    };
 
 
     ko.applyBindings(uiModel, 'ui');
@@ -90,7 +92,7 @@
 
             uiModel.entries(data);
     })
-    })
+    });
 
 
 </script>
