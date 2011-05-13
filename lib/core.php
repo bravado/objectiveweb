@@ -9,466 +9,260 @@
  * Time: 01:09
  */
 
-global $db;
+global $_domains;
 
 // Default db config
-defined('MYSQL_HOST') or define('MYSQL_HOST', 'localhost');
-defined('MYSQL_USER') or define('MYSQL_USER', 'objectiveweb');
-defined('MYSQL_PASS') or define('MYSQL_PASS', null);
-defined('MYSQL_DB') or define('MYSQL_DB', 'objectiveweb');
+defined('DATABASE_PROVIDER') or define('DATABASE_PROVIDER', dirname(__FILE__) . '/database.mysql.php');
 defined('DB_CHARSET') or define('DB_CHARSET', 'utf8');
 
 // Database Tables
+defined('OW_OBJECTS') or define('OW_OBJECTS', 'ow_objects');
 defined('OW_INDEX') or define('OW_INDEX', 'ow_index');
 defined('OW_VERSION') or define('OW_VERSION', 'ow_version');
 defined('OW_LINKS') or define('OW_LINKS', 'ow_links');
 defined('OW_ACL') or define('OW_ACL', 'ow_acl');
 defined('OW_SEQUENCE') or define('OW_SEQUENCE', 'ow_sequence');
 
+require_once DATABASE_PROVIDER;
 
-$db = new mysqli(MYSQL_HOST, MYSQL_USER, MYSQL_PASS, MYSQL_DB);
-
-
-if ($db === FALSE) {
-    throw new Exception($db->error);
-}
-// TODO tratar erro de conexão de db e devolver headers e mensagem certas (protocolo)
-// Algo como send_error(new Exception($db->error));
-
-$db->set_charset(DB_CHARSET);
+// Global system variables
+$_domains = array();
+$_subscriptions = array();
 
 
-/**
- * Writes an Object to a domain
- *
- * @param  $domain The target domain
- * @param  $oid The object's unique id or null to create a new OID
- * @param null $data The object's data
- * @param array $params The write parameters
- * @return string|The object's oid. If the object didn't exist, a new oid is created
- */
-function ow_write($domain, $oid, $data = null, $params = array())
+// TODO register dynamic domains (on the database)
+
+
+// TODO directory é um módulo obrigatório (core depende de directory)
+// content depende de directory
+// mas desta forma, poderia existir um outro DIRECTORY_PROVIDER
+
+
+function register_domain($domain_id, $schema = array())
 {
-    $defaults = array(
-        'versioning' => false,
-        'join' => array(),
-        'index' => array(),
-        'acl' => array()
-    );
-
-    $params = array_merge($defaults, $params);
-
-    $orig_data = $data;
-
-    // joined tables
-
-    // TODO usar transaction
-    $join = array();
-    if (!empty($params['join'])) {
-        //
-        // ['join'] = array (
-        //   'one_table' => array('field1', 'field2, 'field3'),
-        //   'another_table' => array('field4, field5') );
-        //
-        foreach ($params['join'] as $table => $fields) {
-            $join[$table] = array();
-            foreach ($fields as $field) {
-
-                if (!empty($data[$field])) {
-                    $join[$table][$field] = $data[$field];
-                    unset($data[$field]);
-                }
-
-            }
-
-            if (empty($join[$table])) {
-                unset($join[$table]);
-            }
-        }
-    }
-
-    if ($oid == null) {
-        $oid = ow_insert($domain, $oid, $data);
-
-        foreach ($join as $table => $data) {
-            ow_insert($table, $oid, $data);
-        }
-    }
-    else {
-        ow_update($domain, $oid, $data);
-
-        foreach ($join as $table => $data) {
-            ow_update($table, $oid, $data);
-        }
-    }
-
-    if (!empty($params['acl'])) {
-        foreach ($params['acl'] as $acl_oid => $acl_flags) {
-            ow_acl($oid, $acl_oid, $acl_flags);
-        }
-    }
-
-
-    if (!empty($params['index'])) {
-        foreach ($params['index'] as $index_field) {
-            if (!empty($data[$index_field])) {
-                ow_index($oid, $index_field, $data[$index_field]);
-            }
-
-        }
-    }
-
-    // if versioning is on
-    if ($params['versioning']) {
-        ow_insert(OW_VERSION, $oid, array('content' => $orig_data));
-    }
-
-    return $oid;
-}
-
-
-/**
- *
- * Returns an Object Identifier (oid) for the given key on a domain
- *
- * @throws Exception on database errors
- * @param  $domain - The requested domain
- * @param  $key - The requested key, as an associative array
- *  array( 'id' => '123') or array('id' => '123', 'lang' => 'pt') for a composite key
- * @param string $id_field - The id field on the database (defaults to "id")
- * @return The object's oid or null if the object does not exist
- */
-function ow_oid($domain, $key)
-{
-    global $db;
-    $oid = null;
-
-    $bind_params = array('');
-    $cond = array();
-    foreach($key as $field => $value) {
-        $cond[] = "$field = ?";
-        $bind_params[0] .= 's';
-        $bind_params[] = &$key[$field];
-
-
-    }
-
-    $query = sprintf("select oid from $domain where %s", implode(" and ", $cond));
-    //echo $query;
-    $stmt = $db->prepare($query);
-
-    if ($stmt === FALSE) throw new Exception($stmt->error);
-
-    call_user_func_array(array($stmt, 'bind_param'), $bind_params);
-
-    if ($stmt->execute() === FALSE) throw new Exception($stmt->error);
-
-    $stmt->bind_result($oid);
-    $stmt->store_result();
-    //print_r($bind_params);
-    if ($stmt->num_rows > 0) {
-        $stmt->fetch();
-    }
-
-    $stmt->close();
-
-    return $oid;
-
-}
-
-
-/**
- *
- * Searches the ObjectiveWeb index
- *
- * @param  $domain The search domain or NULL for all domains
- * @param  $cond The search conditions Array
- * @param  $params ow_select() parameters
- * @return If the domain is specified, returns a list of Objects, otherwise returns a list of OIDs
- */
-function ow_search($domain, $cond, $params = array())
-{
-    $defaults = array(
-        'domain' => null,
-        'fields' => '*',
-        'join' => array(),
-        'order' => array()
-    );
-
-
-    // TODO SELECT FROM ow_index ... inner join domain (se tiver)
-}
-
-
-/**
- * Manipulates an object's Access Control List
- *
- * @param  $oid The object's id
- * @param int $flags If specified, update the ACL. Otherwise, returns the object's ACL array.
- * @return void
- */
-function ow_acl($oid, $owner, $flags = null)
-{
-
-    if ($flags) {
-        // TODO INSERT on duplicate key UPDATE...
-
-        return $flags;
-    }
-    else {
-        // TODO SELECT * FROM ow_permissions WHERE oid = $oid
-
-
-    }
-
-}
-
-/**
- * Fetches the next value from the named sequence
- * If the sequence does not exist, it is created with a default value of 1
- *
- *
- * @param  $sequence_id
- * @param  $start Starting counter for new sequences. Defaults to 1
- * @return void
- */
-function ow_nexval($sequence_id, $start = 1)
-{
-    // TODO copiar código do cms original
-}
-
-
-/**
- * Retrieve an object from a domain given its OID
- *
- * @param  $domain
- * @param  $oid
- * @param array $params
- * @return void
- */
-function ow_get($domain, $oid, $params = array())
-{
-
-    return ow_select($domain, array('oid' => $oid), $params);
-
-}
-
-
-/**
- * Indexes a field for the given oid
- *
- * @param  $oid
- * @param  $index_field
- * @param  $index_value
- * @return void
- */
-function ow_index($oid, $index_field, $index_value)
-{
-    // TODO ow_insert(OW_INDEX, $oid, array('field' => $index_field, 'value' => $index_value)); ...
-}
-
-
-/**
- * Low level SQL SELECT helper
- *
- * @param  $domain
- * @param  $cond
- * @param array $params
- * @return void
- */
-function ow_select($domain, $cond, $params = array())
-{
-
-    global $db;
+    global $_domains;
 
     $defaults = array(
-        'fields' => '*',
-        'join' => array(),
-        'order' => '',
-        'acl' => array()
+        'schema' => array(),
+        'handler' => 'DefaultHandler'
     );
 
-    $params = array_merge($defaults, $params);
-
-
-    $query = "select {$params['fields']} from {$domain}";
-
-    if (!empty($params['join'])) {
-        // TODO implementar JOIN
-        foreach(array_keys($params['join']) as $table) {
-            $query .= " inner join $table on $domain.oid = $table.oid";
-        }
-        
-    }
-
-
-    if (!empty($params['acl'])) {
-        // TODO implementar ACL
-        throw new Exception('ACL não implementado');
-    }
-
-
-    if (!empty($cond)) {
-        // TODO usar prepared statements / escape()
-
-        $query .= " where ".implode(" and ", $cond);
-
-    }
-
-
-    if(!empty($params['order'])) {
-        // TODO if is array...
-        $query .= " order by ".$params['order'];
-    }
-
-    //echo $query;
-    $result = $db->query($query);
-
-
-    if($result === FALSE) {
-        throw new Exception($db->error);
-    }
-
-    $results = array();
-    while ($data = $result->fetch_assoc()) {
-        $results[] = $data;
-    }
-
-
-    return $results;
-    
-    // TODO query
-    // TODO se todos podem ler - vai vir o usuário logado até aqui quando ?
-    // porque se passar acl => user, um oid pra todomundo não vai ter essa acl (user)
-    // posso querer pesquisar oid = user, group OR object é PUBLIC
-
-    // Solução (5:31 AM) - SEMPRE vai existir uma permission (everybody/anonymous) ?
-
-    // em ow_acl owner = 0 => todomundo ?
-
-    // dono de um conteúdo não precisa estar no ACL pq ele sempre pode tudo
-    // campo específico do módulo content, não tem porque trazer até aqui
-
-
-
-
+    // TODO validate schema
+    $_domains[$domain_id] = array_merge($defaults, $schema);
 }
 
 
 /**
- * Low level SQL INSERT helper
- *
  * @throws Exception
- * @param  $domain
- * @param  $oid
- * @param  $data
- * @return string
+ * @param  $domain_id
+ * @return Array
  */
-function ow_insert($domain, $oid, $data)
+function get_domain($domain_id)
 {
+    global $_domains;
 
-    global $db;
-
-
-    if ($oid == null) {
-        $oid = uniqid();
+    if (empty($_domains[$domain_id])) {
+        throw new Exception('Invalid domain specified');
     }
 
-    $bind_params = array('');
-    $query_fields = array();
+    return $_domains[$domain_id];
 
-    foreach ($data as $k => $v) {
-
-        if (is_array($v)) { // TODO or is_class/is_object ?
-            $data[$k] = json_encode($v);
-        }
-
-        $query_fields[] = $k;
-        $bind_params[0] .= 's';
-        $bind_params[] = &$data[$k];
-    }
-
-    $query_fields[] = 'oid';
-    $bind_params[0] .= 's';
-    $bind_params[] = &$oid;
-
-
-
-
-    $values = '?';
-    for ($i = 1; $i < count($query_fields); $i++) {
-        $values .= ',?';
-    }
-
-    $query = sprintf("insert into $domain (%s) values (%s)", implode(",", $query_fields), $values);
-
-    $stmt = $db->prepare($query);
-
-
-    if ($stmt === FALSE) throw new Exception($db->error);
-
-    //print_r($bind_params);
-    //print_r($stmt);
-    call_user_func_array(array($stmt, 'bind_param'), $bind_params);
-
-    if ($stmt->execute() === FALSE) throw new Exception($stmt->error);
-
-    $stmt->close();
-
-    return $oid;
 }
-
 
 /**
+ * @brief Generates a Universally Unique IDentifier, version 4.
  *
- * Low level SQL UPDATE helper
+ * This function generates a truly random UUID. The built in CakePHP String::uuid() function
+ * is not cryptographically secure. You should uses this function instead.
  *
- * @throws Exception on database errors
- * @param  $domain - The domain (table) to update
- * @param  $oid - The object's oid
- * @param  $data - Associative Array of updated data
- * @return The object's oid
+ * @see http://tools.ietf.org/html/rfc4122#section-4.4
+ * @see http://en.wikipedia.org/wiki/UUID
+ * @return string A UUID, made up of 32 hex digits and 4 hyphens.
  */
-function ow_update($domain, $oid, $data)
+function ow_oid()
 {
 
-    global $db;
-
-    if (empty($oid)) throw new Exception('OID is required for UPDATEs');
-
-
-    $bind_params = array('');
-    $query_args = array();
-
-
-    foreach ($data as $k => $v) {
-
-        if (is_array($v)) { // TODO or is_class/is_object ?
-            $data[$k] = json_encode($v);
+    $pr_bits = null;
+    $fp = @fopen('/dev/urandom', 'rb');
+    if ($fp !== false) {
+        $pr_bits .= @fread($fp, 16);
+        @fclose($fp);
+    } else {
+        // If /dev/urandom isn't available (eg: in non-unix systems), use mt_rand().
+        $pr_bits = "";
+        for ($cnt = 0; $cnt < 16; $cnt++) {
+            $pr_bits .= chr(mt_rand(0, 255));
         }
-
-        $query_args[] = "$k = ?";
-        $bind_params[0] .= 's';
-        $bind_params[] = &$data[$k];
     }
 
-    $bind_params[0] .= 's';
-    $bind_params[] = &$oid;
+    $time_low = bin2hex(substr($pr_bits, 0, 4));
+    $time_mid = bin2hex(substr($pr_bits, 4, 2));
+    $time_hi_and_version = bin2hex(substr($pr_bits, 6, 2));
+    $clock_seq_hi_and_reserved = bin2hex(substr($pr_bits, 8, 2));
+    $node = bin2hex(substr($pr_bits, 10, 6));
 
+    /**
+     * Set the four most significant bits (bits 12 through 15) of the
+     * time_hi_and_version field to the 4-bit version number from
+     * Section 4.1.3.
+     * @see http://tools.ietf.org/html/rfc4122#section-4.1.3
+     */
+    $time_hi_and_version = hexdec($time_hi_and_version);
+    $time_hi_and_version = $time_hi_and_version >> 4;
+    $time_hi_and_version = $time_hi_and_version | 0x4000;
 
-    $query = sprintf("update $domain set %s where oid = ?", implode(",", $query_args));
+    /**
+     * Set the two most significant bits (bits 6 and 7) of the
+     * clock_seq_hi_and_reserved to zero and one, respectively.
+     */
+    $clock_seq_hi_and_reserved = hexdec($clock_seq_hi_and_reserved);
+    $clock_seq_hi_and_reserved = $clock_seq_hi_and_reserved >> 2;
+    $clock_seq_hi_and_reserved = $clock_seq_hi_and_reserved | 0x8000;
 
-    $stmt = $db->prepare($query);
-
-    //echo $query;
-    if ($stmt === FALSE) throw new Exception($db->error);
-
-    call_user_func_array(array($stmt, 'bind_param'), $bind_params);
-
-    if ($stmt->execute() === FALSE) throw new Exception($stmt->error);
-
-    $stmt->close();
-
-    return $oid;
+    return sprintf('%08s-%04s-%04x-%04x-%012s',
+                   $time_low, $time_mid, $time_hi_and_version, $clock_seq_hi_and_reserved, $node);
 }
 
+// publish/subscribe (may become realtime)
+
+function ow_subscribe($domain, $event, $callback)
+{
+
+    global $_subscriptions;
+
+    // TODO verificar se callback já está in_array ?
+
+    if (empty($_subscriptions["$domain:$event"])) {
+        $_subscriptions["$domain:$event"] = array($callback);
+    }
+    else {
+        $_subscriptions["$domain:$event"][] = $callback;
+    }
+
+}
+
+function ow_trigger($domain, $event, $data)
+{
+    global $_subscriptions;
+
+    foreach (@$_subscriptions["$domain:$event"] as $callback) {
+        call_user_func($_subscriptions["$domain:$event"], $data);
+    }
+
+}
+
+/**
+ * from http://www.php.net/manual/en/function.uniqid.php#94959
+ */
+class UUID
+{
+    public static function v3($namespace, $name)
+    {
+        if (!self::is_valid($namespace)) return false;
+
+        // Get hexadecimal components of namespace
+        $nhex = str_replace(array('-', '{', '}'), '', $namespace);
+
+        // Binary Value
+        $nstr = '';
+
+        // Convert Namespace UUID to bits
+        for ($i = 0; $i < strlen($nhex); $i += 2) {
+            $nstr .= chr(hexdec($nhex[$i] . $nhex[$i + 1]));
+        }
+
+        // Calculate hash value
+        $hash = md5($nstr . $name);
+
+        return sprintf('%08s-%04s-%04x-%04x-%12s',
+
+// 32 bits for "time_low"
+                       substr($hash, 0, 8),
+
+// 16 bits for "time_mid"
+                       substr($hash, 8, 4),
+
+// 16 bits for "time_hi_and_version",
+// four most significant bits holds version number 3
+                       (hexdec(substr($hash, 12, 4)) & 0x0fff) | 0x3000,
+
+// 16 bits, 8 bits for "clk_seq_hi_res",
+// 8 bits for "clk_seq_low",
+// two most significant bits holds zero and one for variant DCE1.1
+                       (hexdec(substr($hash, 16, 4)) & 0x3fff) | 0x8000,
+
+// 48 bits for "node"
+                       substr($hash, 20, 12)
+        );
+    }
+
+    public static function v4()
+    {
+        return sprintf('%04x%04x-%04x-%04x-%04x-%04x%04x%04x',
+
+// 32 bits for "time_low"
+                       mt_rand(0, 0xffff), mt_rand(0, 0xffff),
+
+// 16 bits for "time_mid"
+                       mt_rand(0, 0xffff),
+
+// 16 bits for "time_hi_and_version",
+// four most significant bits holds version number 4
+                       mt_rand(0, 0x0fff) | 0x4000,
+
+// 16 bits, 8 bits for "clk_seq_hi_res",
+// 8 bits for "clk_seq_low",
+// two most significant bits holds zero and one for variant DCE1.1
+                       mt_rand(0, 0x3fff) | 0x8000,
+
+// 48 bits for "node"
+                       mt_rand(0, 0xffff), mt_rand(0, 0xffff), mt_rand(0, 0xffff)
+        );
+    }
+
+    public static function v5($namespace, $name)
+    {
+        if (!self::is_valid($namespace)) return false;
+
+        // Get hexadecimal components of namespace
+        $nhex = str_replace(array('-', '{', '}'), '', $namespace);
+
+        // Binary Value
+        $nstr = '';
+
+        // Convert Namespace UUID to bits
+        for ($i = 0; $i < strlen($nhex); $i += 2) {
+            $nstr .= chr(hexdec($nhex[$i] . $nhex[$i + 1]));
+        }
+
+        // Calculate hash value
+        $hash = sha1($nstr . $name);
+
+        return sprintf('%08s-%04s-%04x-%04x-%12s',
+
+// 32 bits for "time_low"
+                       substr($hash, 0, 8),
+
+// 16 bits for "time_mid"
+                       substr($hash, 8, 4),
+
+// 16 bits for "time_hi_and_version",
+// four most significant bits holds version number 5
+                       (hexdec(substr($hash, 12, 4)) & 0x0fff) | 0x5000,
+
+// 16 bits, 8 bits for "clk_seq_hi_res",
+// 8 bits for "clk_seq_low",
+// two most significant bits holds zero and one for variant DCE1.1
+                       (hexdec(substr($hash, 16, 4)) & 0x3fff) | 0x8000,
+
+// 48 bits for "node"
+                       substr($hash, 20, 12)
+        );
+    }
+
+    public static function is_valid($uuid)
+    {
+        return preg_match('/^\{?[0-9a-f]{8}\-?[0-9a-f]{4}\-?[0-9a-f]{4}\-?' .
+                          '[0-9a-f]{4}\-?[0-9a-f]{12}\}?$/i', $uuid) === 1;
+    }
+}

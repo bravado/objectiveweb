@@ -53,7 +53,7 @@
         editEntry: function(uid) {
 
             console.log('edit');
-            $.getJSON('directory.php?oid=' + uid, function(data) {
+            $.getJSON('/objectiveweb/index.php?domain=directory&oid=' + uid, function(data) {
 
                 viewModel.uid(data.uid);
                 viewModel.cn(data.cn);
@@ -77,7 +77,13 @@
 
             var data = ko.toJSON(viewModel);
 
-            $.post('/objectiveweb/directory.php?oid=' + uiModel.currentOID, data);
+
+
+            $.ajax('/objectiveweb/index.php?domain=directory&oid='+ uiModel.currentOID, {
+                data: data,
+                dataType: 'json',
+                type: 'PUT'
+            });
         }
 
     };
@@ -88,7 +94,7 @@
 
 
     jQuery(function($) {
-        $.getJSON('/objectiveweb/directory.php', function(data) {
+        $.getJSON('/objectiveweb/index.php?domain=directory', function(data) {
 
             uiModel.entries(data);
     })

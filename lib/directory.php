@@ -3,7 +3,7 @@
  * ObjectiveWeb
  *
  * Directory Library
- * 
+ *
  * User: guigouz
  * Date: 14/04/11
  * Time: 01:05
@@ -12,6 +12,18 @@
 
 defined('OW_DIRECTORY') or define('OW_DIRECTORY', 'ow_directory');
 
+register_domain('directory', array(
+                                  'schema' => array(
+                                      OW_DIRECTORY => array(
+                                          'uid',
+                                          'cn'
+                                      )
+                                  )
+
+
+                             ));
+
+
 $SCHEMA = array("user" => array());
 
 /**
@@ -19,12 +31,13 @@ $SCHEMA = array("user" => array());
  * @param null $schema If specified, restricts the list to this schema
  * @return void
  */
-function directory_fetch($schema = null) {
+function directory_fetch($schema = null)
+{
 
     global $SCHEMA;
 
     $join = array();
-    if($schema) {
+    if ($schema) {
         $join = $SCHEMA[$schema]['join'];
     }
 
@@ -32,25 +45,27 @@ function directory_fetch($schema = null) {
 }
 
 
-function directory_update($oid, $attrs, $schema = null) {
+function directory_update($oid, $attrs, $schema = null)
+{
 
     $entry = directory_get($oid);
 
-    if(!$entry) {
+    if (!$entry) {
         throw new Exception('Trying to update unknown entry. Were you trying to create one ?');
     }
-    
-    
+
+
     return directory_write($oid, $attrs, $schema);
-    
+
 }
 
 
-function directory_add($attrs, $schema = null) {
+function directory_add($attrs, $schema = null)
+{
 
-    if(!empty($attrs['oid'])) {
-            throw new Exception("You can't specify an OID when adding");
-        }
+    if (!empty($attrs['oid'])) {
+        throw new Exception("You can't specify an OID when adding");
+    }
 
     return directory_write(null, $attrs, $schema);
 }
@@ -67,14 +82,15 @@ function directory_add($attrs, $schema = null) {
  *
  * @return void
  */
-function directory_write($oid, $attrs, $schema = null) { // TODO como vai ficar o JOIN aqui?
+function directory_write($oid, $attrs, $schema = null)
+{ // TODO como vai ficar o JOIN aqui?
 
     global $SCHEMA;
 
     // TODO validation baseada no schema
 
     $params = array();
-    if($schema) {
+    if ($schema) {
         $params['join'] = $SCHEMA[$schema]['join'];
 
     }
@@ -87,21 +103,22 @@ function directory_write($oid, $attrs, $schema = null) { // TODO como vai ficar 
 }
 
 
-function directory_get($oid, $schema = null) {
+function directory_get($oid, $schema = null)
+{
 
     global $SCHEMA;
 
-    $cond = array(OW_DIRECTORY.".oid = '$oid'");
+    $cond = array(OW_DIRECTORY . ".oid = '$oid'");
 
     $params = array();
 
-    if($schema) {
+    if ($schema) {
         $params['join'] = $SCHEMA[$schema]['join'];
     }
 
     $data = ow_select(OW_DIRECTORY, $cond, $params);
 
-    if(!empty($data)) {
+    if (!empty($data)) {
 
         return $data[0];
     }
@@ -110,11 +127,13 @@ function directory_get($oid, $schema = null) {
     }
 }
 
-function directory_rename($old_uid, $new_uid) {
+function directory_rename($old_uid, $new_uid)
+{
 
 }
 
-function directory_delete($object, $join = array()) {
+function directory_delete($object, $join = array())
+{
     // TODO ow_delete
 }
 

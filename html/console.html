@@ -1,0 +1,109 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN"
+        "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head>
+    <title></title>
+</head>
+<body>
+<p>
+    <button data-bind="click: createObject">Create</button>
+    <button data-bind="click: get">Load</button>
+    <button data-bind="click: write">Update</button>
+</p>
+
+
+<p>Domain
+    <select data-bind="value: schema">
+        <option value="directory">Directory</option>
+        <option value="content">Content</option>
+
+    </select>
+</p>
+<p>OID <input type="text" id="oid" data-bind="value: oid"/></p>
+
+<p><textarea id="editor" rows="10" cols="50" data-bind="value: data"/></p>
+
+<div id="response"></div>
+<script type="text/javascript">
+    var ow = {
+
+        get: function(domain, oid) {
+            $.ajax('/objectiveweb/index.php', {
+                type: 'GET',
+                dataType: 'text',
+                data: { domain: domain, oid: oid },
+                success: function(data) {
+                    $('#editor').val(data);
+                },
+                error: alert
+
+
+            });
+        },
+        create: function(domain, data) {
+
+            data.oid = null;
+
+            $.ajax('/objectiveweb/index.php?domain=' + domain, {
+                type: 'POST',
+                dataType: 'json',
+                data: data,
+                success: function(data) {
+                    $('#oid').text(data.oid);
+                },
+                error: alert
+
+
+            });
+        },
+        write: function(domain, oid, data) {
+            $.ajax('/objectiveweb/index.php?domain=' + domain + '&oid=' + oid, {
+                type: 'PUT',
+                dataType: 'json',
+                data: data,
+                success: function(data) {
+                    $('#response').text(data);
+                },
+                error: alert
+
+            });
+        },
+        'delete': function(domain, oid) {
+            $.ajax('/objectiveweb/index.php?domain=' + domain + '&oid=' + oid, {
+                type: 'DELETE',
+                dataType: 'json',
+                data: '{ "oid" : "' + oid + '" }',
+                success: function(data) {
+                    $('#response').text(data);
+                },
+                error: alert
+
+            });
+        }
+    };
+    var viewModel = {
+
+        oid: ko.observable(),
+        data: ko.observable(),
+        schema: ko.observable(),
+
+        createObject: function() {
+            ow.create(viewModel.schema(), viewModel.data());
+
+        },
+        get: function() {
+            ow.get(viewModel.schema(), viewModel.oid());
+        },
+        write: function() {
+            ow.write(viewModel.schema(), viewModel.oid(), viewModel.data());
+        }
+
+    };
+
+
+    //ko.applyBindings(uiModel, 'ui');
+    ko.applyBindings(viewModel);
+
+</script>
+</body>
+</html>
