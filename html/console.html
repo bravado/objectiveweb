@@ -49,7 +49,7 @@
                 dataType: 'json',
                 data: data,
                 success: function(data) {
-                    $('#oid').text(data.oid);
+                    viewModel.oid(data.oid);
                 },
                 error: alert
 

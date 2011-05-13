@@ -65,7 +65,15 @@ function get_domain($domain_id)
         throw new Exception('Invalid domain specified');
     }
 
-    return $_domains[$domain_id];
+    // TODO verificar permissões do domínio (execute/access)
+    // TODO default permissão todomundo é ACCESS
+
+
+    if(empty($_domains[$domain_id]['instance'])) {
+        $_domains[$domain_id]['instance'] = new $_domains[$domain_id]['driver']($domain_id, $_domains[$domain_id]);
+    }
+
+    return $_domains[$domain_id]['instance'];
 
 }
 

@@ -9,17 +9,24 @@
  * Time: 19:27
  */
 
-include "_init.php";
+try {
+    include "_init.php";
+}
+catch (Exception $ex) {
+    header('HTTP/1.0 500 Internal Server Error');
+    exit(json_encode(array("error" => $ex->getMessage())));
+}
 
-
+// default GET parameters
 $defaults = array(
     'domain' => 'content');
 
-
 $params = array_merge($defaults, $_GET);
 
-header('Content-type: application/json');
 
+$domain = get_domain($params['domain']);
+
+header('Content-type: application/json');
 
 switch ($_SERVER['REQUEST_METHOD']) {
     case 'POST':
@@ -28,8 +35,10 @@ switch ($_SERVER['REQUEST_METHOD']) {
         }
 
         try {
+
             $data = json_decode(file_get_contents('php://input'), true);
-            $oid = ow_create($params['domain'], $data);
+
+            $oid = $domain->create($data);
 
             respond(array('oid' => $oid));
         }
@@ -40,11 +49,11 @@ switch ($_SERVER['REQUEST_METHOD']) {
         break;
     case 'GET':
         if (empty($params['oid'])) {
-            $results = ow_fetch($params['domain']);
+            $results = $domain->fetch();
             echo json_encode($results);
         }
         else {
-            $object = ow_get($params['domain'], $params['oid']);
+            $object = $domain->get($params['oid']);
 
             if (!$object) {
                 respond(array('error' => "Object not found"), 404);
@@ -62,7 +71,7 @@ switch ($_SERVER['REQUEST_METHOD']) {
 
             try {
                 $data = json_decode(file_get_contents('php://input'), true);
-                ow_write($params['domain'], $params['oid'], $data);
+                $domain->write($params['oid'], $data);
             }
             catch (Exception $ex) {
                 respond(array('error' => $ex->getMessage()), $ex->getCode());
@@ -76,7 +85,7 @@ switch ($_SERVER['REQUEST_METHOD']) {
 
         try {
             $data = json_decode(file_get_contents('php://input'), true);
-            ow_delete($params['domain'], $data['oid']);
+            $domain->delete($data['oid']);
         }
         catch(Exception $ex) {
             respond(array('error' => $ex->getMessage()), $ex->getCode());

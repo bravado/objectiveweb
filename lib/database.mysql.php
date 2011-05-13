@@ -18,49 +18,179 @@ $db = new mysqli(MYSQL_HOST, MYSQL_USER, MYSQL_PASS, MYSQL_DB);
 if ($db === FALSE) {
     throw new Exception($db->error);
 }
-// TODO tratar erro de conexão de db e devolver headers e mensagem certas (protocolo)
-// Algo como send_error(new Exception($db->error));
 
 $db->set_charset(DB_CHARSET);
 
+class MysqlDomain
+{
+    var $domain;
+    var $params;
+
+    function MysqlDomain($domain, $params)
+    {
+        $this->domain = $domain;
+        $this->params = $params;
+    }
+
+    /**
+     * Retrieves an object from a domain given its OID
+     *
+     * @param  $domain
+     * @param  $oid
+     * @param array $params
+     * @return void
+     */
+    function get($oid)
+    {
+        // ACL é tratada dentro de fetch
+        $object = $this->fetch(array(OW_OBJECTS . ".oid = '$oid'"));
+
+        if ($object) {
+            return $object[0];
+        }
+        else {
+            return null;
+        }
+    }
+
+
+    function fetch($cond = array())
+    {
+        // TODO tratar ACL CURRENT USER
+
+        $params = array(
+            'acl' => array()
+        );
+
+        $params = array_merge($this->params, $params);
+
+        return ow_select($cond, $params);
+    }
+
+
+    /**
+     * Creates a new Object on a domain
+     *
+     * @param string $domain The target domain
+     * @param null $data The object's data
+     * @return string|The object's new oid.
+     */
+    function create($data = null, $metadata = array())
+    {
+        $current_user = current_user();
+
+        // TODO de alguma forma tenho que saber quem está logado!
+        // este arquivo inteiro é um driver
+
+        // TODO só ROOT pode definir OWNER
+
+        // TODO pode ter mais metadados, como created, ip de origem, etc
+        $defaults = array(
+            'acl' => array($current_user['oid'] => 1)
+        );
+
+        $metadata = array_merge($defaults, $metadata);
+
+        $oid = ow_oid();
+        ow_insert(OW_OBJECTS, array('oid' => $oid));
+
+
+        foreach ($this->params['tables'] as $table => $fields) {
+
+            $schema_data = array();
+
+            foreach ($fields as $field) {
+
+                if (!empty($data[$field])) {
+                    $schema_data[$field] = $data[$field];
+                }
+            }
+
+            if (!empty($schema_data)) {
+                $schema_data['oid'] = $oid;
+                ow_insert($table, $schema_data);
+            }
+        }
+
+        if (!empty($metadata['acl'])) {
+            ow_acl($oid, $metadata['acl']);
+        }
+
+        return $oid;
+    }
+
+    /**
+     * Writes data to an existing object
+     * @param  $oid
+     * @param Array $data
+     * @param Array $metadata
+     * @return array The changed data
+     */
+    function write($oid, $data, $metadata = array())
+    {
+
+        $current_user = current_user();
+
+        // TODO verificar se pode atualizar este oid
+
+        // TODO campos da tabela OW_OBJECTS (todo mundo extende object, é obrigatório
+
+        // TODO default acls devem vir do SCHEMA (db)
+
+        // TODO OW_SCHEMA É UM DOMAIN (MySQL)
+
+        // TODO OW_ACL É UM DOMAIN (MySQL)
+
+        foreach ($this->params['tables'] as $table => $fields) {
+
+            $schema_data = array();
+
+            foreach ($fields as $field) {
+
+                if (!empty($data[$field])) {
+                    $schema_data[$field] = $data[$field];
+                }
+            }
+
+            if (!empty($schema_data)) {
+                ow_update($table, $oid, $schema_data);
+            }
+        }
+
+
+        if (!empty($metadata['acl'])) {
+            foreach ($metadata['acl'] as $acl_oid => $acl_flags) {
+                ow_acl($oid, $acl_oid, $acl_flags);
+            }
+        }
+
+
+        if (!empty($params['index'])) {
+            foreach ($params['index'] as $index_field) {
+                if (!empty($data[$index_field])) {
+                    ow_index($oid, $index_field, $data[$index_field]);
+                }
+
+            }
+        }
+
+        // if versioning is on
+        if ($params['versioning']) {
+            ow_insert(OW_VERSION, array('oid' => $oid, 'content' => $data, 'metadata' => $metadata));
+        }
+
+        return $oid;
+    }
+
+
+    function delete($oid) {
+        // TODO Implementar DELETE excluindo o OID de todas as tabelas (até OW_OBJECTS)
+        throw new Exception('DELETE não implementado');
+    }
+}
+
+
 // Filesystem
-
-/**
- * Retrieves an object from a domain given its OID
- *
- * @param  $domain
- * @param  $oid
- * @param array $params
- * @return void
- */
-function ow_get($domain, $oid)
-{
-    // ACL é tratada dentro de fetch
-    $object = ow_fetch($domain, array(OW_OBJECTS.".oid = '$oid'"));
-
-    if ($object) {
-        return $object[0];
-    }
-    else {
-        return null;
-    }
-}
-
-
-function ow_fetch($domain, $cond = array())
-{
-    // TODO tratar ACL CURRENT USER
-
-    $params = array(
-        'acl' => array()
-    );
-
-    $params = array_merge(get_domain($domain), $params);
-
-    return ow_select($cond, $params);
-}
-
-
 /**
  * Manipulates an object's Access Control List
  *
@@ -70,7 +200,7 @@ function ow_fetch($domain, $cond = array())
  */
 function ow_acl($oid, $acl = null)
 {
-    if($acl) {
+    if ($acl) {
         ow_delete(OW_ACL, $oid);
 
         foreach ($acl as $owner => $permission) {
@@ -81,126 +211,6 @@ function ow_acl($oid, $acl = null)
         }
     }
 }
-
-/**
- * Creates a new Object on a domain
- *
- * @param string $domain The target domain
- * @param null $data The object's data
- * @return string|The object's new oid.
- */
-function ow_create($domain, $data = null, $metadata = array())
-{
-    $current_user = current_user();
-
-    // TODO de alguma forma tenho que saber quem está logado!
-    // este arquivo inteiro é um driver
-
-    // TODO só ROOT pode definir OWNER
-
-    // TODO pode ter mais metadados, como created, ip de origem, etc
-    $defaults = array(
-        'acl' => array('owner' => $current_user['oid'])
-    );
-
-    $metadata = array_merge($defaults, $metadata);
-
-    $oid = ow_oid();
-    ow_insert(OW_OBJECTS, array('schema' => $domain, 'oid' => $oid));
-
-    $params = get_domain($domain);
-    
-    foreach ($params['schema'] as $table => $fields) {
-
-        $schema_data = array();
-
-        foreach ($fields as $field) {
-
-            if (!empty($data[$field])) {
-                $schema_data[$field] = $data[$field];
-            }
-        }
-
-        if(!empty($schema_data)) {
-            $schema_data['oid'] = $oid;
-            ow_insert($table, $schema_data);
-        }
-
-
-
-    }
-
-    if(!empty($metadata['acl'])) {
-        ow_acl($oid, $metadata['acl']);
-    }
-
-    return $oid;
-}
-
-
-/**
- * Writes new data to an existing object
- * @param  $domain
- * @param  $oid
- * @param null $data
- * @return array The changed data
- */
-function ow_write($domain, $oid, $data = null, $metadata = array())
-{
-
-    $current_user = 'anonymous';
-
-    $defaults = array(
-        'oid' => uniqid(),
-        'owner' => $current_user
-    );
-
-    $metadata = array_merge($defaults, $metadata);
-
-    $params = get_domain($domain);
-
-    foreach ($params['schema'] as $table => $fields) {
-
-        $schema_data = array();
-
-        foreach ($fields as $field) {
-
-            if (!empty($data[$field])) {
-                $schema_data[$field] = $data[$field];
-                unset($data[$field]);
-            }
-        }
-
-        if (!empty($schema_data)) {
-            ow_update($table, $oid, $schema_data);
-        }
-    }
-
-
-    if (!empty($metadata['acl'])) {
-        foreach ($metadata['acl'] as $acl_oid => $acl_flags) {
-            ow_acl($oid, $acl_oid, $acl_flags);
-        }
-    }
-
-
-    if (!empty($params['index'])) {
-        foreach ($params['index'] as $index_field) {
-            if (!empty($data[$index_field])) {
-                ow_index($oid, $index_field, $data[$index_field]);
-            }
-
-        }
-    }
-
-    // if versioning is on
-    if ($params['versioning']) {
-        ow_insert(OW_VERSION, array('oid' => $oid, 'content' => json_encode($data)));
-    }
-
-    return $oid;
-}
-
 
 
 /**
@@ -216,9 +226,11 @@ function ow_select($cond, $params = array())
 
     global $db;
 
+    // TODO rever params, não deveria passar o tables aqui ?
+    // esse cara realmente sabe demais...
     $defaults = array(
         'fields' => '*',
-        'schema' => array(),
+        'tables' => array(),
         'order' => '',
         'acl' => array(),
         'iDisplayStart' => false,
@@ -230,8 +242,8 @@ function ow_select($cond, $params = array())
 
     $query = "select {$params['fields']} from " . OW_OBJECTS;
 
-    foreach (array_keys($params['schema']) as $joined) {
-        $query .= " inner join $joined on " .OW_OBJECTS .".oid = $joined.oid";
+    foreach (array_keys($params['tables']) as $joined) {
+        $query .= " inner join $joined on " . OW_OBJECTS . ".oid = $joined.oid";
     }
 
     if (!empty($params['acl'])) {
@@ -306,7 +318,7 @@ function ow_insert($domain, $data)
     global $db;
 
 
-    if(empty($data)) {
+    if (empty($data)) {
         respond(array("error" => 'Trying to write nothing'), 405);
     }
     $bind_params = array('');
@@ -403,26 +415,42 @@ function ow_update($domain, $oid, $data)
     return $oid;
 }
 
-function ow_delete($domain, $oid)
-{
-    global $db;
+function ow_delete($table, $oid)
+    {
+        global $db;
 
-    // TODO suportar array de condições em $oid, juntar com AND
+        // TODO suportar array de condições em $oid, juntar com AND
 
-    $bind_params = array('s', &$oid);
+        $bind_params = array('s', &$oid);
 
-    $stmt = $db->prepare("delete from $domain where oid = ?");
+        $stmt = $db->prepare("delete from $table where oid = ?");
 
-    //echo $query;
-    if ($stmt === FALSE) throw new Exception($db->error, 500);
+        //echo $query;
+        if ($stmt === FALSE) throw new Exception($db->error, 500);
 
-    call_user_func_array(array($stmt, 'bind_param'), $bind_params);
+        call_user_func_array(array($stmt, 'bind_param'), $bind_params);
 
-    if ($stmt->execute() === FALSE) throw new Exception($stmt->error, 500);
+        if ($stmt->execute() === FALSE) throw new Exception($stmt->error, 500);
 
-    $stmt->close();
+        $stmt->close();
 
-}
+    }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -448,8 +476,6 @@ function ow_search($domain, $cond, $params = array())
 
     // TODO SELECT FROM ow_index ... inner join domain (se tiver)
 }
-
-
 
 
 /**

@@ -13,7 +13,12 @@
 defined('OW_DIRECTORY') or define('OW_DIRECTORY', 'ow_directory');
 
 register_domain('directory', array(
+                                  'driver' => 'MysqlDomain',
                                   'schema' => array(
+                                      'uid' => array(),
+                                      'cn' => array()
+                                  ),
+                                  'tables' => array(
                                       OW_DIRECTORY => array(
                                           'uid',
                                           'cn'
