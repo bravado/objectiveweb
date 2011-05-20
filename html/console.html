@@ -13,16 +13,23 @@
 
 
 <p>Domain
-    <select data-bind="value: schema">
+    <select data-bind="value: domain">
+        <option value="apps">Apps</option>
         <option value="directory">Directory</option>
+        <option value="pacote">Pacotes</option>
         <option value="content">Content</option>
-
     </select>
 </p>
 <p>OID <input type="text" id="oid" data-bind="value: oid"/></p>
 
 <p><textarea id="editor" rows="10" cols="50" data-bind="value: data"/></p>
 
+<p>Meta Key <input type="text" data-bind="value: meta_key"/>
+    <button data-bind="click: get_meta">Get</button>
+</p>
+<p>Meta Value <input type="text" data-bind="value: meta_value"/>
+    <button data-bind="click: set_meta">Set</button>
+</p>
 <div id="response"></div>
 <script type="text/javascript">
     var ow = {
@@ -56,6 +63,45 @@
 
             });
         },
+        meta: function(meta_key, meta_value) {
+
+            if (meta_value != undefined) {
+
+                $.ajax('/objectiveweb/index.php?domain=' + viewModel.domain() + '&oid=' + viewModel.oid(), {
+                    type: 'POST',
+                    dataType: 'json',
+                    data: ko.toJSON({ meta_key: meta_key, meta_value: meta_value }),
+                    success: function(data) {
+
+                    },
+                    error: alert
+
+
+                });
+
+
+            }
+            else {
+                $.ajax('/objectiveweb/index.php?domain=' + viewModel.domain() + '&oid=' + viewModel.oid() + '&meta=' + meta_key, {
+                    type: 'GET',
+                    dataType: 'json',
+                    success: function(data) {
+                        if (data) {
+
+                            viewModel.meta_key(data.meta_key)
+                            viewModel.meta_value(data.meta_value)
+
+                        }
+                    },
+                    error: alert
+
+
+                });
+            }
+            data.oid = null;
+
+
+        },
         write: function(domain, oid, data) {
             $.ajax('/objectiveweb/index.php?domain=' + domain + '&oid=' + oid, {
                 type: 'PUT',
@@ -85,24 +131,34 @@
 
         oid: ko.observable(),
         data: ko.observable(),
-        schema: ko.observable(),
-
+        domain: ko.observable(),
+        meta_key: ko.observable(),
+        meta_value: ko.observable(),
         createObject: function() {
-            ow.create(viewModel.schema(), viewModel.data());
-
+            ow.create(viewModel.domain(), viewModel.data());
         },
         get: function() {
-            ow.get(viewModel.schema(), viewModel.oid());
+            ow.get(viewModel.domain(), viewModel.oid());
         },
         write: function() {
-            ow.write(viewModel.schema(), viewModel.oid(), viewModel.data());
+            ow.write(viewModel.domain(), viewModel.oid(), viewModel.data());
+        },
+        set_meta: function() {
+            ow.meta(viewModel.meta_key(), viewModel.meta_value);
+        },
+        get_meta: function() {
+            ow.meta(viewModel.meta_key());
         }
-
     };
 
 
+    var metaModel = {
+
+    }
+
     //ko.applyBindings(uiModel, 'ui');
     ko.applyBindings(viewModel);
+    ko.applu
 
 </script>
 </body>

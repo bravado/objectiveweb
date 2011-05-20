@@ -14,7 +14,7 @@ define('OW_LIB', OW_ROOT.'/lib');
 
 define('ROOT', dirname(OW_ROOT));
 
-require_once ROOT.'/config.php';
+require_once ROOT.'/ow-config.php';
 
 require_once OW_LIB.'/core.php';
 require_once OW_LIB.'/directory.php';

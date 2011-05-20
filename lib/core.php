@@ -12,16 +12,12 @@
 global $_domains;
 
 // Default db config
-defined('DATABASE_PROVIDER') or define('DATABASE_PROVIDER', dirname(__FILE__) . '/database.mysql.php');
+// TODO although this is somehow modular, there is NO SUPPORT for other databases yet
+// THIS MUST BE REVIEWED WHEN ALL THE CORE FEATURES ARE WELL DEFINED
+defined('DATABASE_PROVIDER') or define('DATABASE_PROVIDER', dirname(__FILE__) . '/drivers/mysql.php');
 defined('DB_CHARSET') or define('DB_CHARSET', 'utf8');
 
-// Database Tables
-defined('OW_OBJECTS') or define('OW_OBJECTS', 'ow_objects');
-defined('OW_INDEX') or define('OW_INDEX', 'ow_index');
-defined('OW_VERSION') or define('OW_VERSION', 'ow_version');
-defined('OW_LINKS') or define('OW_LINKS', 'ow_links');
-defined('OW_ACL') or define('OW_ACL', 'ow_acl');
-defined('OW_SEQUENCE') or define('OW_SEQUENCE', 'ow_sequence');
+
 
 require_once DATABASE_PROVIDER;
 
@@ -29,6 +25,9 @@ require_once DATABASE_PROVIDER;
 $_domains = array();
 $_subscriptions = array();
 
+
+// CORE domains
+register_domain('apps');
 
 // TODO register dynamic domains (on the database)
 
@@ -38,38 +37,40 @@ $_subscriptions = array();
 // mas desta forma, poderia existir um outro DIRECTORY_PROVIDER
 
 
-function register_domain($domain_id, $schema = array())
+function register_domain($domain_id, $params = array())
 {
     global $_domains;
 
     $defaults = array(
         'schema' => array(),
+        'driver' => 'MysqlDriver', // TODO review the mysql dependency for the core components (single config for all ?)
         'handler' => 'DefaultHandler'
     );
 
     // TODO validate schema
-    $_domains[$domain_id] = array_merge($defaults, $schema);
+    $_domains[$domain_id] = array_merge($defaults, $params);
 }
 
 
 /**
  * @throws Exception
  * @param  $domain_id
- * @return Array
+ * @return MysqlDriver
  */
 function get_domain($domain_id)
 {
     global $_domains;
 
     if (empty($_domains[$domain_id])) {
-        throw new Exception('Invalid domain specified');
+        throw new Exception(_('Domain not found'), 404);
     }
 
     // TODO verificar permissões do domínio (execute/access)
     // TODO default permissão todomundo é ACCESS
 
 
-    if(empty($_domains[$domain_id]['instance'])) {
+    if (empty($_domains[$domain_id]['instance'])) {
+        // TODO verificar se class existe
         $_domains[$domain_id]['instance'] = new $_domains[$domain_id]['driver']($domain_id, $_domains[$domain_id]);
     }
 
@@ -79,9 +80,6 @@ function get_domain($domain_id)
 
 /**
  * @brief Generates a Universally Unique IDentifier, version 4.
- *
- * This function generates a truly random UUID. The built in CakePHP String::uuid() function
- * is not cryptographically secure. You should uses this function instead.
  *
  * @see http://tools.ietf.org/html/rfc4122#section-4.4
  * @see http://en.wikipedia.org/wiki/UUID
@@ -248,11 +246,11 @@ class UUID
 
         return sprintf('%08s-%04s-%04x-%04x-%12s',
 
-// 32 bits for "time_low"
-                       substr($hash, 0, 8),
 
-// 16 bits for "time_mid"
-                       substr($hash, 8, 4),
+                       substr($hash, 0, 8),// 32 bits for "time_low"
+
+
+                       substr($hash, 8, 4),// 16 bits for "time_mid"
 
 // 16 bits for "time_hi_and_version",
 // four most significant bits holds version number 5
@@ -272,5 +270,13 @@ class UUID
     {
         return preg_match('/^\{?[0-9a-f]{8}\-?[0-9a-f]{4}\-?[0-9a-f]{4}\-?' .
                           '[0-9a-f]{4}\-?[0-9a-f]{12}\}?$/i', $uuid) === 1;
+    }
+}
+
+// Internationalization fallback (no internationalization)
+if (!function_exists('_')) {
+    function _($string)
+    {
+        return $string;
     }
 }

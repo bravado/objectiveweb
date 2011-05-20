@@ -9,86 +9,95 @@
  * Time: 19:27
  */
 
-try {
-    include "_init.php";
-}
-catch (Exception $ex) {
-    header('HTTP/1.0 500 Internal Server Error');
-    exit(json_encode(array("error" => $ex->getMessage())));
-}
+header('Content-type: application/json');
+
+// Load ObjectiveWeb
+require_once "_init.php";
 
 // default GET parameters
 $defaults = array(
+    'oid' => false,
+    'meta' => false,
     'domain' => 'content');
-
 $params = array_merge($defaults, $_GET);
 
+try {
+    $domain = get_domain($params['domain']);
 
-$domain = get_domain($params['domain']);
 
-header('Content-type: application/json');
-
-switch ($_SERVER['REQUEST_METHOD']) {
-    case 'POST':
-        if (!empty($params['oid'])) {
-            respond(array('error' => 'URL Parameters not allowed here'), 405);
-        }
-
-        try {
+    switch ($_SERVER['REQUEST_METHOD']) {
+        case 'POST':
 
             $data = json_decode(file_get_contents('php://input'), true);
+
+            // Add metadata
+            if ($params['oid']) {
+
+                $meta = $domain->meta($params['oid'], $data['meta_key'], $data['meta_value']);
+
+                respond($meta);
+
+            }
+
 
             $oid = $domain->create($data);
 
             respond(array('oid' => $oid));
-        }
-        catch (Exception $ex) {
-            respond(array('error' => $ex->getMessage()), $ex->getCode());
-        }
 
-        break;
-    case 'GET':
-        if (empty($params['oid'])) {
-            $results = $domain->fetch();
-            echo json_encode($results);
-        }
-        else {
-            $object = $domain->get($params['oid']);
+            break;
+        case 'GET':
+            if ($params['oid']) {
 
-            if (!$object) {
-                respond(array('error' => "Object not found"), 404);
+                // TODO verificar permissão de leitura deste objeto
+                $object = $domain->get($params['oid']);
+
+                if (!$object) {
+                    respond(array('error' => "Object not found"), 404);
+                }
+
+                if ($params['meta']) {
+                    $meta = $domain->meta($params['oid'], $params['meta']);
+                    respond($meta);
+                }
+                else {
+                    respond($object);
+                }
+
             }
             else {
-                respond($object);
+                // TODO verificar permissão de listagem (x) do dominio
+                $results = $domain->fetch();
+                echo json_encode($results);
             }
-        }
-        break;
-    case 'PUT':
-        if (empty($params['oid'])) {
-            respond(array('error' => 'Invalid OID'), 405);
-        }
-        else {
-
-            try {
+            break;
+        case 'PUT':
+            if ($params['oid']) {
                 $data = json_decode(file_get_contents('php://input'), true);
                 $domain->write($params['oid'], $data);
             }
-            catch (Exception $ex) {
-                respond(array('error' => $ex->getMessage()), $ex->getCode());
+            else {
+                respond(array('error' => 'Invalid OID'), 405);
             }
-        }
-        break;
-    case 'DELETE':
-        if (!empty($params['oid'])) {
-            respond(array('error' => 'URL Parameters not allowed here'), 405);
-        }
+            break;
+        case 'DELETE':
+            if ($params['oid']) {
+                respond(array('error' => 'URL Parameters not allowed here'), 405);
+            }
 
-        try {
+
             $data = json_decode(file_get_contents('php://input'), true);
+
+
+            // TODO verificar se tem permissão de DELETE neste objeto
             $domain->delete($data['oid']);
-        }
-        catch(Exception $ex) {
-            respond(array('error' => $ex->getMessage()), $ex->getCode());
-        }
-        break;
+            break;
+    }
+
+
 }
+catch (Exception $ex) {
+    respond(array('error' => $ex->getMessage()), $ex->getCode());
+}
+
+
+
