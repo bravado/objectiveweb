@@ -24,7 +24,6 @@ $params = array_merge($defaults, $_GET);
 try {
     $domain = get_domain($params['domain']);
 
-
     switch ($_SERVER['REQUEST_METHOD']) {
         case 'POST':
 
@@ -32,14 +31,16 @@ try {
 
             // Add metadata
             if ($params['oid']) {
-
+                // TODO verificar permissão do objeto
                 $meta = $domain->meta($params['oid'], $data['meta_key'], $data['meta_value']);
 
                 respond($meta);
-
             }
 
+            // TODO verificar permissão para criação de objetos
 
+
+            // TODO passar o owner (current_user)
             $oid = $domain->create($data);
 
             respond(array('oid' => $oid));

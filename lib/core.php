@@ -37,14 +37,15 @@ register_domain('apps');
 // mas desta forma, poderia existir um outro DIRECTORY_PROVIDER
 
 
+
+
 function register_domain($domain_id, $params = array())
 {
     global $_domains;
 
     $defaults = array(
         'schema' => array(),
-        'driver' => 'MysqlDriver', // TODO review the mysql dependency for the core components (single config for all ?)
-        'handler' => 'DefaultHandler'
+        'driver' => 'MysqlDriver' // TODO review the mysql dependency for the core components (single config for all ?)
     );
 
     // TODO validate schema

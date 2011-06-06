@@ -16,6 +16,7 @@ define('ROOT', dirname(OW_ROOT));
 
 require_once ROOT.'/ow-config.php';
 
+require_once OW_LIB.'/classes.php';
 require_once OW_LIB.'/core.php';
 require_once OW_LIB.'/directory.php';
 require_once OW_LIB.'/content.php';
