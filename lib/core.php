@@ -11,12 +11,14 @@
 
 global $_domains;
 
+define('OBJECTIVEWEB_VERSION', '0.1');
+
+
 // Default db config
 // TODO although this is somehow modular, there is NO SUPPORT for other databases yet
 // THIS MUST BE REVIEWED WHEN ALL THE CORE FEATURES ARE WELL DEFINED
 defined('DATABASE_PROVIDER') or define('DATABASE_PROVIDER', dirname(__FILE__) . '/drivers/mysql.php');
 defined('DB_CHARSET') or define('DB_CHARSET', 'utf8');
-
 
 
 require_once DATABASE_PROVIDER;
