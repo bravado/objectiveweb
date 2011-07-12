@@ -9,12 +9,111 @@
  * Time: 19:27
  */
 
-header('Content-type: application/json');
-
 // Load ObjectiveWeb
 require_once "_init.php";
 
+// Parse the request
+$pattern = '/\/?(\w*)\/?([-\w]*)?\/?(.*)?/';
 
+preg_match($pattern, $_SERVER['PATH_INFO'], $request);
+
+// $request[0] = full path
+// $request[1] = domain
+// $request[2] = id
+// $request[3] = attachment
+//print_r($request);
+try {
+
+    // /domain/id ou /domain/id/attachment
+    if ($request[2]) {
+
+        $domain = get_domain($request[1]);
+
+        // TODO verificar permissão de domain
+
+        $object = $domain->get($request[2]);
+
+        if (!$object) {
+            respond(array('error' => 'not_found', 'reason' => 'missing'), 404);
+        }
+        else {
+
+            // TODO verificar permissão de $object
+
+
+            if ($request[3]) { // /domain/id/attachment
+                throw new Exception('Attachments Not implemented', 500);
+            }
+            else {
+                switch ($_SERVER['REQUEST_METHOD']) {
+
+                    case 'GET':
+                        respond($object);
+                        break;
+                    case 'POST':
+                        // TODO implementar anexos
+
+                    case 'PUT':
+                        $data = parse_post_body();
+                        $domain->write($request[2], $data);
+
+                    
+                        break;
+                    default:
+                        throw new Exception(_('Method not allowed'), 405);
+                        break;
+                }
+            }
+
+        }
+    }
+    // /domain
+    elseif ($request[1]) {
+
+
+        switch ($_SERVER['REQUEST_METHOD']) {
+            case 'GET':
+                $domain = get_domain($request[1]);
+                // TODO verificar ACLs
+                respond($domain->fetch($_GET));
+                break;
+            case 'POST':
+                $domain = get_domain($request[1]);
+                // TODO verificar ACLS
+
+                $data = parse_post_body();
+
+                $oid = $domain->create($data);
+                    
+                respond(array("ok" => true, "_id" => $oid));
+                break;
+            default:
+                throw new Exception(_('Method not allowed'), 405);
+                break;
+        }
+    }
+    else {
+        switch ($_SERVER['REQUEST_METHOD']) {
+
+            case 'GET':
+                respond(array('objectiveweb' => 'welcome', 'version' => OBJECTIVEWEB_VERSION));
+                break;
+            case 'POST':
+                throw new Exception('Not implemented', 500);
+                break;
+            default:
+                throw new Exception(_('Method not allowed'), 405);
+        }
+
+    }
+
+
+}
+catch (Exception $ex) {
+    error_log($ex->getTraceAsString());
+    respond(array('error' => $ex->getMessage()), $ex->getCode());
+}
+exit;
 
 // default GET parameters
 $defaults = array(

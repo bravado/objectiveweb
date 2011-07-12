@@ -49,7 +49,7 @@ function curl_get($url, $params = null, $decode_response = false) {
 }
 
 
-function curl_post($url, $params) {
+function curl_post($url, $params = null, $decode_response = false) {
     if($params) {
         if(is_array($params)) {
             $params = http_build_query($params);

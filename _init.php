@@ -20,7 +20,6 @@ require_once OW_LIB.'/classes.php';
 require_once OW_LIB.'/util.php';
 
 require_once OW_LIB.'/core.php';
-require_once OW_LIB.'/directory.php';
 require_once OW_LIB.'/content.php';
 require_once OW_LIB.'/request.php';
 require_once OW_LIB.'/session.php';

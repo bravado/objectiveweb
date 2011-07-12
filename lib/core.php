@@ -11,15 +11,13 @@
 
 global $_domains;
 
-define('OBJECTIVEWEB_VERSION', '0.1');
-
+define('OBJECTIVEWEB_VERSION', '0.3');
+defined('OW_DIRECTORY') or define('OW_DIRECTORY', 'ow_directory');
+defined('OW_APPS') or define('OW_APPS', 'ow_apps');
 
 // Default db config
-// TODO although this is somehow modular, there is NO SUPPORT for other databases yet
-// THIS MUST BE REVIEWED WHEN ALL THE CORE FEATURES ARE WELL DEFINED
-defined('DATABASE_PROVIDER') or define('DATABASE_PROVIDER', dirname(__FILE__) . '/drivers/mysql.php');
+defined('DATABASE_PROVIDER') or define('DATABASE_PROVIDER', dirname(__FILE__) . '/backend/mysql.php');
 defined('DB_CHARSET') or define('DB_CHARSET', 'utf8');
-
 
 require_once DATABASE_PROVIDER;
 
@@ -27,30 +25,42 @@ require_once DATABASE_PROVIDER;
 $_domains = array();
 $_subscriptions = array();
 
-
 // CORE domains
-register_domain('apps');
+//register_domain('apps', array('handler' => 'TablesHandler', 'tables' => array(OW_APPS)));
+register_domain('directory', array('handler' => 'TableStore', 'table' => OW_DIRECTORY, 'pk' => 'oid'));
+
 
 // TODO register dynamic domains (on the database)
 
 
-// TODO directory é um módulo obrigatório (core depende de directory)
-// content depende de directory
-// mas desta forma, poderia existir um outro DIRECTORY_PROVIDER
+function parse_path($path) {
 
+    $pattern = '/\/([^/]+)\/?(.*)/';
 
+    preg_match($pattern, $path, $matches);
 
+    return $matches;
+
+}
 
 function register_domain($domain_id, $params = array())
 {
     global $_domains;
 
+    if(isset($_domains[$domain_id])) {
+        throw new Exception(sprintf('Domain %s already registered', $domain_id));
+    }
+    
     $defaults = array(
         'schema' => array(),
-        'driver' => 'MysqlDriver' // TODO review the mysql dependency for the core components (single config for all ?)
+        'handler' => 'ObjectHandler'
     );
 
     // TODO validate schema
+
+
+
+
     $_domains[$domain_id] = array_merge($defaults, $params);
 }
 
@@ -58,7 +68,7 @@ function register_domain($domain_id, $params = array())
 /**
  * @throws Exception
  * @param  $domain_id
- * @return MysqlDriver
+ * @return OWHandler instance
  */
 function get_domain($domain_id)
 {
@@ -68,13 +78,19 @@ function get_domain($domain_id)
         throw new Exception(_('Domain not found'), 404);
     }
 
-    // TODO verificar permissões do domínio (execute/access)
-    // TODO default permissão todomundo é ACCESS
-
-
     if (empty($_domains[$domain_id]['instance'])) {
-        // TODO verificar se class existe
-        $_domains[$domain_id]['instance'] = new $_domains[$domain_id]['driver']($domain_id, $_domains[$domain_id]);
+
+        if(!class_exists($_domains[$domain_id]['handler'])) {
+            throw new Exception(sprintf(_('Invalid handler %s'), $_domains[$domain_id]['handler']), 500);
+        }
+
+
+        $instance = new $_domains[$domain_id]['handler']($domain_id, $_domains[$domain_id]);
+
+        $instance->_init($domain_id, $_domains[$domain_id]);
+
+
+        $_domains[$domain_id]['instance'] = $instance;
     }
 
     return $_domains[$domain_id]['instance'];
