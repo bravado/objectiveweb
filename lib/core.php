@@ -32,6 +32,33 @@ register_domain('directory', array('handler' => 'TableStore', 'table' => OW_DIRE
 
 // TODO register dynamic domains (on the database)
 
+function create($domain, $data) {
+    $handler = get_domain($domain);
+
+    // TODO verificar permissão de criar
+    return $handler->create($data);
+}
+
+function write($domain, $id, $data) {
+
+    $handler = get_domain($domain);
+
+    // TODO verificar permissão do $domain/$id
+
+    return $handler->write($id, $data);
+}
+
+function get($domain, $id) {
+    // TODO verificar permissão de ler este $domain/$id
+    $handler = get_domain($domain);
+    return $handler->get($id);
+}
+
+function fetch($domain, $params = array()) {
+    // TODO adicionar acl nos parâmetros
+    $handler = get_domain($domain);
+    return $handler->fetch($params);
+}
 
 function parse_path($path) {
 

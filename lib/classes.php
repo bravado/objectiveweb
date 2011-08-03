@@ -56,7 +56,7 @@ class OWHandler {
     }
 
 
-    function fetch($cond = array(), $acl = array())
+    function fetch($cond = array())
     {
 
     }
@@ -83,7 +83,7 @@ class OWHandler {
      * @param Array $metadata
      * @return array The changed data
      */
-    function write($oid, $data, $metadata = array())
+    function write($oid, $data)
     {
 
     }

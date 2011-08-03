@@ -35,7 +35,29 @@ $db->set_charset(DB_CHARSET);
 
 
 // Filesystem
+function query($query) {
+    global $db;
 
+    $result = $db->query($query);
+
+
+    if ($result === FALSE) {
+        throw new Exception($db->error);
+    }
+
+    $results = array();
+
+    if($result->num_rows > 0) {
+
+        while ($data = $result->fetch_assoc()) {
+            $results[] = $data;
+        }
+
+    }
+
+    return $results;
+
+}
 
 /**
  * Low-level SELECT Helper
@@ -80,6 +102,11 @@ function ow_select($table, $cond, $params = array())
     if (!empty($cond)) {
         // TODO usar prepared statements / escape()
 
+        if(!is_array($cond)) {
+            $cond = explode('&', $cond);
+        }
+
+        // TODO optimize?
         $query .= " where " . implode(" and ", $cond);
 
     }
@@ -90,10 +117,10 @@ function ow_select($table, $cond, $params = array())
     }
 
     // paging
-    if ($params['iDisplayStart'] && $params['iDisplayLength'] != -1) {
-        $query .= " limit " . $db->escape_string($params['iDisplayStart']) . ", " .
-                  $db->escape_string($params['iDisplayLength']);
-    }
+    //if ($params['iDisplayStart'] && $params['iDisplayLength'] != -1) {
+    //    $query .= " limit " . $db->escape_string($params['iDisplayStart']) . ", " .
+    //              $db->escape_string($params['iDisplayLength']);
+    //}
 
     if(defined('DEBUG')) {
         error_log($query);
@@ -254,6 +281,7 @@ function ow_update($table, $key, $data)
 
     return $key;
 }
+
 
 
 /**

@@ -31,6 +31,4 @@ function current_user($field = null)
         return $_current_user;
     }
 
-
-
 }

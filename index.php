@@ -27,45 +27,35 @@ try {
     // /domain/id ou /domain/id/attachment
     if ($request[2]) {
 
-        $domain = get_domain($request[1]);
-
-        // TODO verificar permissão de domain
-
-        $object = $domain->get($request[2]);
-
-        if (!$object) {
-            respond(array('error' => 'not_found', 'reason' => 'missing'), 404);
+        if ($request[3]) { // /domain/id/attachment
+            throw new Exception('Attachments Not implemented', 500);
         }
         else {
+            switch ($_SERVER['REQUEST_METHOD']) {
 
-            // TODO verificar permissão de $object
+                case 'GET':
+                    $object = get($request[1], $request[2]);
 
-
-            if ($request[3]) { // /domain/id/attachment
-                throw new Exception('Attachments Not implemented', 500);
-            }
-            else {
-                switch ($_SERVER['REQUEST_METHOD']) {
-
-                    case 'GET':
+                    if (!$object) {
+                        respond(array('error' => 'not_found', 'reason' => 'missing'), 404);
+                    }
+                    else {
                         respond($object);
-                        break;
-                    case 'POST':
-                        // TODO implementar anexos
-
-                    case 'PUT':
-                        $data = parse_post_body();
-                        $domain->write($request[2], $data);
-
-                    
-                        break;
-                    default:
-                        throw new Exception(_('Method not allowed'), 405);
-                        break;
-                }
+                    }
+                    break;
+                case 'POST':
+                    // TODO implementar anexos
+                    throw new Exception('Attachments Not implemented', 500);
+                case 'PUT':
+                    $data = parse_post_body();
+                    write($request[1], $request[2], $data);
+                    break;
+                default:
+                    throw new Exception(_('Method not allowed'), 405);
+                    break;
             }
-
         }
+
     }
     // /domain
     elseif ($request[1]) {
@@ -73,18 +63,16 @@ try {
 
         switch ($_SERVER['REQUEST_METHOD']) {
             case 'GET':
-                $domain = get_domain($request[1]);
+
                 // TODO verificar ACLs
-                respond($domain->fetch($_GET));
+                respond(fetch($request[1], $_GET));
                 break;
             case 'POST':
-                $domain = get_domain($request[1]);
-                // TODO verificar ACLS
 
                 $data = parse_post_body();
 
-                $oid = $domain->create($data);
-                    
+                $oid = create($request[1], $data);
+
                 respond(array("ok" => true, "_id" => $oid));
                 break;
             default:
@@ -106,8 +94,6 @@ try {
         }
 
     }
-
-
 }
 catch (Exception $ex) {
     error_log($ex->getTraceAsString());
