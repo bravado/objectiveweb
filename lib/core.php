@@ -12,8 +12,18 @@
 global $_domains;
 
 define('OBJECTIVEWEB_VERSION', '0.3');
+
+// Database Tables
 defined('OW_DIRECTORY') or define('OW_DIRECTORY', 'ow_directory');
 defined('OW_APPS') or define('OW_APPS', 'ow_apps');
+defined('OW_OBJECTS') or define('OW_OBJECTS', 'ow_objects');
+defined('OW_META') or define('OW_META', 'ow_meta');
+defined('OW_INDEX') or define('OW_INDEX', 'ow_index');
+defined('OW_VERSION') or define('OW_VERSION', 'ow_version');
+defined('OW_LINKS') or define('OW_LINKS', 'ow_links');
+defined('OW_ACL') or define('OW_ACL', 'ow_acl');
+defined('OW_SEQUENCE') or define('OW_SEQUENCE', 'ow_sequence');
+
 
 // Default db config
 defined('DATABASE_PROVIDER') or define('DATABASE_PROVIDER', dirname(__FILE__) . '/backend/mysql.php');

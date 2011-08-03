@@ -32,10 +32,9 @@ if ($db === FALSE) {
 $db->set_charset(DB_CHARSET);
 
 
-
-
 // Filesystem
-function query($query) {
+function query($query)
+{
     global $db;
 
     $result = $db->query($query);
@@ -47,7 +46,7 @@ function query($query) {
 
     $results = array();
 
-    if($result->num_rows > 0) {
+    if ($result->num_rows > 0) {
 
         while ($data = $result->fetch_assoc()) {
             $results[] = $data;
@@ -102,7 +101,7 @@ function ow_select($table, $cond, $params = array())
     if (!empty($cond)) {
         // TODO usar prepared statements / escape()
 
-        if(!is_array($cond)) {
+        if (!is_array($cond)) {
             $cond = explode('&', $cond);
         }
 
@@ -122,10 +121,10 @@ function ow_select($table, $cond, $params = array())
     //              $db->escape_string($params['iDisplayLength']);
     //}
 
-    if(defined('DEBUG')) {
+    if (defined('DEBUG')) {
         error_log($query);
     }
-    
+
     $result = $db->query($query);
 
 
@@ -134,13 +133,13 @@ function ow_select($table, $cond, $params = array())
     }
 
     $results = array();
-    while ($data = $result->fetch_assoc()) {
-        $results[] = $data;
+    if ($result->num_rows > 0) {
+        while ($data = $result->fetch_assoc()) {
+            $results[] = $data;
+        }
     }
 
 
-
-    
     return $results;
 
     // TODO query
@@ -198,7 +197,7 @@ function ow_insert($table, $data)
     $query = sprintf("insert into $table (%s) values (%s)", implode(",", $query_fields), $values);
 
 
-    if(defined('DEBUG')) {
+    if (defined('DEBUG')) {
         error_log($query);
     }
     //print_r($bind_params);
@@ -263,12 +262,11 @@ function ow_update($table, $key, $data)
 
     $query = sprintf("update $table set %s where %s", implode(",", $query_args), implode("AND", $key_args));
 
-    if(defined('DEBUG')) {
+    if (defined('DEBUG')) {
         error_log($query);
     }
 
     $stmt = $db->prepare($query);
-
 
 
     if ($stmt === FALSE) throw new Exception($db->error, 500);
@@ -283,7 +281,6 @@ function ow_update($table, $key, $data)
 }
 
 
-
 /**
  * Low level SQL DELETE helper
  * @throws Exception
@@ -294,7 +291,7 @@ function ow_update($table, $key, $data)
 function ow_delete($table, $oid)
 {
     global $db;
-    
+
     if (!is_array($oid)) {
         $oid = array('oid' => $oid);
     }
@@ -313,7 +310,7 @@ function ow_delete($table, $oid)
 
     $stmt = $db->prepare($query);
 
-    if(defined('DEBUG')) {
+    if (defined('DEBUG')) {
         echo $query;
 
     }
