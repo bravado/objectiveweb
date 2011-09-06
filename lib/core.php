@@ -70,6 +70,12 @@ function fetch($domain, $params = array()) {
     return $handler->fetch($params);
 }
 
+function attach($domain, $id, $data) {
+    $handler = get_domain($domain);
+
+    return $handler->attach($id, $data);
+}
+
 function parse_path($path) {
 
     $pattern = '/\/([^/]+)\/?(.*)/';

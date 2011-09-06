@@ -27,25 +27,43 @@ try {
     // /domain/id ou /domain/id/attachment
     if ($request[2]) {
 
-        if ($request[3]) { // /domain/id/attachment
-            throw new Exception('Attachments Not implemented', 500);
+        // Object deve existir
+        $object = get($request[1], $request[2]);
+
+        if (!$object) {
+            respond(array('error' => 'not_found', 'reason' => 'missing'), 404);
         }
-        else {
+
+        if ($request[3]) { // /domain/id/attachment
+            switch($_SERVER['REQUEST_METHOD']) {
+                case 'PUT':
+
+                    // TODO verificar pelo type se precisa de base64
+                    // TODO otimizar isto
+                    $data = base64_decode(substr(file_get_contents("php://input"), 22) );
+
+                    // TODO verificar se deve rolar pack() da imagem (binario flash)
+                    // $data = pack('H*', file_get_contents("php://input"));
+                    attach($request[1], $request[2], array(
+                                          'name' => $request[3],
+                                          'type' => $_SERVER['CONTENT_TYPE'],
+                                          'data' => $data));
+                    break;
+                default:
+                    throw new Exception(_('Method not allowed'), 405);
+                    break;
+            }
+        }
+        else { // /domain/id
+
             switch ($_SERVER['REQUEST_METHOD']) {
 
                 case 'GET':
-                    $object = get($request[1], $request[2]);
-
-                    if (!$object) {
-                        respond(array('error' => 'not_found', 'reason' => 'missing'), 404);
-                    }
-                    else {
-                        respond($object);
-                    }
+                    respond($object);
                     break;
                 case 'POST':
                     // TODO implementar anexos
-                    throw new Exception('Attachments Not implemented', 500);
+                    throw new Exception('POST Attachments Not implemented', 500);
                 case 'PUT':
                     $data = parse_post_body();
                     write($request[1], $request[2], $data);

@@ -16,6 +16,9 @@ define('ROOT', dirname(OW_ROOT));
 
 require_once ROOT.'/ow-config.php';
 
+defined('ATTACHMENT_ROOT') or define('ATTACHMENT_ROOT', ROOT . '/ow-content');
+
+
 require_once OW_LIB.'/classes.php';
 require_once OW_LIB.'/util.php';
 
@@ -24,3 +27,7 @@ require_once OW_LIB.'/request.php';
 require_once OW_LIB.'/session.php';
 
 require_once ROOT.'/ow-apps.php'; // TODO schema_register() e não usar isso aqui ?
+
+
+
+

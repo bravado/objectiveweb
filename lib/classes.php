@@ -88,6 +88,30 @@ class OWHandler {
 
     }
 
+    /**
+     * Creates/updates an attachment
+     * @param $oid
+     * @param Array $data describing the attachment
+     *  array("name" => "file_name.ext", "type" => "mime/type", "data" => "file_data")
+     * @return void
+     */
+    function attach($oid, $data) {
+        echo "attaching ".print_r($data);
+        $directory = sprintf("%s/%s/%s", ATTACHMENT_ROOT, $this->id, $oid);
+
+        if(!is_dir($directory)) {
+            if(file_exists($directory)) {
+                throw new Exception("Cannot write to $directory", 500);
+            }
+
+            mkdirs($directory);
+        }
+
+        $filename = sprintf("%s/%s", $directory, $data['name']);
+        
+        file_put_contents($filename, $data['data']);
+    }
+
     function delete($oid)
     {
 
