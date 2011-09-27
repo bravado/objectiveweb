@@ -107,29 +107,35 @@ class TableStore extends OWHandler
 
     var $pk = 'id';
 
+    var $db;
 
     function init() {
 
         if(empty($this->table)) {
             throw new Exception(_('Invalid table specified!'), 500);
         }
+
+        $this->db = new Axon($this->table);
+        // TODO $this->db->join(other_table)
+        // $this->db->extend ?
+        // hasOne ?
+        // hasMany ?
+        // belongsTo ?
     }
 
     function get($oid)
     {
-        $object = $this->fetch(array(sprintf("%s.%s = '%s'", $this->table, $this->pk, $oid)));
 
-        if ($object) {
-            return $object[0];
-        }
-        else {
-            return null;
-        }
+        return $this->db->afindone(array(
+                                 sprintf("%s = :oid", $this->pk),
+                                 array(':oid' => $oid) ));
+        
     }
 
-    function fetch($cond = array())
+    function fetch($criteria = null, $order = null, $limit = 0, $offset = 0)
     {
-        return ow_select($this->table, $cond, array('pk' => $this->pk));
+
+        return $this->db->find(empty($criteria) ? null : $criteria, $order, $limit, $offset, false);
     }
 
     function create($data = null, $owner = null, $metadata = array())
@@ -246,5 +252,11 @@ class TableStore extends OWHandler
     {
         // TODO Implementar DELETE excluindo o OID de todas as tabelas (até OW_OBJECTS)
         throw new Exception('DELETE não implementado');
+    }
+    
+    function schema() {
+        $schema = F3::get('DB')->schema($this->table, 600);
+
+        return $schema['result'];
     }
 }

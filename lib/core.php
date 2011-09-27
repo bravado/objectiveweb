@@ -26,11 +26,22 @@ defined('OW_SEQUENCE') or define('OW_SEQUENCE', 'ow_sequence');
 
 
 // Default db config
-defined('DATABASE_PROVIDER') or define('DATABASE_PROVIDER', dirname(__FILE__) . '/backend/mysql.php');
-defined('DB_CHARSET') or define('DB_CHARSET', 'utf8');
+defined('DATABASE_PROVIDER') or define('DATABASE_PROVIDER', 'mysql');
+defined('DATABASE_HOST') or define('DATABASE_HOST', 'localhost');
+defined('DATABASE_USER') or define('DATABASE_USER', 'objectiveweb');
+defined('DATABASE_PASS') or define('DATABASE_PASS', null);
+defined('DATABASE_PORT') or define('DATABASE_PORT', 3306);
+defined('DATABASE_DB') or define('DATABASE_DB', 'objectiveweb');
+//defined('DB_CHARSET') or define('DB_CHARSET', 'utf8');
 
-require_once DATABASE_PROVIDER;
-
+// Initialize F3's database
+F3::set('DB',
+	new DB(
+		sprintf('%s:host=%s;port=%d;dbname=%s',DATABASE_PROVIDER,DATABASE_HOST,DATABASE_PORT,DATABASE_DB),
+		DATABASE_USER,
+		DATABASE_PASS
+	)
+);
 // Global system variables
 $_domains = array();
 $_subscriptions = array();
@@ -40,7 +51,12 @@ $_subscriptions = array();
 register_domain('directory', array('handler' => 'TableStore', 'table' => OW_DIRECTORY, 'pk' => 'oid'));
 
 
-// TODO register dynamic domains (on the database)
+function ow_version() {
+    // TODO incluir informações de plugin se DEBUG
+    return sprintf('{ "objectiveweb": "%s" }', OBJECTIVEWEB_VERSION);
+}
+
+// TODO register dynamic domains (on the directory)
 
 function create($domain, $data) {
     $handler = get_domain($domain);

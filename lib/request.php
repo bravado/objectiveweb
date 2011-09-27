@@ -21,13 +21,14 @@ function parse_post_body($decoded = true) {
             return $_POST;
         }
         else {
-            $post_body = file_get_contents('php://input');
+            $post_body = F3::get('REQBODY');
 
             if($post_body[0] == '{' || $post_body[0] == '[') {
                 return json_decode($post_body, true);
             }
             else {
-                return $post_body;
+                parse_str($post_body, $output);
+                return $output;
             }
         }
     }
