@@ -11,11 +11,12 @@
 
 define('OW_ROOT', dirname(__FILE__));
 define('OW_LIB', OW_ROOT.'/lib');
+define('OW_INCLUDE', OW_ROOT.'/include');
 
 define('ROOT', dirname(OW_ROOT));
 
 require_once ROOT.'/ow-config.php';
-require_once OW_LIB.'/f3/base.php';
+require_once OW_INCLUDE . '/f3/base.php';
 require_once OW_LIB.'/classes.php';
 require_once OW_LIB.'/util.php';
 
