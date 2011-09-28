@@ -7,7 +7,6 @@
  * Time: 22:24
  */
 
-define('OW_URLPATTERN', '/\/(?P<domain>\w+)\/?(?P<id>\w+)?\/?(?P<attachment>.*)?/');
 
 function respond_to($type) {
     // TODO só aceitar o Content-type especificado
