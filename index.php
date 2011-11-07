@@ -23,7 +23,7 @@ F3::route("POST $_prefix/@domain/_@plugin", 'handle_domain_plugin');
 F3::route("PUT $_prefix/@domain/_@plugin", 'handle_domain_plugin');
 
 F3::route("GET $_prefix/@domain/@id", 'handle_get_object');
-F3::route("POST $_prefix/@domain/@id", 'handle_add_attachment');
+F3::route("POST $_prefix/@domain/@id", 'handle_add_attachments');
 F3::route("PUT $_prefix/@domain/@id", 'handle_update_object');
 F3::route("DELETE $_prefix/@domain/@id", 'handle_delete_object');
 
@@ -47,12 +47,13 @@ function about_objectiveweb() {
     respond(ow_version());
 }
 
+// Domain handlers
 function handle_get_domain() {
     respond(fetch(F3::get('PARAMS["domain"]'), $_GET));
 }
 
 function handle_domain_plugin() {
-    $domain = get_domain(F3::get('PARAMS["domain"]'));
+    $domain = get(F3::get('PARAMS["domain"]'));
 
     switch(F3::get('PARAMS["plugin"]')) {
         case 'schema':
@@ -64,6 +65,7 @@ function handle_domain_plugin() {
 
 }
 
+// Object handlers
 function handle_get_object() {
     $object = get(F3::get('PARAMS["domain"]'), F3::get('PARAMS["id"]'));
     if (!$object) {
@@ -87,7 +89,32 @@ function handle_update_object() {
     write(F3::get('PARAMS["domain"]'), F3::get('PARAMS["id"]'), $data);
 }
 
+// Attachment handlers
+
+function handle_get_attachment() {
 
 
+    
+    respond(get(F3::get('PARAMS["domain"]'), F3::get('PARAMS["id"]'),F3::get('PARAMS["attachment"]')));
 
+
+}
+
+
+function handle_add_attachments() {
+    // TODO verificar $_FILES e gravar anexos
+}
+
+function handle_update_attachment() {
+
+    $data = array(
+        'name' => F3::get('PARAMS["attachment"]'),
+        'data' => F3::get('REQBODY')
+        // TODO type via content-type
+    );
+
+
+    respond(attach(F3::get('PARAMS["domain"]'), F3::get('PARAMS["id"]'), $data));
+
+}
 

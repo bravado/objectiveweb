@@ -89,15 +89,30 @@ class OWHandler {
     }
 
     /**
+     * @param $oid
+     * @param $name
+     * @return Array attachment info
+     */
+    function attachment($oid, $name) {
+        $filename = sprintf("%s/%s/%s/%s", OW_CONTENT, $this->id, $oid, $name);
+
+        if(!is_readable($filename)) {
+            throw new Exception('Attachment not found', 404);
+        }
+        else {
+            return array('url' => sprintf("%s/%s/%s/%s", OW_CONTENT_URL, $this->id, $oid, $name));
+        }
+    }
+
+    /**
      * Creates/updates an attachment
      * @param $oid
      * @param Array $data describing the attachment
      *  array("name" => "file_name.ext", "type" => "mime/type", "data" => "file_data")
-     * @return void
+     * @return Array
      */
     function attach($oid, $data) {
-        echo "attaching ".print_r($data);
-        $directory = sprintf("%s/%s/%s", ATTACHMENT_ROOT, $this->id, $oid);
+        $directory = sprintf("%s/%s/%s", OW_CONTENT, $this->id, $oid);
 
         if(!is_dir($directory)) {
             if(file_exists($directory)) {
@@ -108,8 +123,11 @@ class OWHandler {
         }
 
         $filename = sprintf("%s/%s", $directory, $data['name']);
-        
+
+
         file_put_contents($filename, $data['data']);
+
+        return array("ok" => 1);
     }
 
     function delete($oid)

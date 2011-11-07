@@ -24,7 +24,9 @@ defined('OW_LINKS') or define('OW_LINKS', 'ow_links');
 defined('OW_ACL') or define('OW_ACL', 'ow_acl');
 defined('OW_SEQUENCE') or define('OW_SEQUENCE', 'ow_sequence');
 
-
+// Filesystem paths
+defined('OW_CONTENT') or define('OW_CONTENT', ROOT.'/ow-content');
+defined('OW_CONTENT_URL') or define('OW_CONTENT_URL',OW_URL.'/ow-content');
 //// Default db config
 //defined('DATABASE_PROVIDER') or define('DATABASE_PROVIDER', 'mysql');
 //defined('DATABASE_HOST') or define('DATABASE_HOST', 'localhost');
@@ -59,7 +61,7 @@ function ow_version() {
 // TODO register dynamic domains (on the directory)
 
 function create($domain, $data) {
-    $handler = get_domain($domain);
+    $handler = get($domain);
 
     // TODO verificar permissão de criar
     return $handler->create($data);
@@ -67,27 +69,69 @@ function create($domain, $data) {
 
 function write($domain, $id, $data) {
 
-    $handler = get_domain($domain);
+    $handler = get($domain);
 
     // TODO verificar permissão do $domain/$id
 
     return $handler->write($id, $data);
 }
 
-function get($domain, $id) {
-    // TODO verificar permissão de ler este $domain/$id
-    $handler = get_domain($domain);
-    return $handler->get($id);
+/**
+ * @throws Exception
+ * @param $domain_id
+ * @param null $id
+ * @return OW_Handler
+ */
+function get($domain_id, $id = null, $attachment = null) {
+
+    global $_domains;
+
+    if (empty($_domains[$domain_id])) {
+        throw new Exception(_('Domain not found'), 404);
+    }
+
+    if (empty($_domains[$domain_id]['instance'])) {
+
+        if(!class_exists($_domains[$domain_id]['handler'])) {
+            throw new Exception(sprintf(_('Invalid handler %s'), $_domains[$domain_id]['handler']), 500);
+        }
+
+
+        $instance = new $_domains[$domain_id]['handler']($domain_id, $_domains[$domain_id]);
+
+        $instance->_init($domain_id, $_domains[$domain_id]);
+
+
+        $_domains[$domain_id]['instance'] = $instance;
+    }
+
+    $handler = $_domains[$domain_id]['instance'];
+
+    if($id) {
+        // TODO verificar permissão de ler este $domain/$id
+       if($attachment) {
+            return $handler->attachment($id, $attachment);
+        }
+        else {
+            return $handler->get($id);
+        }
+    }
+    else {
+        return $handler;
+    }
+
+
+
 }
 
 function fetch($domain, $params = array()) {
     // TODO adicionar acl nos parâmetros
-    $handler = get_domain($domain);
+    $handler = get($domain);
     return $handler->fetch($params);
 }
 
 function attach($domain, $id, $data) {
-    $handler = get_domain($domain);
+    $handler = get($domain);
 
     return $handler->attach($id, $data);
 }
@@ -123,38 +167,6 @@ function register_domain($domain_id, $params = array())
     $_domains[$domain_id] = array_merge($defaults, $params);
 }
 
-
-/**
- * @throws Exception
- * @param  $domain_id
- * @return OWHandler instance
- */
-function get_domain($domain_id)
-{
-    global $_domains;
-
-    if (empty($_domains[$domain_id])) {
-        throw new Exception(_('Domain not found'), 404);
-    }
-
-    if (empty($_domains[$domain_id]['instance'])) {
-
-        if(!class_exists($_domains[$domain_id]['handler'])) {
-            throw new Exception(sprintf(_('Invalid handler %s'), $_domains[$domain_id]['handler']), 500);
-        }
-
-
-        $instance = new $_domains[$domain_id]['handler']($domain_id, $_domains[$domain_id]);
-
-        $instance->_init($domain_id, $_domains[$domain_id]);
-
-
-        $_domains[$domain_id]['instance'] = $instance;
-    }
-
-    return $_domains[$domain_id]['instance'];
-
-}
 
 /**
  * @brief Generates a Universally Unique IDentifier, version 4.
