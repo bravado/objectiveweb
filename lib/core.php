@@ -9,20 +9,19 @@
  * Time: 01:09
  */
 
-global $_domains;
 
 define('OBJECTIVEWEB_VERSION', '0.3');
 
 // Database Tables
 defined('OW_DIRECTORY') or define('OW_DIRECTORY', 'ow_directory');
-defined('OW_APPS') or define('OW_APPS', 'ow_apps');
-defined('OW_OBJECTS') or define('OW_OBJECTS', 'ow_objects');
 defined('OW_META') or define('OW_META', 'ow_meta');
 defined('OW_INDEX') or define('OW_INDEX', 'ow_index');
 defined('OW_VERSION') or define('OW_VERSION', 'ow_version');
 defined('OW_LINKS') or define('OW_LINKS', 'ow_links');
 defined('OW_ACL') or define('OW_ACL', 'ow_acl');
 defined('OW_SEQUENCE') or define('OW_SEQUENCE', 'ow_sequence');
+
+
 
 // Filesystem paths
 defined('OW_CONTENT') or define('OW_CONTENT', ROOT.'/ow-content');
@@ -50,7 +49,7 @@ $_subscriptions = array();
 
 // CORE domains
 //register_domain('apps', array('handler' => 'TablesHandler', 'tables' => array(OW_APPS)));
-register_domain('directory', array('handler' => 'TableStore', 'table' => OW_DIRECTORY, 'pk' => 'oid'));
+register_domain('directory', array('handler' => 'ObjectStore', 'table' => OW_DIRECTORY));
 
 
 function ow_version() {
@@ -363,10 +362,134 @@ class UUID
     }
 }
 
-// Internationalization fallback (no internationalization)
-if (!function_exists('_')) {
-    function _($string)
+
+class OWHandler {
+
+    var $id;
+    var $defaults = array();
+
+    function _init($id, $params = array()) {
+        $this->id = $id;
+
+        foreach(array_merge($this->defaults, $params) as $param => $value) {
+            // TODO verificar reserved keywords
+            $this->$param = $value;
+        }
+        $this->init();
+    }
+
+    function init() {
+
+    }
+
+    /**
+     * Manages metadata at $oid/$meta_key
+     * @param  $meta_key
+     * @param  $meta_value
+     * @return void
+     */
+    function meta($oid, $meta_key, $meta_value = null)
     {
-        return $string;
+
+    }
+
+
+    function acl($oid, $rules = null)
+    {
+
+    }
+
+    /**
+     * Retrieves an object from a domain given its OID
+     *
+     * @param  $domain
+     * @param  $oid
+     * @param array $params
+     * @return void
+     */
+    function get($oid)
+    {
+    }
+
+
+    function fetch($cond = array())
+    {
+
+    }
+
+
+    /**
+     * Creates a new Object on a domain
+     *
+     * @param null $data The object data
+     * @param null $owner The object owner
+     * @param null $metadata The object metadata
+
+     * @return string|The object's new oid.
+     */
+    function create($data = null, $owner = null, $metadata = array())
+    {
+
+    }
+
+    /**
+     * Writes data to an existing object
+     * @param  $oid
+     * @param Array $data
+     * @param Array $metadata
+     * @return array The changed data
+     */
+    function write($oid, $data)
+    {
+
+    }
+
+    /**
+     * @param $oid
+     * @param $name
+     * @return Array attachment info
+     */
+    function attachment($oid, $name) {
+        $filename = sprintf("%s/%s/%s/%s", OW_CONTENT, $this->id, $oid, $name);
+
+        if(!is_readable($filename)) {
+            throw new Exception('Attachment not found', 404);
+        }
+        else {
+            return array('url' => sprintf("%s/%s/%s/%s", OW_CONTENT_URL, $this->id, $oid, $name));
+        }
+    }
+
+    /**
+     * Creates/updates an attachment
+     * @param $oid
+     * @param Array $data describing the attachment
+     *  array("name" => "file_name.ext", "type" => "mime/type", "data" => "file_data")
+     * @return Array
+     */
+    function attach($oid, $data) {
+        $directory = sprintf("%s/%s/%s", OW_CONTENT, $this->id, $oid);
+
+        if(!is_dir($directory)) {
+            if(file_exists($directory)) {
+                throw new Exception("Cannot write to $directory", 500);
+            }
+
+            mkdirs($directory);
+        }
+
+        $filename = sprintf("%s/%s", $directory, $data['name']);
+
+
+        file_put_contents($filename, $data['data']);
+
+        return array("ok" => 1);
+    }
+
+    function delete($oid)
+    {
+
     }
 }
+
+

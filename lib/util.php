@@ -66,3 +66,11 @@ function mkdirs($dir, $mode = 0777)
     return @mkdir($dir, $mode);
 
 }
+
+// Internationalization fallback (no internationalization)
+if (!function_exists('_')) {
+    function _($string)
+    {
+        return $string;
+    }
+}

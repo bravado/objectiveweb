@@ -15,17 +15,16 @@ define('ROOT', dirname(OW_ROOT));
 define('OW_URL', dirname(dirname($_SERVER['SCRIPT_NAME']))); // TODO fragile
 
 require_once ROOT.'/ow-config.php';
-require_once OW_LIB . '/f3/base.php';
-require_once OW_LIB.'/backend.php';
 require_once OW_LIB.'/util.php';
 
 // Default db config
-defined('DATABASE_PROVIDER') or define('DATABASE_PROVIDER', dirname(__FILE__) . '/lib/backend/mysql.php');
-defined('DB_CHARSET') or define('DB_CHARSET', 'utf8');
+defined('OW_BACKEND') or define('OW_BACKEND', dirname(__FILE__) . '/lib/backend/mysql.php');
+defined('OW_CHARSET') or define('OW_CHARSET', 'utf8');
 
-require_once DATABASE_PROVIDER;
+
 
 require_once OW_LIB.'/core.php';
+require_once OW_BACKEND;
 require_once OW_LIB.'/request.php';
 require_once OW_LIB.'/session.php';
 
