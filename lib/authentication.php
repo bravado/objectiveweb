@@ -12,10 +12,15 @@ register_domain('auth', array('handler' => 'AuthenticationHandler'));
 class AuthenticationHandler extends OWHandler
 {
 
+    var $hybridauth;
     var $config;
 
     function init()
     {
+
+        require_once(OW_LIB . '/hybridauth/Hybrid/Auth.php');
+
+
         $this->config = array(
             "base_url" => OW_URL . '/lib/hybridauth/',
             "providers" => array(),
@@ -30,29 +35,29 @@ class AuthenticationHandler extends OWHandler
             );
         }
 
+        $this->hybridauth = new Hybrid_Auth($this->config);
+    }
+
+    function authenticate($provider) {
+        $this->hybridauth->authenticate($provider);
     }
 
     function get($provider)
     {
-        require_once(OW_LIB . '/hybridauth/Hybrid/Auth.php');
-
-        $hybridauth = new Hybrid_Auth($this->config);
-
         if($provider == 'logout') {
-            $hybridauth->logoutAllProviders();
+            $this->hybridauth->logoutAllProviders();
             return null;
         }
 
-        if ($hybridauth->isConnectedWith($provider)) {
-            $adapter = $hybridauth->getAdapter($provider);
+        if ($this->hybridauth->isConnectedWith($provider)) {
+            $adapter = $this->hybridauth->getAdapter($provider);
             $user_profile = $adapter->getUserProfile();
 
             return (Array) $user_profile;
         }
         else {
-
-            if($_GET['authenticate'] == 'true') {
-                $hybridauth->authenticate($provider);
+            if(isset($_GET['authenticate'])) {
+                $this->authenticate($provider);
             }
 
             return null;
