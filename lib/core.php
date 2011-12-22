@@ -383,23 +383,6 @@ class OWHandler {
     }
 
     /**
-     * Manages metadata at $oid/$meta_key
-     * @param  $meta_key
-     * @param  $meta_value
-     * @return void
-     */
-    function meta($oid, $meta_key, $meta_value = null)
-    {
-
-    }
-
-
-    function acl($oid, $rules = null)
-    {
-
-    }
-
-    /**
      * Retrieves an object from a domain given its OID
      *
      * @param  $domain
@@ -409,12 +392,13 @@ class OWHandler {
      */
     function get($oid)
     {
+        throw new Exception('Not implemented', 500);
     }
 
 
     function fetch($cond = array())
     {
-
+        throw new Exception('Not implemented', 500);
     }
 
 
@@ -429,7 +413,7 @@ class OWHandler {
      */
     function create($data = null, $owner = null, $metadata = array())
     {
-
+        throw new Exception('Not implemented', 500);
     }
 
     /**
@@ -441,7 +425,7 @@ class OWHandler {
      */
     function write($oid, $data)
     {
-
+        throw new Exception('Not implemented', 500);
     }
 
     /**

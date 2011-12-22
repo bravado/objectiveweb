@@ -256,7 +256,7 @@ class ObjectStore extends TableStore
     {
         $object = parent::get($oid);
 
-        return $decoded ? json_decode($object['content'],true) : $object['content'];
+        return $decoded ? json_decode($object['_content'],true) : $object['_content'];
 
     }
 
@@ -293,7 +293,7 @@ class ObjectStore extends TableStore
         
         // Parameters are encoded as json
         // TODO index params (if indexed)
-        $data['content'] = json_encode($params);
+        $data['_content'] = json_encode($params);
 
         return parent::create($data);
     }
@@ -321,7 +321,7 @@ class ObjectStore extends TableStore
 
         // Final content will be everything on data + original fields
         // (dynamic content is ALWAYS OVERWRITTEN)
-        $object['content'] = json_encode(array_merge($data, $object));
+        $object['_content'] = json_encode(array_merge($data, $object));
 
         return parent::write($oid, $object);
     }
