@@ -57,6 +57,7 @@ class AuthenticationHandler extends OWHandler
             $local_profile = get('directory', $user_profile['identifier']);
 
             if(!$local_profile) {
+                $user_profile['oid'] = $user_profile['identifier'];
                 $user_profile['uid'] = $user_profile['identifier'];
                 create('directory', $user_profile);
             }
