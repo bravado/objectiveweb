@@ -51,9 +51,17 @@ class AuthenticationHandler extends OWHandler
 
         if ($this->hybridauth->isConnectedWith($provider)) {
             $adapter = $this->hybridauth->getAdapter($provider);
-            $user_profile = $adapter->getUserProfile();
+            $user_profile = (Array) $adapter->getUserProfile();
 
-            return (Array) $user_profile;
+
+            $local_profile = get('directory', $user_profile['identifier']);
+
+            if(!$local_profile) {
+                $user_profile['uid'] = $user_profile['identifier'];
+                create('directory', $user_profile);
+            }
+
+            return $user_profile;
         }
         else {
             if(isset($_GET['authenticate'])) {
