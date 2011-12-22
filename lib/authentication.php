@@ -35,16 +35,26 @@ class AuthenticationHandler extends OWHandler
     function get($provider)
     {
         require_once(OW_LIB . '/hybridauth/Hybrid/Auth.php');
+
         $hybridauth = new Hybrid_Auth($this->config);
 
-        $adapter = $hybridauth->authenticate($provider);
+        if($provider == 'logout') {
+            $hybridauth->logoutAllProviders();
+            return null;
+        }
 
         if ($hybridauth->isConnectedWith($provider)) {
+            $adapter = $hybridauth->getAdapter($provider);
             $user_profile = $adapter->getUserProfile();
 
             return (Array) $user_profile;
         }
         else {
+
+            if($_GET['authenticate'] == 'true') {
+                $hybridauth->authenticate($provider);
+            }
+
             return null;
         }
 
