@@ -12,7 +12,7 @@
 define('OW_ROOT', dirname(__FILE__));
 define('OW_LIB', OW_ROOT.'/lib');
 define('ROOT', dirname(OW_ROOT));
-define('DOCUMENT_ROOT', substr($_SERVER['SCRIPT_FILENAME'], 0, -1 * strlen($_SERVER['SCRIPT_NAME'])));
+define('DOCUMENT_ROOT', substr(realpath($_SERVER['SCRIPT_FILENAME']), 0, -1 * strlen($_SERVER['SCRIPT_NAME'])));
 // Set the correct objectiveweb url, even if called from another script
 define('OW_URL', (isset($_SERVER['HTTPS']) ? "https" : "http"). "://{$_SERVER['SERVER_NAME']}"
                  .($_SERVER['SERVER_PORT'] != 80 && $_SERVER['SERVER_PORT'] != 443 ? ":{$_SERVER['SERVER_PORT']}" : "")
