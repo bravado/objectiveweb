@@ -5,7 +5,7 @@
  * The default "mysql" backend
  *
  * Provides:
- *  TableStore - A handler that maps to one or more SQL tables
+ *  TableStore - A handler that maps data to one or more SQL tables
  *  ObjectStore - Schemaless storage backed by a single SQL table
  *
  * Configuration parameters
@@ -24,111 +24,327 @@ defined('MYSQL_USER') or define('MYSQL_USER', 'objectiveweb');
 defined('MYSQL_PASS') or define('MYSQL_PASS', null);
 defined('MYSQL_DB') or define('MYSQL_DB', 'objectiveweb');
 
-$db = new mysqli(MYSQL_HOST, MYSQL_USER, MYSQL_PASS, MYSQL_DB);
+$mysqli = new mysqli(MYSQL_HOST, MYSQL_USER, MYSQL_PASS, MYSQL_DB);
 
-if ($db === FALSE) {
-    throw new Exception($db->error);
+if ($mysqli === FALSE) {
+    throw new Exception($mysqli->error);
 }
 
-$db->set_charset(OW_CHARSET);
+$mysqli->set_charset(OW_CHARSET);
+
+
+class Table
+{
+
+    var $name = null;
+
+    var $pk = null;
+    var $fields = array();
+
+    var $joins = array();
+
+    function Table($name)
+    {
+        global $mysqli;
+
+        $this->name = $mysqli->escape_string($name);
+
+
+        $query = sprintf('describe `%s`', $this->name);
+        $result = $mysqli->query($query);
+
+        if ($result === FALSE || $result->num_rows == 0) {
+            throw new Exception($mysqli->error, 500);
+        }
+        else {
+            while ($data = $result->fetch_assoc()) {
+                if ($data['Key'] == 'PRI') {
+                    if ($this->pk != null) {
+                        if (is_array($this->pk)) {
+                            $this->pk[] = $data['Field'];
+                        }
+                        else {
+                            $this->pk = array($this->pk, $data['Field']);
+                        }
+                    }
+                    else {
+                        $this->pk = $data['Field'];
+                    }
+                }
+
+                $this->fields[$data['Field']] = $data;
+            }
+
+        }
+
+
+    }
+
+    /**
+     * Low-level SELECT Helper
+     *
+     * @param  $cond
+     * @param array $params
+     * @return Array
+     */
+    function select($cond, $params = array())
+    {
+        global $mysqli;
+
+        $defaults = array(
+            'fields' => '*',
+            'join' => array()
+        );
+
+        $params = array_merge($defaults, $params);
+
+        $query = "select {$params['fields']} from {$this->name}";
+
+        if(!empty($this->joins)) {
+            foreach($this->joins as $join => $on) {
+                $query .= " inner join $join on $on";
+            }
+        }
+
+        if (!empty($cond)) {
+            // TODO usar prepared statements / escape()
+
+            if (!is_array($cond)) {
+                $cond = explode('&', $cond);
+            }
+
+            $query .= " where " . implode(" and ", $cond);
+        }
+
+        if (!empty($params['order'])) {
+            // TODO if is array...
+            $query .= " order by " . $params['order'];
+        }
+
+        if (defined('DEBUG')) {
+            error_log($query);
+        }
+
+        $result = $mysqli->query($query);
+
+        if ($result === FALSE) {
+            throw new Exception($mysqli->error, 500);
+        }
+
+        $results = array();
+        if ($result->num_rows > 0) {
+            while ($data = $result->fetch_assoc()) {
+                $results[] = $data;
+            }
+        }
+
+        return $results;
+
+    }
+    /**
+     * Low level SQL INSERT helper
+     *
+     * @throws Exception
+     * @param  $data
+     * @return string
+     */
+    function insert($data)
+    {
+        global $mysqli;
+
+        if (empty($data)) throw new Exception( 'Trying to write nothing', 405);
+
+        $bind_params = array('');
+        $query_fields = array();
+
+        foreach ($data as $k => $v) {
+
+            if (is_array($v)) { // TODO or is_class/is_object ?
+                $data[$k] = json_encode($v);
+            }
+
+            $query_fields[] = "`$k`";
+            $bind_params[0] .= 's';
+            $bind_params[] = &$data[$k];
+        }
+
+        $values = '?';
+        for ($i = 1; $i < count($query_fields); $i++) {
+            $values .= ',?';
+        }
+
+        $query = sprintf("insert into `$this->name` (%s) values (%s)", implode(",", $query_fields), $values);
+
+        if (defined('DEBUG')) {
+            error_log($query);
+        }
+
+        $stmt = $mysqli->prepare($query);
+
+        if ($stmt === FALSE) throw new Exception($mysqli->error, 500);
+
+        call_user_func_array(array($stmt, 'bind_param'), $bind_params);
+
+        if ($stmt->execute() === FALSE) throw new Exception($stmt->error, 500);
+
+        $stmt->close();
+
+
+        if (empty($data[$this->pk])) {
+            // TODO só retornar insert_id se for auto_increment
+            return $mysqli->insert_id;
+        }
+        else {
+            return $data[$this->pk];
+        }
+
+    }
+
+    /**
+     *
+     * Low level SQL UPDATE helper
+     *
+     * @throws Exception on database errors
+     * @param  $cond - Perform update on rows that match these conditions
+     * @param  $data - Associative Array of updated data
+     * @return The object's oid
+     */
+    function update($key, $data)
+    {
+
+        global $mysqli;
+
+        if (empty($key)) throw new Exception('A condition is required for UPDATEs', 405);
+
+        if (empty($data)) throw new Exception( 'Trying to write nothing', 405);
+
+        $bind_params = array('');
+        $query_args = array();
+
+
+        foreach ($data as $k => $v) {
+
+            if (is_array($v)) { // TODO or is_class/is_object ?
+                $data[$k] = json_encode($v);
+            }
+
+            $query_args[] = "`$k` = ?";
+            $bind_params[0] .= 's';
+            $bind_params[] = &$data[$k];
+        }
+
+        $key_args = array();
+        foreach ($key as $k => $v) {
+            $key_args[] = "`$k` = ?";
+            $bind_params[0] .= 's';
+            $bind_params[] = &$key[$k];
+        }
+
+        $query = sprintf("update $this->name set %s where %s", implode(",", $query_args), implode("AND", $key_args));
+
+        if (defined('DEBUG')) {
+            error_log($query);
+        }
+
+        $stmt = $mysqli->prepare($query);
+
+
+        if ($stmt === FALSE) throw new Exception($mysqli->error, 500);
+
+        call_user_func_array(array($stmt, 'bind_param'), $bind_params);
+
+        if ($stmt->execute() === FALSE) throw new Exception($stmt->error, 500);
+
+        $stmt->close();
+
+        return $key;
+    }
+
+
+    function join($table, $on) {
+        $this->joins[$table] = $on;
+    }
+}
 
 class TableStore extends OWHandler
 {
-    // This handler params
-    var $table = null;
 
-    // Schema for all the related tables
-    var $db_schema = array();
+    // The main table
+    var $table = null;
 
     // TODO associations
     var $hasMany = array();
     var $belongsTo = array();
 
-    function has_field($field) {
-        foreach($this->db_schema as $table) {
-            if(isset($table['fields'][$field])) {
-                return true;
-            }
-        }
+    var $_inherits = false;
 
-        return false;
-    }
-
-
-    function init()
+    function init($params)
     {
-        global $db;
+        global $mysqli;
 
-        if (empty($this->table)) {
-            throw new Exception(_('Invalid table specified!'), 500);
-        }
-
-        $query = sprintf('describe `%s`', $db->escape_string($this->table));
-        $result = $db->query($query);
-
-        if($result === FALSE) {
-            throw new Exception($db->error, 500);
+        $table = isset($params['table']) ? $params['table'] : $this->id;
+        if (isset($params['extends'])) {
+            $this->_inherits = true;
+            $this->table = new Table($params['extends']);
+            // Joined tables have the same primary key as their parent (mandatory)
+            $this->table->join($table, sprintf("%s.%s = %s.%s", $params['extends'], $this->table->pk, $table, $this->table->pk));
         }
         else {
-
-            $this->db_schema[$this->table] = array('pk' => NULL, 'fields' => array());
-            if ($result->num_rows > 0) {
-                while ($data = $result->fetch_assoc()) {
-                    if($data['Key'] == 'PRI') {
-                        if($this->db_schema[$this->table]['pk'] != NULL) {
-                            if(is_array($this->db_schema[$this->table]['pk'])) {
-                                $this->db_schema[$this->table['pk']][] = $data['Field'];
-                            }
-                            else {
-                                $this->db_schema[$this->table]['pk'] = array($this->db_schema[$this->table]['pk'], $data['Field']);
-                            }
-                        }
-                        else {
-                            $this->db_schema[$this->table]['pk'] = $data['Field'];
-                        }
-                    }
-                    $this->db_schema[$this->table]['fields'][$data['Field']] = $data;
-                }
-            }
+            $this->table = new Table($table);
         }
-
-
 
         //print_r($this); exit;
 
-        // TODO check if all necessary tables exist (meta, versioning, etc)
     }
 
-    function get($oid)
+    function get($oid, $params = array())
     {
-        $object = $this->fetch(array(sprintf("%s.%s = '%s'", $this->table, $this->db_schema[$this->table]['pk'], $oid)));
-
-        if ($object) {
-            return $object[0];
+        // TODO support compound keys
+        $result = $this->fetch(sprintf("%s.%s = '%s'", $this->table->name, $this->table->pk, $oid), $params);
+        if (!empty($result)) {
+            return $result[0];
         }
         else {
             return null;
         }
     }
 
-    function fetch($cond = array())
+    function fetch($cond = array(), $params = array())
     {
-        return ow_select($this->table, $cond, array('pk' => $this->db_schema[$this->table['pk']]));
+        return $this->table->select($cond, $params);
     }
 
-    function create($data = null, $owner = null, $metadata = array())
+    function create($data = null)
     {
+        global $mysqli;
+
+        $mysqli->autocommit(false);
         // TODO autogenerate ID if its char(36)
-        if ($this->db_schema[$this->table]['pk'] == 'oid' && empty($data['oid'])) {
+        if ($this->table->pk == 'oid' && empty($data['oid'])) {
             $data['oid'] = ow_oid();
         }
 
-        // Won't cache metadata on the main table
-        $oid = ow_insert($this->table, $data);
+        // Filter relevant fields for this table
+        $table_data = array_intersect_key($data, $this->table->fields);
 
-        if (empty($oid)) {
-            $oid = @$data[$this->db_schema[$this->table]['pk']];
+        // TODO marcar o DTYPE da tabela mãe em $data
+        if(!empty($this->table->joins)) {
+            $table_data['_type'] = $this->id;
         }
+
+        $data[$this->table->pk] = $this->table->insert($table_data);
+
+        // Store data on other tables
+        foreach(array_keys($this->table->joins) as $joined) {
+            $table = new Table($joined);
+
+            $table_data = array_intersect_key($data, $table->fields);
+
+            $table->insert($table_data);
+
+        }
+
+        $mysqli->commit();
 
         // Indexes and additional tables
 
@@ -171,12 +387,38 @@ class TableStore extends OWHandler
         //            }
         //        }
 
-        return $oid;
+        return $data[$this->table->pk];
     }
 
     function write($oid, $data)
     {
-        ow_update($this->table, array($this->db_schema[$this->table]['pk'] => $oid), $data);
+        global $mysqli;
+
+        $mysqli->autocommit(false);
+
+        $cond = array($this->table->pk => $oid);
+
+        // Filter relevant fields for this table
+        $table_data = array_intersect_key($data, $this->table->fields);
+
+        if(!empty($table_data)) {
+
+            $this->table->update($cond, $table_data);
+        }
+
+        // Store data on other tables
+        foreach(array_keys($this->table->joins) as $joined) {
+            $table = new Table($joined);
+
+            $table_data = array_intersect_key($data, $table->fields);
+
+            if(!empty($table_data)) {
+                $table->update($cond, $table_data);
+            }
+
+        }
+
+        $mysqli->commit();
 
         //        // TODO default acls devem vir do SCHEMA (db)
         //
@@ -223,7 +465,6 @@ class TableStore extends OWHandler
         //        }
         //
 
-        return $oid;
     }
 
     function delete($oid)
@@ -232,7 +473,10 @@ class TableStore extends OWHandler
         throw new Exception('DELETE não implementado');
     }
 
-
+    function has_field($field)
+    {
+        return isset($this->table->fields[$field]);
+    }
 }
 
 
@@ -246,17 +490,20 @@ class ObjectStore extends TableStore
     function init()
     {
         parent::init();
+
+        // TODO check if all necessary tables exist (meta, versioning, etc)
     }
 
-    function schema($name) {
-        
+    function schema($name)
+    {
+
     }
 
     function get($oid, $decoded = false)
     {
         $object = parent::get($oid);
 
-        return $decoded ? json_decode($object['_content'],true) : $object['_content'];
+        return $decoded ? json_decode($object['_content'], true) : $object['_content'];
 
     }
 
@@ -269,16 +516,16 @@ class ObjectStore extends TableStore
     function create($params)
     {
 
-        if(empty($params['oid'])) {
+        if (empty($params['oid'])) {
             $params['oid'] = ow_oid();
         }
 
-        if(empty($params['schema'])) {
+        if (empty($params['schema'])) {
             $params['schema'] = 'ow/data';
         }
 
-        foreach(array_keys($params) as $k) {
-            if($this->has_field($k)) {
+        foreach (array_keys($params) as $k) {
+            if ($this->has_field($k)) {
                 $data[$k] = $params[$k];
             }
         }
@@ -290,7 +537,7 @@ class ObjectStore extends TableStore
 
         // TODO hierarchy (if left, right exists)
 
-        
+
         // Parameters are encoded as json
         // TODO index params (if indexed)
         $data['_content'] = json_encode($params);
@@ -311,10 +558,10 @@ class ObjectStore extends TableStore
         // Changed and created fields should not be updated
         unset($object['changed']);
         unset($object['created']);
-        
+
         // Now object has only valid fields, let's update those
-        foreach(array_keys($object) as $k) {
-            if(isset($data[$k])) {
+        foreach (array_keys($object) as $k) {
+            if (isset($data[$k])) {
                 $object[$k] = $data[$k];
             }
         }
@@ -327,230 +574,7 @@ class ObjectStore extends TableStore
     }
 }
 
-/**
- * Low-level SELECT Helper
- *
- * @param  $domain
- * @param  $cond
- * @param array $params
- * @return Array
- */
-function ow_select($table, $cond, $params = array())
-{
 
-    global $db;
-
-    // TODO rever params, não deveria passar o tables aqui ?
-    // esse cara realmente sabe demais...
-    $defaults = array(
-        'pk' => 'id',
-        'fields' => '*',
-        'join' => array()
-    );
-
-    $params = array_merge($defaults, $params);
-
-
-    $query = "select {$params['fields']} from {$table}";
-
-    /*
-    if ($params['extends']) {
-
-        foreach (array_keys($params['extends']) as $joined) {
-            $query .= " inner join $joined on {$table}.{$params['pk']} = $joined.oid";
-        }
-    }
-    if (!empty($cond['acl'])) {
-        // TODO implementar ACL
-        throw new Exception('ACL não implementado');
-    }
-
-
-    */
-    if (!empty($cond)) {
-        // TODO usar prepared statements / escape()
-
-        if (!is_array($cond)) {
-            $cond = explode('&', $cond);
-        }
-
-        // TODO optimize?
-        $query .= " where " . implode(" and ", $cond);
-
-    }
-
-    if (!empty($params['order'])) {
-        // TODO if is array...
-        $query .= " order by " . $params['order'];
-    }
-
-    // paging
-    //if ($params['iDisplayStart'] && $params['iDisplayLength'] != -1) {
-    //    $query .= " limit " . $db->escape_string($params['iDisplayStart']) . ", " .
-    //              $db->escape_string($params['iDisplayLength']);
-    //}
-
-    if (defined('DEBUG')) {
-        error_log($query);
-    }
-
-    $result = $db->query($query);
-
-
-    if ($result === FALSE) {
-        throw new Exception($db->error, 500);
-    }
-
-    $results = array();
-    if ($result->num_rows > 0) {
-        while ($data = $result->fetch_assoc()) {
-            $results[] = $data;
-        }
-    }
-
-
-    return $results;
-
-    // TODO query
-    // TODO se todos podem ler - vai vir o usuário logado até aqui quando ?
-    // porque se passar acl => user, um oid pra todomundo não vai ter essa acl (user)
-    // posso querer pesquisar oid = user, group OR object é PUBLIC
-
-    // Solução (5:31 AM) - SEMPRE vai existir uma permission (everybody/anonymous) ?
-
-    // em ow_acl owner = 0 => todomundo ?
-
-    // dono de um conteúdo não precisa estar no ACL pq ele sempre pode tudo
-    // campo específico do módulo content, não tem porque trazer até aqui
-
-
-}
-
-
-/**
- * Low level SQL INSERT helper
- *
- * @throws Exception
- * @param  $domain
- * @param  $oid
- * @param  $data
- * @return string
- */
-function ow_insert($table, $data)
-{
-
-    global $db;
-
-    if (empty($data)) {
-        respond(array("error" => 'Trying to write nothing'), 405);
-    }
-
-    // TODO verificar schema
-
-    $bind_params = array('');
-    $query_fields = array();
-
-    foreach ($data as $k => $v) {
-
-        if (is_array($v)) { // TODO or is_class/is_object ?
-            $data[$k] = json_encode($v);
-        }
-
-        $query_fields[] = "`$k`";
-        $bind_params[0] .= 's';
-        $bind_params[] = &$data[$k];
-    }
-
-    $values = '?';
-    for ($i = 1; $i < count($query_fields); $i++) {
-        $values .= ',?';
-    }
-
-    $query = sprintf("insert into $table (%s) values (%s)", implode(",", $query_fields), $values);
-
-
-    if (defined('DEBUG')) {
-        error_log($query);
-    }
-    //print_r($bind_params);
-    $stmt = $db->prepare($query);
-
-
-    if ($stmt === FALSE) throw new Exception($db->error, 500);
-
-    //print_r($bind_params);
-    //print_r($stmt);
-    call_user_func_array(array($stmt, 'bind_param'), $bind_params);
-
-    if ($stmt->execute() === FALSE) throw new Exception($stmt->error, 500);
-
-
-    $stmt->close();
-
-    return $db->insert_id;
-}
-
-
-/**
- *
- * Low level SQL UPDATE helper
- *
- * @throws Exception on database errors
- * @param  $table - The table to update
- * @param  $cond - The conditions to update
- * @param  $data - Associative Array of updated data
- * @return The object's oid
- */
-function ow_update($table, $key, $data)
-{
-
-    global $db;
-
-    if (empty($key)) throw new Exception('Key is required for UPDATEs', 405);
-
-    if (empty($data)) return;
-
-    $bind_params = array('');
-    $query_args = array();
-
-
-    foreach ($data as $k => $v) {
-
-        if (is_array($v)) { // TODO or is_class/is_object ?
-            $data[$k] = json_encode($v);
-        }
-
-        $query_args[] = "`$k` = ?";
-        $bind_params[0] .= 's';
-        $bind_params[] = &$data[$k];
-    }
-
-    $key_args = array();
-    foreach ($key as $k => $v) {
-        $key_args[] = "`$k` = ?";
-        $bind_params[0] .= 's';
-        $bind_params[] = &$key[$k];
-    }
-
-    $query = sprintf("update $table set %s where %s", implode(",", $query_args), implode("AND", $key_args));
-
-    if (defined('DEBUG')) {
-        error_log($query);
-    }
-
-    $stmt = $db->prepare($query);
-
-
-    if ($stmt === FALSE) throw new Exception($db->error, 500);
-
-    call_user_func_array(array($stmt, 'bind_param'), $bind_params);
-
-    if ($stmt->execute() === FALSE) throw new Exception($stmt->error, 500);
-
-    $stmt->close();
-
-    return $key;
-}
 
 
 /**
@@ -562,7 +586,7 @@ function ow_update($table, $key, $data)
  */
 function ow_delete($table, $oid)
 {
-    global $db;
+    global $mysqli;
 
     if (!is_array($oid)) {
         $oid = array('oid' => $oid);
@@ -580,14 +604,14 @@ function ow_delete($table, $oid)
 
     $query = sprintf("delete from $table where %s", implode(' and ', $query_args));
 
-    $stmt = $db->prepare($query);
+    $stmt = $mysqli->prepare($query);
 
     if (defined('DEBUG')) {
         echo $query;
 
     }
     //echo $query;
-    if ($stmt === FALSE) throw new Exception($db->error, 500);
+    if ($stmt === FALSE) throw new Exception($mysqli->error, 500);
 
     call_user_func_array(array($stmt, 'bind_param'), $bind_params);
 
@@ -601,13 +625,13 @@ function ow_delete($table, $oid)
 // Filesystem
 function query($query)
 {
-    global $db;
+    global $mysqli;
 
-    $result = $db->query($query);
+    $result = $mysqli->query($query);
 
 
     if ($result === FALSE) {
-        throw new Exception($db->error);
+        throw new Exception($mysqli->error);
     }
 
     $results = array();
@@ -624,54 +648,3 @@ function query($query)
 
 }
 
-
-/**
- *
- * Searches the ObjectiveWeb index
- *
- * @param  $domain The search domain or NULL for all domains
- * @param  $cond The search conditions Array
- * @param  $params ow_select() parameters
- * @return If the domain is specified, returns a list of Objects, otherwise returns a list of OIDs
- */
-function ow_search($domain, $cond, $params = array())
-{
-    $defaults = array(
-        'domain' => null,
-        'fields' => '*',
-        'join' => array(),
-        'order' => array()
-    );
-
-
-    // TODO SELECT FROM ow_index ... inner join domain (se tiver)
-}
-
-
-/**
- * Fetches the next value from the named sequence
- * If the sequence does not exist, it is created with a default value of 1
- *
- *
- * @param  $sequence_id
- * @param  $start Starting counter for new sequences. Defaults to 1
- * @return void
- */
-function ow_nexval($sequence_id, $start = 1)
-{
-    // TODO copiar código do cms original
-}
-
-
-/**
- * Indexes a field for the given oid
- *
- * @param  $oid
- * @param  $index_field
- * @param  $index_value
- * @return void
- */
-function ow_index($oid, $index_field, $index_value)
-{
-    // TODO ow_insert(OW_INDEX, $oid, array('field' => $index_field, 'value' => $index_value)); ...
-}

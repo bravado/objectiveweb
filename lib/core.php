@@ -9,64 +9,82 @@
  * Time: 01:09
  */
 
+define('OBJECTIVEWEB_VERSION', '0.4');
 
-define('OBJECTIVEWEB_VERSION', '0.3');
-
-// Database Tables
-defined('OW_DIRECTORY') or define('OW_DIRECTORY', 'ow_directory');
-defined('OW_META') or define('OW_META', 'ow_meta');
-defined('OW_INDEX') or define('OW_INDEX', 'ow_index');
-defined('OW_VERSION') or define('OW_VERSION', 'ow_version');
-defined('OW_LINKS') or define('OW_LINKS', 'ow_links');
-defined('OW_ACL') or define('OW_ACL', 'ow_acl');
-defined('OW_SEQUENCE') or define('OW_SEQUENCE', 'ow_sequence');
-
-
-
-// Filesystem paths
-defined('OW_CONTENT') or define('OW_CONTENT', ROOT.'/ow-content');
-defined('OW_CONTENT_URL') or define('OW_CONTENT_URL',OW_URL.'/ow-content');
-//// Default db config
-//defined('DATABASE_PROVIDER') or define('DATABASE_PROVIDER', 'mysql');
-//defined('DATABASE_HOST') or define('DATABASE_HOST', 'localhost');
-//defined('DATABASE_USER') or define('DATABASE_USER', 'objectiveweb');
-//defined('DATABASE_PASS') or define('DATABASE_PASS', null);
-//defined('DATABASE_PORT') or define('DATABASE_PORT', 3306);
-//defined('DATABASE_DB') or define('DATABASE_DB', 'objectiveweb');
-////defined('DB_CHARSET') or define('DB_CHARSET', 'utf8');
-//
-//// Initialize F3's database
-//F3::set('DB',
-//	new DB(
-//		sprintf('%s:host=%s;port=%d;dbname=%s',DATABASE_PROVIDER,DATABASE_HOST,DATABASE_PORT,DATABASE_DB),
-//		DATABASE_USER,
-//		DATABASE_PASS
-//	)
-//);
 // Global system variables
 $_domains = array();
-$_subscriptions = array();
-
-// CORE domains
-//register_domain('apps', array('handler' => 'TablesHandler', 'tables' => array(OW_APPS)));
-register_domain('directory', array('handler' => 'ObjectStore', 'table' => OW_DIRECTORY));
-
-
-function ow_version() {
-    // TODO incluir informações de plugin se DEBUG
-    return sprintf('{ "objectiveweb": "%s" }', OBJECTIVEWEB_VERSION);
-}
+$_apps = array();
 
 // TODO register dynamic domains (on the directory)
 
-function create($domain, $data) {
+function register_domain($domain_id, $params = array())
+{
+    global $_domains;
+
+    if (isset($_domains[$domain_id])) {
+        throw new Exception(sprintf(_('Domain %s already registered'), $domain_id));
+    }
+
+    if (!is_array($params)) {
+        $params = json_decode($params, true);
+
+        if ($params === null) {
+            throw new Exception(_('Invalid domain parameters'));
+        }
+    }
+
+    $defaults = array(
+        'schema' => array(),
+        'handler' => 'ObjectHandler'
+    );
+
+    // TODO validate schema
+
+
+    $_domains[$domain_id] = array_merge($defaults, $params);
+}
+
+/**
+ * @param $id - The application ID
+ * @param string $root - ROOT directory when looking for apps (defaults to web root)
+ * @throws Exception
+ */
+function register_app($id, $root = ROOT)
+{
+    global $_apps;
+    $_init = "$root/$id/_init.php";
+    if (!isset($_apps[$id])) {
+        if (is_readable($_init)) {
+            $_apps[$id] = $_init;
+        }
+        else {
+            throw new Exception(sprintf(_('Impossible to register %s: %s not found'), $id, $_init));
+        }
+    }
+}
+
+function ow_version()
+{
+    // TODO incluir informações de plugin se DEBUG
+    global $_apps;
+
+    if (defined('DEBUG')) {
+        return sprintf('{ "objectiveweb": "%s", "apps" : %s }', OBJECTIVEWEB_VERSION, json_encode($_apps));
+    }
+    return sprintf('{ "objectiveweb": "%s" }', OBJECTIVEWEB_VERSION);
+}
+
+
+function create($domain, $data)
+{
     $handler = get($domain);
 
     // TODO verificar permissão de criar
     return $handler->create($data);
 }
 
-function write($domain, $id, $data) {
+function write($domain, $id, $data)
+{
 
     $handler = get($domain);
 
@@ -81,7 +99,8 @@ function write($domain, $id, $data) {
  * @param null $id
  * @return OW_Handler
  */
-function get($domain_id, $id = null, $attachment = null) {
+function get($domain_id, $id = null, $attachment = null)
+{
 
     global $_domains;
 
@@ -91,7 +110,7 @@ function get($domain_id, $id = null, $attachment = null) {
 
     if (empty($_domains[$domain_id]['instance'])) {
 
-        if(!class_exists($_domains[$domain_id]['handler'])) {
+        if (!class_exists($_domains[$domain_id]['handler'])) {
             throw new Exception(sprintf(_('Invalid handler %s'), $_domains[$domain_id]['handler']), 500);
         }
 
@@ -106,9 +125,9 @@ function get($domain_id, $id = null, $attachment = null) {
 
     $handler = $_domains[$domain_id]['instance'];
 
-    if($id) {
+    if ($id) {
         // TODO verificar permissão de ler este $domain/$id
-       if($attachment) {
+        if ($attachment) {
             return $handler->attachment($id, $attachment);
         }
         else {
@@ -120,22 +139,24 @@ function get($domain_id, $id = null, $attachment = null) {
     }
 
 
-
 }
 
-function fetch($domain, $params = array()) {
+function fetch($domain, $params = array())
+{
     // TODO adicionar acl nos parâmetros
     $handler = get($domain);
     return $handler->fetch($params);
 }
 
-function attach($domain, $id, $data) {
+function attach($domain, $id, $data)
+{
     $handler = get($domain);
 
     return $handler->attach($id, $data);
 }
 
-function parse_path($path) {
+function parse_path($path)
+{
 
     $pattern = '/\/([^/]+)\/?(.*)/';
 
@@ -143,27 +164,6 @@ function parse_path($path) {
 
     return $matches;
 
-}
-
-function register_domain($domain_id, $params = array())
-{
-    global $_domains;
-
-    if(isset($_domains[$domain_id])) {
-        throw new Exception(sprintf('Domain %s already registered', $domain_id));
-    }
-    
-    $defaults = array(
-        'schema' => array(),
-        'handler' => 'ObjectHandler'
-    );
-
-    // TODO validate schema
-
-
-
-
-    $_domains[$domain_id] = array_merge($defaults, $params);
 }
 
 
@@ -215,7 +215,7 @@ function ow_oid()
     $clock_seq_hi_and_reserved = $clock_seq_hi_and_reserved | 0x8000;
 
     return sprintf('%08s-%04s-%04x-%04x-%012s',
-                   $time_low, $time_mid, $time_hi_and_version, $clock_seq_hi_and_reserved, $node);
+        $time_low, $time_mid, $time_hi_and_version, $clock_seq_hi_and_reserved, $node);
 }
 
 // publish/subscribe (may become realtime)
@@ -272,22 +272,22 @@ class UUID
         return sprintf('%08s-%04s-%04x-%04x-%12s',
 
 // 32 bits for "time_low"
-                       substr($hash, 0, 8),
+            substr($hash, 0, 8),
 
 // 16 bits for "time_mid"
-                       substr($hash, 8, 4),
+            substr($hash, 8, 4),
 
 // 16 bits for "time_hi_and_version",
 // four most significant bits holds version number 3
-                       (hexdec(substr($hash, 12, 4)) & 0x0fff) | 0x3000,
+            (hexdec(substr($hash, 12, 4)) & 0x0fff) | 0x3000,
 
 // 16 bits, 8 bits for "clk_seq_hi_res",
 // 8 bits for "clk_seq_low",
 // two most significant bits holds zero and one for variant DCE1.1
-                       (hexdec(substr($hash, 16, 4)) & 0x3fff) | 0x8000,
+            (hexdec(substr($hash, 16, 4)) & 0x3fff) | 0x8000,
 
 // 48 bits for "node"
-                       substr($hash, 20, 12)
+            substr($hash, 20, 12)
         );
     }
 
@@ -296,22 +296,22 @@ class UUID
         return sprintf('%04x%04x-%04x-%04x-%04x-%04x%04x%04x',
 
 // 32 bits for "time_low"
-                       mt_rand(0, 0xffff), mt_rand(0, 0xffff),
+            mt_rand(0, 0xffff), mt_rand(0, 0xffff),
 
 // 16 bits for "time_mid"
-                       mt_rand(0, 0xffff),
+            mt_rand(0, 0xffff),
 
 // 16 bits for "time_hi_and_version",
 // four most significant bits holds version number 4
-                       mt_rand(0, 0x0fff) | 0x4000,
+            mt_rand(0, 0x0fff) | 0x4000,
 
 // 16 bits, 8 bits for "clk_seq_hi_res",
 // 8 bits for "clk_seq_low",
 // two most significant bits holds zero and one for variant DCE1.1
-                       mt_rand(0, 0x3fff) | 0x8000,
+            mt_rand(0, 0x3fff) | 0x8000,
 
 // 48 bits for "node"
-                       mt_rand(0, 0xffff), mt_rand(0, 0xffff), mt_rand(0, 0xffff)
+            mt_rand(0, 0xffff), mt_rand(0, 0xffff), mt_rand(0, 0xffff)
         );
     }
 
@@ -336,49 +336,47 @@ class UUID
         return sprintf('%08s-%04s-%04x-%04x-%12s',
 
 
-                       substr($hash, 0, 8),// 32 bits for "time_low"
+            substr($hash, 0, 8), // 32 bits for "time_low"
 
 
-                       substr($hash, 8, 4),// 16 bits for "time_mid"
+            substr($hash, 8, 4), // 16 bits for "time_mid"
 
 // 16 bits for "time_hi_and_version",
 // four most significant bits holds version number 5
-                       (hexdec(substr($hash, 12, 4)) & 0x0fff) | 0x5000,
+            (hexdec(substr($hash, 12, 4)) & 0x0fff) | 0x5000,
 
 // 16 bits, 8 bits for "clk_seq_hi_res",
 // 8 bits for "clk_seq_low",
 // two most significant bits holds zero and one for variant DCE1.1
-                       (hexdec(substr($hash, 16, 4)) & 0x3fff) | 0x8000,
+            (hexdec(substr($hash, 16, 4)) & 0x3fff) | 0x8000,
 
 // 48 bits for "node"
-                       substr($hash, 20, 12)
+            substr($hash, 20, 12)
         );
     }
 
     public static function is_valid($uuid)
     {
         return preg_match('/^\{?[0-9a-f]{8}\-?[0-9a-f]{4}\-?[0-9a-f]{4}\-?' .
-                          '[0-9a-f]{4}\-?[0-9a-f]{12}\}?$/i', $uuid) === 1;
+            '[0-9a-f]{4}\-?[0-9a-f]{12}\}?$/i', $uuid) === 1;
     }
 }
 
 
-class OWHandler {
+class OWHandler
+{
 
     var $id;
-    var $defaults = array();
 
-    function _init($id, $params = array()) {
+    function _init($id, $params = array())
+    {
         $this->id = $id;
 
-        foreach(array_merge($this->defaults, $params) as $param => $value) {
-            // TODO verificar reserved keywords
-            $this->$param = $value;
-        }
-        $this->init();
+        $this->init($params);
     }
 
-    function init() {
+    function init()
+    {
 
     }
 
@@ -408,7 +406,6 @@ class OWHandler {
      * @param null $data The object data
      * @param null $owner The object owner
      * @param null $metadata The object metadata
-
      * @return string|The object's new oid.
      */
     function create($data = null, $owner = null, $metadata = array())
@@ -433,10 +430,11 @@ class OWHandler {
      * @param $name
      * @return Array attachment info
      */
-    function attachment($oid, $name) {
+    function attachment($oid, $name)
+    {
         $filename = sprintf("%s/%s/%s/%s", OW_CONTENT, $this->id, $oid, $name);
 
-        if(!is_readable($filename)) {
+        if (!is_readable($filename)) {
             throw new Exception('Attachment not found', 404);
         }
         else {
@@ -451,11 +449,12 @@ class OWHandler {
      *  array("name" => "file_name.ext", "type" => "mime/type", "data" => "file_data")
      * @return Array
      */
-    function attach($oid, $data) {
+    function attach($oid, $data)
+    {
         $directory = sprintf("%s/%s/%s", OW_CONTENT, $this->id, $oid);
 
-        if(!is_dir($directory)) {
-            if(file_exists($directory)) {
+        if (!is_dir($directory)) {
+            if (file_exists($directory)) {
                 throw new Exception("Cannot write to $directory", 500);
             }
 
@@ -472,8 +471,7 @@ class OWHandler {
 
     function delete($oid)
     {
-
+        throw new Exception('Not implemented', 500);
     }
 }
-
 
