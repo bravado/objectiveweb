@@ -75,22 +75,22 @@ function ow_version()
 }
 
 
-function create($domain, $data)
+function post($domain, $data)
 {
     $handler = get($domain);
 
     // TODO verificar permissão de criar
-    return $handler->create($data);
+    return $handler->post($data);
 }
 
-function write($domain, $id, $data)
+function put($domain, $id, $data)
 {
 
     $handler = get($domain);
 
     // TODO verificar permissão do $domain/$id
 
-    return $handler->write($id, $data);
+    return $handler->put($id, $data);
 }
 
 /**
@@ -143,8 +143,9 @@ function get($domain_id, $id = null, $attachment = null)
 
 function fetch($domain, $params = array())
 {
-    // TODO adicionar acl nos parâmetros
     $handler = get($domain);
+    // TODO adicionar acl no handler
+
     return $handler->fetch($params);
 }
 
@@ -404,11 +405,9 @@ class OWHandler
      * Creates a new Object on a domain
      *
      * @param null $data The object data
-     * @param null $owner The object owner
-     * @param null $metadata The object metadata
      * @return string|The object's new oid.
      */
-    function create($data = null, $owner = null, $metadata = array())
+    function post($data = null)
     {
         throw new Exception('Not implemented', 500);
     }
@@ -417,10 +416,9 @@ class OWHandler
      * Writes data to an existing object
      * @param  $oid
      * @param Array $data
-     * @param Array $metadata
      * @return array The changed data
      */
-    function write($oid, $data)
+    function put($oid, $data)
     {
         throw new Exception('Not implemented', 500);
     }

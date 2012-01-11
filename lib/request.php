@@ -23,12 +23,13 @@ function route($request, $callback) {
     }
 
     // TODO check if using PATH_INFO is ok in all cases (rewrite, different servers, etc)
-    
+
     if(preg_match(sprintf("/^%s$/", str_replace('/', '\/', $request) ), "{$_SERVER['REQUEST_METHOD']} {$_SERVER['PATH_INFO']}", $params)) {
         array_shift($params);
 
         if(func_num_args() > 2) {
-            $params = array_merge($params, array_slice(func_get_args(), 2));
+            $params = array_merge(array_slice(func_get_args(), 2), $params);
+            //print_r($params); exit();
         }
 
         //print_r($params); exit;

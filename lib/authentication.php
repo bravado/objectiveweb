@@ -73,4 +73,8 @@ class AuthenticationHandler extends OWHandler
         }
 
     }
+
+    function post($data) {
+        throw new Exception("Local login not implemented");
+    }
 }

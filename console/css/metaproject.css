@@ -1,1 +1,202 @@
 @import url('bootstrap.min.css');
+
+
+span.ui-icon { margin: 0 4px; }
+.icon span.ui-icon { float: left; }
+.icon-right span.ui-icon { float: right; }
+
+.loading { background:  url('images/loading.gif') no-repeat center center; height: 24px;}
+
+html { height: 100%; overflow: hidden; }
+.main-content { position: absolute; overflow: auto; width: 100%; top:0; bottom: 0; left: 0; }
+.with-header .main-content { top: 40px; }
+.with-footer .main-content { bottom: 40px;}
+.pane { position: absolute; width: 100%; top:0; left: 0; }
+
+/* sidebar */
+.sidebar { width: 200px; top:0; bottom: 0; left: 0; }
+.sidebar.right { left: auto; right: 0; }
+.with-sidebar { }
+
+/* background styles */
+.light-gray { background-color: #EEEEEE;}
+
+.container > .content {
+    background-color: #FFFFFF;
+    border-radius: 0 0 6px 6px;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.15);
+    margin: 0 -20px;
+    padding: 20px;
+}
+
+.page-header {
+    background-color: #F5F5F5;
+    margin: -20px -20px 20px;
+    padding: 20px 20px 10px;
+}
+
+
+/* Dialogs */
+.ui-dialog { background-clip: padding-box;
+    background-color: #FFFFFF;
+    border: 1px solid rgba(0, 0, 0, 0.3);
+    border-radius: 6px 6px 6px 6px;
+    box-shadow: 0 3px 7px rgba(0, 0, 0, 0.3);}
+
+.ui-dialog-titlebar { border-bottom: 1px solid #EEEEEE;
+    padding: 5px 15px;}
+.ui-dialog-title { font-size: 18px;line-height: 36px; color: #404040;
+    font-weight: bold;}
+.ui-dialog-titlebar-close .ui-icon.ui-icon-closethick { color: #000000;
+    margin-top: 7px;
+    float: right;
+    font-size: 20px;
+    font-weight: bold;
+    line-height: 13.5px;
+    opacity: 0.25;
+    text-shadow: 0 1px 0 #FFFFFF;}
+
+.ui-dialog-content { padding: 15px; }
+
+.ui-dialog-buttonpane { background-color: #F5F5F5;
+    border-radius: 0 0 6px 6px;
+    border-top: 1px solid #DDDDDD;
+    box-shadow: 0 1px 0 #FFFFFF inset;
+    margin-bottom: 0;
+    padding: 14px 15px 15px; text-align: right; }
+.ui-dialog-buttonset button { -moz-border-bottom-colors: none;
+    -moz-border-image: none;
+    -moz-border-left-colors: none;
+    -moz-border-right-colors: none;
+    -moz-border-top-colors: none;
+    -moz-transition: all 0.1s linear 0s;
+    background-color: #E6E6E6;
+    background-image: -moz-linear-gradient(center top , #FFFFFF, #FFFFFF 25%, #E6E6E6);
+    background-repeat: no-repeat;
+    border-color: #CCCCCC #CCCCCC #BBBBBB;
+    border-radius: 4px 4px 4px 4px;
+    border-style: solid;
+    border-width: 1px;
+    box-shadow: 0 1px 0 rgba(255, 255, 255, 0.2) inset, 0 1px 2px rgba(0, 0, 0, 0.05);
+    color: #333333;
+    cursor: pointer;
+    display: inline-block;
+    font-size: 13px;
+    line-height: normal;
+    padding: 5px 14px 6px;
+    text-shadow: 0 1px 1px rgba(255, 255, 255, 0.75);
+    margin-left: 3px;
+}
+
+.ui-dialog-buttonset button:first-child {
+    color: #ffffff;
+  background-color: #0064cd;
+  background-repeat: repeat-x;
+  background-image: -khtml-gradient(linear, left top, left bottom, from(#049cdb), to(#0064cd));
+  background-image: -moz-linear-gradient(top, #049cdb, #0064cd);
+  background-image: -ms-linear-gradient(top, #049cdb, #0064cd);
+  background-image: -webkit-gradient(linear, left top, left bottom, color-stop(0%, #049cdb), color-stop(100%, #0064cd));
+  background-image: -webkit-linear-gradient(top, #049cdb, #0064cd);
+  background-image: -o-linear-gradient(top, #049cdb, #0064cd);
+  background-image: linear-gradient(top, #049cdb, #0064cd);
+  filter: progid:DXImageTransform.Microsoft.gradient(startColorstr='#049cdb', endColorstr='#0064cd', GradientType=0);
+  text-shadow: 0 -1px 0 rgba(0, 0, 0, 0.25);
+  border-color: #0064cd #0064cd #003f81;
+  border-color: rgba(0, 0, 0, 0.1) rgba(0, 0, 0, 0.1) rgba(0, 0, 0, 0.25);
+}
+
+.ui-dialog-buttonset button:first-child:hover {
+    color: #fff;
+}
+
+.ui-dialog-buttonset button:active {
+  -webkit-box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.25), 0 1px 2px rgba(0, 0, 0, 0.05);
+  -moz-box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.25), 0 1px 2px rgba(0, 0, 0, 0.05);
+  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.25), 0 1px 2px rgba(0, 0, 0, 0.05);
+}
+.ui-dialog-buttonset button:hover {
+  background-position: 0 -15px;
+  color: #333;
+  text-decoration: none;
+}
+.ui-dialog-buttonset button:focus {
+  outline: 1px dotted #666;
+}
+
+/* Overlays and Shadows */
+.ui-widget-overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: #262b33; background: rgba(0, 0, 0, 0.6);
+filter:progid:DXImageTransform.Microsoft.gradient(startColorstr=#99000000, endColorstr=#99000000);
+-ms-filter: "progid:DXImageTransform.Microsoft.gradient(startColorstr=#99000000, endColorstr=#99000000)";
+}
+
+.ui-widget-shadow { margin: -8px 0 0 -8px; padding: 8px; background: #000000; opacity: .30;filter:Alpha(Opacity=30); -moz-border-radius: 8px; -webkit-border-radius: 8px; border-radius: 8px; }
+
+/*
+ * jQuery UI Resizable 1.8.7
+ *
+ * Copyright 2010, AUTHORS.txt (http://jqueryui.com/about)
+ * Dual licensed under the MIT or GPL Version 2 licenses.
+ * http://jquery.org/license
+ *
+ * http://docs.jquery.com/UI/Resizable#theming
+ */
+.ui-resizable { position: relative;}
+.ui-resizable-handle { position: absolute; font-size: 0.1px; z-index: 999; display: block;}
+.ui-resizable-disabled .ui-resizable-handle, .ui-resizable-autohide .ui-resizable-handle { display: none; }
+.ui-resizable-n { cursor: n-resize; height: 7px; width: 100%; top: -5px; left: 0; }
+.ui-resizable-s { cursor: s-resize; height: 7px; width: 100%; bottom: -5px; left: 0; }
+.ui-resizable-e { cursor: e-resize; width: 7px; right: -5px; top: 0; height: 100%; }
+.ui-resizable-w { cursor: w-resize; width: 7px; left: -5px; top: 0; height: 100%; }
+.ui-resizable-se { cursor: se-resize; width: 12px; height: 12px; right: 1px; bottom: 1px; }
+.ui-resizable-sw { cursor: sw-resize; width: 9px; height: 9px; left: -5px; bottom: -5px; }
+.ui-resizable-nw { cursor: nw-resize; width: 9px; height: 9px; left: -5px; top: -5px; }
+.ui-resizable-ne { cursor: ne-resize; width: 9px; height: 9px; right: -5px; top: -5px;}/*
+
+/* Pure CSS3 Paper Curls Without Images - http://www.sitepoint.com/pure-css3-paper-curl/ */
+.paper
+{
+    position: relative;
+	padding: 50px;
+	margin: 10px auto;
+	background-color: #fff;
+	-webkit-box-shadow: 0 0 4px rgba(0, 0, 0, 0.2), inset 0 0 50px rgba(0, 0, 0, 0.1);
+	-moz-box-shadow: 0 0 4px rgba(0, 0, 0, 0.2), inset 0 0 50px rgba(0, 0, 0, 0.1);
+	box-shadow: 0 0 5px rgba(0, 0, 0, 0.2), inset 0 0 50px rgba(0, 0, 0, 0.1);
+}
+.paper.left {
+    float: left;
+}
+
+.paper.right {
+    float: right;
+}
+.paper.right:before, .paper.left:after
+{
+	position: absolute;
+	width: 40%;
+	height: 10px;
+	content: ' ';
+	left: 12px;
+	bottom: 12px;
+	background: transparent;
+	-webkit-transform: skew(-5deg) rotate(-5deg);
+	-moz-transform: skew(-5deg) rotate(-5deg);
+	-ms-transform: skew(-5deg) rotate(-5deg);
+	-o-transform: skew(-5deg) rotate(-5deg);
+	transform: skew(-5deg) rotate(-5deg);
+	-webkit-box-shadow: 0 6px 12px rgba(0, 0, 0, 0.3);
+	-moz-box-shadow: 0 6px 12px rgba(0, 0, 0, 0.3);
+	box-shadow: 0 6px 12px rgba(0, 0, 0, 0.3);
+	z-index: -1;
+}
+
+.paper.left:after
+{
+	left: auto;
+	right: 12px;
+	-webkit-transform: skew(5deg) rotate(5deg);
+	-moz-transform: skew(5deg) rotate(5deg);
+	-ms-transform: skew(5deg) rotate(5deg);
+	-o-transform: skew(5deg) rotate(5deg);
+	transform: skew(5deg) rotate(5deg);
+}

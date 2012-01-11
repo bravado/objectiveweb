@@ -19,7 +19,7 @@ $body = parse_post_body();
 
 // /domain
 route('GET /(\w*)/?', 'fetch', $_GET);
-route('POST /(\w*)/?', 'create', $body);
+route('POST /(\w*)/?', 'post', $body);
 
 // /domain/_plugin
 route('GET /(\w*)/_(\w*)/?', 'handle_domain_plugin');
@@ -29,7 +29,7 @@ route('PUT /(\w*)/_(\w*)/?', 'handle_domain_plugin');
 // /domain/id
 route('GET /(\w*)/([\w-]*)/?', 'get');
 route('POST /(\w*)/([\w-]*)/?', 'handle_add_attachments');
-route('PUT /(\w*)/([\w-]*)/?', 'write', $body);
+route('PUT /(\w*)/([\w-]*)/?', 'put', $body);
 //route('DELETE /(\w*)/(\w*)/?', 'delete');
 
 //route('GET /(\w*)/(\w*)/_(\w*)', 'handle_object_plugin');

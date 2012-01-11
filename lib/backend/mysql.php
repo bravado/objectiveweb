@@ -41,14 +41,12 @@ class Table
     var $pk = null;
     var $fields = array();
 
-    var $joins = array();
 
     function Table($name)
     {
         global $mysqli;
 
         $this->name = $mysqli->escape_string($name);
-
 
         $query = sprintf('describe `%s`', $this->name);
         $result = $mysqli->query($query);
@@ -87,39 +85,49 @@ class Table
      * @param array $params
      * @return Array
      */
-    function select($cond, $params = array())
+    function select($params = array())
     {
         global $mysqli;
 
+        //print_r($params); exit();
         $defaults = array(
-            'fields' => '*',
-            'join' => array()
+            '_fields' => '*',
+            '_join' => array()
         );
 
         $params = array_merge($defaults, $params);
 
-        $query = "select {$params['fields']} from {$this->name}";
+        // fields
+        $query = "select {$params['_fields']} from {$this->name}";
 
-        if(!empty($this->joins)) {
-            foreach($this->joins as $join => $on) {
+        // join
+        if(!empty($params['_join'])) {
+            foreach($params['_join'] as $join => $on) {
                 $query .= " inner join $join on $on";
             }
         }
 
-        if (!empty($cond)) {
-            // TODO usar prepared statements / escape()
-
-            if (!is_array($cond)) {
-                $cond = explode('&', $cond);
+        $conditions = array();
+        foreach($params as $k => $v) {
+            if($k[0] != '_') {
+                $conditions[] = "$k = $v"; // TODO escapar $v, tratar NULL, LIKE, >, <
             }
+        }
+        // TODO usar prepared statements / escape()
 
-            $query .= " where " . implode(" and ", $cond);
+        if(!empty($conditions)) {
+            $query .= " where " . implode(" and ", $conditions);
         }
 
-        if (!empty($params['order'])) {
+        if (!empty($params['_order'])) {
             // TODO if is array...
-            $query .= " order by " . $params['order'];
+            $query .= " order by " . $params['_order'];
         }
+
+
+
+        //print_r($params); exit();
+
 
         if (defined('DEBUG')) {
             error_log($query);
@@ -229,6 +237,7 @@ class Table
             }
 
             $query_args[] = "`$k` = ?";
+            // TODO tratar null ?
             $bind_params[0] .= 's';
             $bind_params[] = &$data[$k];
         }
@@ -236,6 +245,7 @@ class Table
         $key_args = array();
         foreach ($key as $k => $v) {
             $key_args[] = "`$k` = ?";
+            // TODO tratar null ?
             $bind_params[0] .= 's';
             $bind_params[] = &$key[$k];
         }
@@ -260,10 +270,6 @@ class Table
         return $key;
     }
 
-
-    function join($table, $on) {
-        $this->joins[$table] = $on;
-    }
 }
 
 class TableStore extends OWHandler
@@ -271,6 +277,7 @@ class TableStore extends OWHandler
 
     // The main table
     var $table = null;
+    var $joins = array();
 
     // TODO associations
     var $hasMany = array();
@@ -282,16 +289,26 @@ class TableStore extends OWHandler
     {
         global $mysqli;
 
-        $table = isset($params['table']) ? $params['table'] : $this->id;
-        if (isset($params['extends'])) {
+        $defaults = array(
+            'table' => $this->id,
+            'extends' => null,
+            'hasMany' => array()
+        );
+
+        $params = array_merge($defaults, $params);
+
+        $this->hasMany = $params['hasMany'];
+
+        if ($params['extends']) {
             $this->_inherits = true;
             $this->table = new Table($params['extends']);
             // Joined tables have the same primary key as their parent (mandatory)
-            $this->table->join($table, sprintf("%s.%s = %s.%s", $params['extends'], $this->table->pk, $table, $this->table->pk));
+            $this->joins[$params['table']] = sprintf("%s.%s = %s.%s", $params['extends'], $this->table->pk, $params['table'], $this->table->pk);
         }
         else {
-            $this->table = new Table($table);
+            $this->table = new Table($params['table']);
         }
+
 
         //print_r($this); exit;
 
@@ -300,26 +317,81 @@ class TableStore extends OWHandler
     function get($oid, $params = array())
     {
         // TODO support compound keys
-        $result = $this->fetch(sprintf("%s.%s = '%s'", $this->table->name, $this->table->pk, $oid), $params);
+        $params["{$this->table->name}.{$this->table->pk}"] = $oid;
+
+        $result = $this->fetch($params);
         if (!empty($result)) {
-            return $result[0];
+            // Grab first result
+            $result = $result[0];
+
+            // Fetch relations
+            foreach($this->hasMany as $hasMany_id => $hasMany_params) {
+                $hasMany_defaults = array(
+                    'table' => $hasMany_id,
+                    'key' => $this->table->name."_id",
+                    'join' => array()
+                );
+
+                $hasMany_params = array_merge($hasMany_defaults, $hasMany_params);
+
+                $table = new Table($hasMany_params['table']);
+                $select_params = array(
+                    "{$table->name}.{$hasMany_params['key']}" => $result[$this->table->pk],
+                    '_join' => $hasMany_params['join']
+                );
+
+                $result[$hasMany_id] = $table->select($select_params);
+
+            }
+
+            return $result;
         }
         else {
             return null;
         }
     }
 
-    function fetch($cond = array(), $params = array())
+    function fetch($params = array())
     {
-        return $this->table->select($cond, $params);
+        $params['_join'] = $this->joins;
+
+        return $this->table->select($params);
     }
 
-    function create($data = null)
+    function _insert_or_update_hasmany($data) {
+        foreach($this->hasMany as $hasMany => $hasMany_params) {
+            if(!empty($data[$hasMany])) {
+                foreach($data[$hasMany] as $hasMany_data) {
+                    $table = new Table($hasMany_params['table']);
+
+                    // Only store relevant fields
+                    $hasMany_data = array_intersect_key($hasMany_data, $table->fields);
+
+                    // If has PK, update
+                    if(isset($hasMany_data[$table->pk])) {
+                        // TODO verificar DELETE
+                        $update_cond = array("{$table->pk}" => $hasMany_data[$table->pk]);
+                        $table->update($update_cond, $hasMany_data);
+                    }
+                    else {
+                        // Insert new relation
+                        $hasMany_data[$hasMany_params['key']] = $data[$this->table->pk];
+                        $table->insert($hasMany_data);
+                    }
+
+                }
+            }
+        }
+    }
+
+    function post($data = null)
     {
         global $mysqli;
 
+        // Use transactions by default
         $mysqli->autocommit(false);
-        // TODO autogenerate ID if its char(36)
+
+        // TODO autogenerate ID only if its char(36) (not using name as constraint)
         if ($this->table->pk == 'oid' && empty($data['oid'])) {
             $data['oid'] = ow_oid();
         }
@@ -327,15 +399,16 @@ class TableStore extends OWHandler
         // Filter relevant fields for this table
         $table_data = array_intersect_key($data, $this->table->fields);
 
-        // TODO marcar o DTYPE da tabela mãe em $data
-        if(!empty($this->table->joins)) {
+        // If this domain extends another table, set the parent name on the discriminator column
+        if(!empty($this->joins)) {
             $table_data['_type'] = $this->id;
         }
 
+        // Stores the inserted ID on the $data array
         $data[$this->table->pk] = $this->table->insert($table_data);
 
         // Store data on other tables
-        foreach(array_keys($this->table->joins) as $joined) {
+        foreach(array_keys($this->joins) as $joined) {
             $table = new Table($joined);
 
             $table_data = array_intersect_key($data, $table->fields);
@@ -343,6 +416,8 @@ class TableStore extends OWHandler
             $table->insert($table_data);
 
         }
+
+        $this->_insert_or_update_hasmany($data);
 
         $mysqli->commit();
 
@@ -390,9 +465,18 @@ class TableStore extends OWHandler
         return $data[$this->table->pk];
     }
 
-    function write($oid, $data)
+    function put($oid, $data)
     {
         global $mysqli;
+
+        if(isset($data[$this->table->pk])) {
+            if($data[$this->table->pk] != $oid) {
+                throw new Exception(_('Cannot update the primary key, use rename instead'), 405);
+            }
+            else {
+                unset($data[$this->table->pk]);
+            }
+        }
 
         $mysqli->autocommit(false);
 
@@ -406,8 +490,8 @@ class TableStore extends OWHandler
             $this->table->update($cond, $table_data);
         }
 
-        // Store data on other tables
-        foreach(array_keys($this->table->joins) as $joined) {
+        // Update data on other tables
+        foreach(array_keys($this->joins) as $joined) {
             $table = new Table($joined);
 
             $table_data = array_intersect_key($data, $table->fields);
@@ -417,6 +501,10 @@ class TableStore extends OWHandler
             }
 
         }
+
+        $data[$this->table->pk] = $oid;
+        $this->_insert_or_update_hasmany($data);
+
 
         $mysqli->commit();
 
@@ -507,13 +595,13 @@ class ObjectStore extends TableStore
 
     }
 
-    function fetch($cond)
+    function fetch($params)
     {
-        // TODO só preciso trazer o content de field!
-        return parent::fetch($cond);
+        // TODO só preciso trazer o _content nos fields!
+        return parent::fetch($params);
     }
 
-    function create($params)
+    function post($params)
     {
 
         if (empty($params['oid'])) {
@@ -545,7 +633,7 @@ class ObjectStore extends TableStore
         return parent::create($data);
     }
 
-    function write($oid, $data)
+    function put($oid, $data)
     {
 
         $new_data = array();
