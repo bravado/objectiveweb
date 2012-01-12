@@ -101,7 +101,6 @@ function put($domain, $id, $data)
  */
 function get($domain_id, $id = null, $attachment = null)
 {
-
     global $_domains;
 
     if (empty($_domains[$domain_id])) {

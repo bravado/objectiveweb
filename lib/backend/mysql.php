@@ -139,10 +139,22 @@ class Table
             throw new Exception($mysqli->error, 500);
         }
 
+        /* Get field information for all columns */
+        $finfo = $result->fetch_fields();
+
         $results = array();
         if ($result->num_rows > 0) {
-            while ($data = $result->fetch_assoc()) {
-                $results[] = $data;
+            while ($data = $result->fetch_row()) {
+                // TODO verify/optimize for overlapping fields
+                // This way SHOULD use the first table's field (not 100% sure)
+                $r = array();
+                for($i = 0; $i < count($finfo); $i++) {
+                    if(!isset($r[$finfo[$i]->name])) {
+                        $r[$finfo[$i]->name] = $data[$i];
+                    }
+                }
+
+                $results[] = $r;
             }
         }
 

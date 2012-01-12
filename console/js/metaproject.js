@@ -34,7 +34,7 @@ Modernizr.load({
 });
 
 ko.bindingHandlers.icon = {
-    update:function (element, valueAccessor) {
+    init:function (element, valueAccessor) {
 
         var icon = '<span class="ui-icon ui-icon-' + valueAccessor() + '"></span>';
 
@@ -43,13 +43,13 @@ ko.bindingHandlers.icon = {
 };
 
 ko.bindingHandlers.include = {
-    update:function (element, valueAccessor) {
+    init:function (element, valueAccessor) {
         jQuery(element).include(valueAccessor());
     }
 };
 
 ko.bindingHandlers.dialog = {
-    update:function (element, valueAccessor, allBindingsAccessor, viewModel) {
+    init:function (element, valueAccessor, allBindingsAccessor, viewModel) {
         var params = valueAccessor();
 
         jQuery.extend(params, { autoOpen:false });
@@ -57,6 +57,52 @@ ko.bindingHandlers.dialog = {
         jQuery(element).data('viewModel', viewModel).dialog(params);
     }
 };
+
+ko.bindingHandlers.autocomplete = {
+    init:function (element, valueAccessor, allBindingsAccessor, viewModel) {
+        var params = valueAccessor();
+
+        jQuery(element).autocomplete({
+            source: valueAccessor()
+        });
+    }
+};
+
+ko.bindingHandlers.datepicker = {
+    init: function(element, valueAccessor, allBindingsAccessor) {
+        //initialize datepicker with some optional options
+        var options = allBindingsAccessor().datepickerOptions || {};
+        $(element).datepicker(options);
+
+        //handle the field changing
+        ko.utils.registerEventHandler(element, "change", function () {
+            var observable = valueAccessor();
+            var date = $.datepicker.formatDate('yy-mm-dd', $(element).datepicker("getDate"));
+
+            console.log("setting date " + date);
+            observable(date);
+        });
+
+        //handle disposal (if KO removes by the template binding)
+        ko.utils.domNodeDisposal.addDisposeCallback(element, function() {
+            $(element).datepicker("destroy");
+        });
+
+    },
+    update: function(element, valueAccessor) {
+        var value = ko.utils.unwrapObservable(valueAccessor());
+
+        if(undefined == value) {
+            return;
+        }
+        //console.log("retrieving date " + value);
+        var date = value.split('-');
+        //console.log(date);
+        $(element).datepicker("setDate", new Date(date[0], date[1] - 1, date[2]));
+    }
+};
+
+
 
 (function (window) {
     window.metaproject = {

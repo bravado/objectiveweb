@@ -28,11 +28,9 @@ function route($request, $callback) {
         array_shift($params);
 
         if(func_num_args() > 2) {
-            $params = array_merge(array_slice(func_get_args(), 2), $params);
-            //print_r($params); exit();
+            $params = array_merge($params, array_slice(func_get_args(), 2));
         }
 
-        //print_r($params); exit;
         try {
             $response = call_user_func_array($callback, $params);
             if($response !== NULL) {
