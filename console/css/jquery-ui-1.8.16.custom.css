@@ -673,7 +673,7 @@ button.ui-button::-moz-focus-inner { border: 0; padding: 0; } /* reset extra pad
  * http://docs.jquery.com/UI/Dialog#theming
  */
 .ui-dialog { position: absolute; padding: .2em; width: 300px; overflow: hidden; }
-.ui-dialog .ui-dialog-titlebar { /*padding: .4em 1em;*/
+.ui-dialog .ui-dialog-titlebar {
 
   position: relative;
   padding:5px 15px;
@@ -698,7 +698,7 @@ button.ui-button::-moz-focus-inner { border: 0; padding: 0; } /* reset extra pad
 }
 .ui-dialog .ui-dialog-title {
   float: left;
-  /*margin: .1em 16px .1em 0; */
+
   color:#404040;
   font-weight:bold;
   margin-top:5px;

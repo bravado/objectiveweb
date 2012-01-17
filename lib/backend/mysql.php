@@ -92,31 +92,46 @@ class Table
         //print_r($params); exit();
         $defaults = array(
             '_fields' => '*',
+            '_op' => 'AND',
             '_join' => array()
         );
 
         $params = array_merge($defaults, $params);
 
+        // TODO sanitize _op (must be AND or OR)
+
+
+
         // fields
+        // TODO escapar _fields
         $query = "select {$params['_fields']} from {$this->name}";
 
         // join
+        // TODO escapar _join
         if(!empty($params['_join'])) {
             foreach($params['_join'] as $join => $on) {
                 $query .= " inner join $join on $on";
             }
         }
 
+        // TODO usar prepared statements
         $conditions = array();
         foreach($params as $k => $v) {
             if($k[0] != '_') {
-                $conditions[] = "$k = $v"; // TODO escapar $v, tratar NULL, LIKE, >, <
+                if(strpos($v, '%')) {
+                    $conditions[] = sprintf("%s LIKE '%s'", $mysqli->escape_string($k), $mysqli->escape_string($v));
+                }
+                else {
+                    // TODO tratar >, <, >=, <=, <>
+                    $conditions[] = sprintf("%s = %s", $mysqli->escape_string($k), is_numeric($v) ? $v : "'".$mysqli->escape_string($v)."'");
+
+                }
+
             }
         }
-        // TODO usar prepared statements / escape()
 
         if(!empty($conditions)) {
-            $query .= " where " . implode(" and ", $conditions);
+            $query .= " where " . implode(" {$params['_op']} ", $conditions);
         }
 
         if (!empty($params['_order'])) {
@@ -474,7 +489,7 @@ class TableStore extends OWHandler
         //            }
         //        }
 
-        return $data[$this->table->pk];
+        return array($this->table->pk => $data[$this->table->pk]);
     }
 
     function put($oid, $data)

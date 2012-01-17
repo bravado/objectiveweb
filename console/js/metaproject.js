@@ -48,33 +48,52 @@ ko.bindingHandlers.include = {
     }
 };
 
-ko.bindingHandlers.dialog = {
-    init:function (element, valueAccessor, allBindingsAccessor, viewModel) {
-        var params = valueAccessor();
-
-        jQuery.extend(params, { autoOpen:false });
-
-        jQuery(element).data('viewModel', viewModel).dialog(params);
-    }
-};
-
 ko.bindingHandlers.autocomplete = {
     init:function (element, valueAccessor, allBindingsAccessor, viewModel) {
-        var params = valueAccessor();
 
-        jQuery(element).autocomplete({
-            source: valueAccessor()
+        var $element = jQuery(element),
+            params = valueAccessor();
+
+        //handle disposal (if KO removes by the template binding)
+        ko.utils.domNodeDisposal.addDisposeCallback(element, function() {
+            $element.autocomplete("destroy");
         });
+
+        // treat String, callback or Array as source
+        if(typeof(params) == 'string' || typeof(params) == 'function' || params instanceof Array) {
+            params = { source: params };
+        }
+
+        var $autocomplete = $element.autocomplete(params).data('autocomplete');
+
+        // Custom render callback http://jqueryui.com/demos/autocomplete/#custom-data
+        // TODO render as string => ko templates ?
+        if(undefined != params.renderItem) {
+            $autocomplete._renderItem = params.renderItem;
+        }
+
+        if(undefined != params.renderMenu) {
+            $autocomplete._renderMenu = params.renderMenu;
+        }
     }
 };
 
 ko.bindingHandlers.datepicker = {
     init: function(element, valueAccessor, allBindingsAccessor) {
+
+        var $element = jQuery(element);
+
+        //handle disposal (if KO removes by the template binding)
+        ko.utils.domNodeDisposal.addDisposeCallback(element, function() {
+            $element.datepicker("destroy");
+        });
+
         //initialize datepicker with some optional options
         var options = allBindingsAccessor().datepickerOptions || {};
-        $(element).datepicker(options);
+        $element.datepicker(options);
 
         //handle the field changing
+        // TODO verificar se value é Date ou String e configurar de acordo
         ko.utils.registerEventHandler(element, "change", function () {
             var observable = valueAccessor();
             var date = $.datepicker.formatDate('yy-mm-dd', $(element).datepicker("getDate"));
@@ -83,27 +102,42 @@ ko.bindingHandlers.datepicker = {
             observable(date);
         });
 
-        //handle disposal (if KO removes by the template binding)
-        ko.utils.domNodeDisposal.addDisposeCallback(element, function() {
-            $(element).datepicker("destroy");
-        });
+
 
     },
     update: function(element, valueAccessor) {
         var value = ko.utils.unwrapObservable(valueAccessor());
+        // TODO verificar se value é Date ou String e configurar de acordo
 
         if(undefined == value) {
             return;
         }
+
         //console.log("retrieving date " + value);
         var date = value.split('-');
         //console.log(date);
-        $(element).datepicker("setDate", new Date(date[0], date[1] - 1, date[2]));
+        jQuery(element).datepicker("setDate", new Date(date[0], date[1] - 1, date[2]));
     }
 };
 
 
+ko.bindingHandlers.dialog = {
+    init:function (element, valueAccessor, allBindingsAccessor, viewModel) {
+        var $element = jQuery(element),
+            params = valueAccessor();
 
+        //handle disposal (if KO removes by the template binding)
+        ko.utils.domNodeDisposal.addDisposeCallback(element, function() {
+            $element.dialog("destroy");
+        });
+
+        jQuery.extend(params, { autoOpen:false });
+
+        $element.dialog(params);
+    }
+};
+
+// Initialize metaproject
 (function (window) {
     window.metaproject = {
         routes:{},
