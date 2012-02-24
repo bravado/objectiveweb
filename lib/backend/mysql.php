@@ -199,6 +199,20 @@ class Table
             }
 
             $query_fields[] = "`$k`";
+
+            if(is_bool($data[$k])) {
+                $data[$k] = $data[$k] ? '1' : '0';
+            }
+//            else if(is_float($data[$k])) {
+//                $bind_params[0] .= 'd';
+//            }
+//            else if(is_float($data[$k])) {
+//                $bind_params[0] .= 'd';
+//            }
+//            else {
+//                $bind_params[0] .= 's';
+//            }
+
             $bind_params[0] .= 's';
             $bind_params[] = &$data[$k];
         }
@@ -602,9 +616,9 @@ class TableStore extends OWHandler
 class ObjectStore extends TableStore
 {
 
-    function init()
+    function init($params)
     {
-        parent::init();
+        parent::init($params);
 
         // TODO check if all necessary tables exist (meta, versioning, etc)
     }
@@ -657,7 +671,7 @@ class ObjectStore extends TableStore
         // TODO index params (if indexed)
         $data['_content'] = json_encode($params);
 
-        return parent::create($data);
+        return parent::post($data);
     }
 
     function put($oid, $data)
@@ -668,11 +682,11 @@ class ObjectStore extends TableStore
         $object = parent::get($oid);
 
         // We will overwrite the dynamic content
-        unset($object['content']);
+        unset($object['_content']);
 
         // Changed and created fields should not be updated
-        unset($object['changed']);
-        unset($object['created']);
+        unset($object['_changed']);
+        unset($object['_created']);
 
         // Now object has only valid fields, let's update those
         foreach (array_keys($object) as $k) {
@@ -685,7 +699,7 @@ class ObjectStore extends TableStore
         // (dynamic content is ALWAYS OVERWRITTEN)
         $object['_content'] = json_encode(array_merge($data, $object));
 
-        return parent::write($oid, $object);
+        return parent::put($oid, $object);
     }
 }
 

@@ -38,6 +38,7 @@ window.log = function () {
 (function (window, $) {
     window.metaproject = {
         routes:{},
+        debug: 0,
         init:function (target) {
             if (typeof(target) == 'string') {
                 target = $(target);
@@ -65,7 +66,10 @@ window.log = function () {
                                 page = jQuery(path);
                             }
                             else {
+                                if(metaproject.debug) {
+                                    path = path + '?' + new Date().time;
 
+                                }
                                 main_content.include(path);
                                 // If it's a path, include the file if necessary
                                 //page = jQuery('#' + params[0]);
