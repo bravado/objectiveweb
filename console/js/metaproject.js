@@ -103,7 +103,6 @@ window.log = function () {
     /* Includes and initializes another file on the element */
     $.fn.include = function (url, callback) {
         var self = this;
-        console.log('loading ' + url);
         if(self.data('loaded') == url) {
             return this;
         }
@@ -245,7 +244,6 @@ ko.bindingHandlers.datepicker = {
             var observable = valueAccessor();
             var date = $.datepicker.formatDate('yy-mm-dd', $(element).datepicker("getDate"));
 
-            console.log("setting date " + date);
             observable(date);
         });
 
@@ -259,9 +257,7 @@ ko.bindingHandlers.datepicker = {
             return;
         }
 
-        //console.log("retrieving date " + value);
         var date = value.split('-');
-        //console.log(date);
         jQuery(element).datepicker("setDate", new Date(date[0], date[1] - 1, date[2]));
     }
 };
@@ -936,8 +932,6 @@ ko.bindingHandlers.mask = {
         var $element = jQuery(element),
             params = valueAccessor();
 
-        console.log(params);
-        console.log($element.mask(params));
     }
 };
 
