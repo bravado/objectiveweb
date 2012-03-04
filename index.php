@@ -30,7 +30,7 @@ route('PUT /(\w*)/_(\w*)/?', 'handle_domain_plugin');
 route('GET /(\w*)/([\w-]*)/?', 'get');
 route('POST /(\w*)/([\w-]*)/?', 'handle_add_attachments');
 route('PUT /(\w*)/([\w-]*)/?', 'put', $body);
-//route('DELETE /(\w*)/(\w*)/?', 'delete');
+route('DELETE /(\w*)/(\w*)/?', 'delete');
 
 //route('GET /(\w*)/(\w*)/_(\w*)', 'handle_object_plugin');
 //route('POST /(\w*)/(\w*)/_(\w*)', 'handle_object_plugin');

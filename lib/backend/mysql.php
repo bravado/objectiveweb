@@ -311,10 +311,50 @@ class Table
         return $key;
     }
 
+
+    function delete($conditions)
+    {
+        global $mysqli;
+
+        if (!is_array($conditions)) {
+            $conditions = array($this->pk => $conditions);
+        }
+
+        $query_args = array();
+        $bind_params = array('');
+
+        foreach ($conditions as $k => $v) {
+            $query_args[] = "`$k` = ?";
+            $bind_params[0] .= 's';
+            $bind_params[] = &$conditions[$k];
+        }
+
+        $query = sprintf("delete from $this->name where %s", implode(' and ', $query_args));
+
+        $stmt = $mysqli->prepare($query);
+
+        if (defined('DEBUG')) {
+            error_log($query);
+        }
+
+        if ($stmt === FALSE) throw new Exception($mysqli->error, 500);
+
+        call_user_func_array(array($stmt, 'bind_param'), $bind_params);
+
+        if ($stmt->execute() === FALSE) throw new Exception($stmt->error, 500);
+
+        $rows_deleted = $stmt->affected_rows;
+        $stmt->close();
+
+        return $rows_deleted;
+    }
 }
 
 class TableStore extends OWHandler
 {
+
+    // Initialization parameters
+    var $params = array();
 
     // The main table
     var $table = null;
@@ -322,32 +362,26 @@ class TableStore extends OWHandler
 
     // TODO associations
     var $hasMany = array();
-    var $belongsTo = array();
-
-    var $_inherits = false;
 
     function init($params)
     {
-        global $mysqli;
-
         $defaults = array(
             'table' => $this->id,
             'extends' => null,
             'hasMany' => array()
         );
 
-        $params = array_merge($defaults, $params);
+        $this->params = array_merge($defaults, $params);
 
-        $this->hasMany = $params['hasMany'];
+        $this->hasMany = $this->params['hasMany'];
 
-        if ($params['extends']) {
-            $this->_inherits = true;
-            $this->table = new Table($params['extends']);
+        if ($this->params['extends']) {
+            $this->table = new Table($this->params['extends']);
             // Joined tables have the same primary key as their parent (mandatory)
-            $this->joins[$params['table']] = sprintf("%s.%s = %s.%s", $params['extends'], $this->table->pk, $params['table'], $this->table->pk);
+            $this->joins[$this->params['table']] = sprintf("%s.%s = %s.%s", $this->params['extends'], $this->table->pk, $this->params['table'], $this->table->pk);
         }
         else {
-            $this->table = new Table($params['table']);
+            $this->table = new Table($this->params['table']);
         }
 
 
@@ -408,16 +442,25 @@ class TableStore extends OWHandler
                     // Only store relevant fields
                     $hasMany_data = array_intersect_key($hasMany_data, $table->fields);
 
-                    // If has PK, update
+                    // If has PK, update or delete
                     if(isset($hasMany_data[$table->pk])) {
-                        // TODO verificar DELETE
-                        $update_cond = array("{$table->pk}" => $hasMany_data[$table->pk]);
-                        $table->update($update_cond, $hasMany_data);
+                        if(isset($hasMany_data['_delete']) && $hasMany_data['_delete']) {
+                            $table->delete($hasMany_data[$table->pk]);
+                        }
+                        else {
+                            $update_cond = array("{$table->pk}" => $hasMany_data[$table->pk]);
+                            $table->update($update_cond, $hasMany_data);
+                        }
+
                     }
                     else {
                         // Insert new relation
-                        $hasMany_data[$hasMany_params['key']] = $data[$this->table->pk];
-                        $table->insert($hasMany_data);
+                        // TODO should we really verify if _delete was set on an INSERT operation ?
+                        if(!isset($hasMany_data['_delete'])) {
+                            $hasMany_data[$hasMany_params['key']] = $data[$this->table->pk];
+                            $table->insert($hasMany_data);
+                        }
+
                     }
 
                 }
@@ -596,10 +639,47 @@ class TableStore extends OWHandler
 
     }
 
-    function delete($oid)
+    function delete($id)
     {
-        // TODO Implementar DELETE excluindo o OID de todas as tabelas auxiliares
-        throw new Exception('DELETE não implementado');
+        global $mysqli;
+
+        // Use transactions by default
+        $mysqli->autocommit(false);
+
+        // How many rows were deleted
+        $affected_rows = 0;
+
+        // Delete relations
+        foreach($this->hasMany as $hasMany_id => $hasMany_params) {
+            $hasMany_defaults = array(
+                'table' => $hasMany_id,
+                'key' => $this->table->name."_id",
+                'join' => array()
+            );
+
+            $hasMany_params = array_merge($hasMany_defaults, $hasMany_params);
+
+            $table = new Table($hasMany_params['table']);
+            $delete_params = array(
+                "{$hasMany_params['key']}" => $id
+            );
+
+            $affected_rows += $table->delete($delete_params);
+        }
+
+        // Delete the entity itself
+        $table = new Table($this->params['table']);
+        $affected_rows += $table->delete($id);
+
+        // Delete parents (if exist)
+        if($this->params['extends']) {
+            $table = new Table($this->params['extends']);
+            $affected_rows += $table->delete($id);
+        }
+
+        $mysqli->commit();
+
+        return array('delete' => $affected_rows);
     }
 
     function has_field($field)
@@ -704,60 +784,16 @@ class ObjectStore extends TableStore
 }
 
 
-
-
-/**
- * Low level SQL DELETE helper
- * @throws Exception
- * @param  $table
- * @param  $oid
- * @return void
- */
-function ow_delete($table, $oid)
-{
-    global $mysqli;
-
-    if (!is_array($oid)) {
-        $oid = array('oid' => $oid);
-    }
-
-    $query_args = array();
-    $bind_params = array('');
-
-    foreach ($oid as $k => $v) {
-
-        $query_args[] = "`$k` = ?";
-        $bind_params[0] .= 's';
-        $bind_params[] = &$oid[$k];
-    }
-
-    $query = sprintf("delete from $table where %s", implode(' and ', $query_args));
-
-    $stmt = $mysqli->prepare($query);
-
-    if (defined('DEBUG')) {
-        echo $query;
-
-    }
-    //echo $query;
-    if ($stmt === FALSE) throw new Exception($mysqli->error, 500);
-
-    call_user_func_array(array($stmt, 'bind_param'), $bind_params);
-
-    if ($stmt->execute() === FALSE) throw new Exception($stmt->error, 500);
-
-    $stmt->close();
-
-}
-
-
-// Filesystem
+// Generic query function
 function query($query)
 {
     global $mysqli;
 
-    $result = $mysqli->query($query);
+    if(defined('DEBUG')) {
+        error_log($query);
+    }
 
+    $result = $mysqli->query($query);
 
     if ($result === FALSE) {
         throw new Exception($mysqli->error);

@@ -140,6 +140,12 @@ function get($domain_id, $id = null, $attachment = null)
 
 }
 
+function delete($domain, $id) {
+    $handler = get($domain);
+
+    return $handler->delete($id);
+}
+
 function fetch($domain, $params = array())
 {
     $handler = get($domain);

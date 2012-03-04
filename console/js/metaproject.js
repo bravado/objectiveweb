@@ -931,7 +931,7 @@ ko.bindingHandlers.mask = {
     init:function (element, valueAccessor) {
         var $element = jQuery(element),
             params = valueAccessor();
-
+        $element.mask(params);
     }
 };
 
