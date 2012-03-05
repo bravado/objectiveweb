@@ -439,12 +439,14 @@ class TableStore extends OWHandler
                 foreach($data[$hasMany] as $hasMany_data) {
                     $table = new Table($hasMany_params['table']);
 
+                    $_delete = @$hasMany_data['_delete'];
+
                     // Only store relevant fields
                     $hasMany_data = array_intersect_key($hasMany_data, $table->fields);
 
                     // If has PK, update or delete
                     if(isset($hasMany_data[$table->pk])) {
-                        if(isset($hasMany_data['_delete']) && $hasMany_data['_delete']) {
+                        if($_delete) {
                             $table->delete($hasMany_data[$table->pk]);
                         }
                         else {
@@ -479,7 +481,9 @@ class TableStore extends OWHandler
         if ($this->table->pk == 'oid' && empty($data['oid'])) {
             $data['oid'] = ow_oid();
         }
-
+//
+//        error_log(print_r($data, true));
+//        error_log(print_r($this->table->fields, true));
         // Filter relevant fields for this table
         $table_data = array_intersect_key($data, $this->table->fields);
 
