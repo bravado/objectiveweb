@@ -74,3 +74,11 @@ if (!function_exists('_')) {
         return $string;
     }
 }
+
+function today() {
+    return date('Y-m-d');
+}
+
+function now() {
+    return date('Y-m-d H:i:s');
+}

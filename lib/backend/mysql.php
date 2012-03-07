@@ -39,6 +39,54 @@ class Table
     var $name = null;
 
     var $pk = null;
+
+
+    /*
+     *
+     * Array
+(
+    [id] => Array
+        (
+            [Field] => id
+            [Type] => int(11) unsigned
+            [Null] => NO
+            [Key] => PRI
+            [Default] =>
+            [Extra] => auto_increment
+        )
+
+    [animal_id] => Array
+        (
+            [Field] => animal_id
+            [Type] => int(11)
+            [Null] => NO
+            [Key] =>
+            [Default] =>
+            [Extra] =>
+        )
+
+    [anamnese] => Array
+        (
+            [Field] => anamnese
+            [Type] => text
+            [Null] => YES
+            [Key] =>
+            [Default] =>
+            [Extra] =>
+        )
+
+    [created] => Array
+        (
+            [Field] => created
+            [Type] => datetime
+            [Null] => YES
+            [Key] =>
+            [Default] =>
+            [Extra] =>
+        )
+
+)
+     */
     var $fields = array();
 
 
@@ -117,13 +165,30 @@ class Table
         // TODO usar prepared statements
         $conditions = array();
         foreach($params as $k => $v) {
+
+            if($v[0] == '!') {
+                $v = substr($v, 1);
+                $_not = true;
+            }
+            else {
+                $_not = false;
+            }
+
             if($k[0] != '_') {
-                if(strpos($v, '%')) {
-                    $conditions[] = sprintf("%s LIKE '%s'", $mysqli->escape_string($k), $mysqli->escape_string($v));
+
+                if($v === NULL || $v == 'NULL') {
+                    $conditions[] = sprintf("%s %s null", $mysqli->escape_string($k), $_not ? "is not" : "is");
+                }
+                else if(strpos($v, '%')) {
+                    $conditions[] = sprintf("%s %s '%s'", $mysqli->escape_string($k),
+                        $_not ? "not like" : "like",
+                        $mysqli->escape_string($v));
                 }
                 else {
                     // TODO tratar >, <, >=, <=, <>
-                    $conditions[] = sprintf("%s = %s", $mysqli->escape_string($k), is_numeric($v) ? $v : "'".$mysqli->escape_string($v)."'");
+                    $conditions[] = sprintf("%s %s %s", $mysqli->escape_string($k),
+                        $_not ? "!=" : "=",
+                        is_numeric($v) ? $v : "'".$mysqli->escape_string($v)."'");
 
                 }
 
@@ -481,14 +546,21 @@ class TableStore extends OWHandler
         if ($this->table->pk == 'oid' && empty($data['oid'])) {
             $data['oid'] = ow_oid();
         }
-//
-//        error_log(print_r($data, true));
-//        error_log(print_r($this->table->fields, true));
+
+        // Autogenerate 'created' and 'modified' fields if not provided
+        if(!isset($data['created']) && isset($this->table->fields['created']) && $this->table->fields['created']['Type'] == 'datetime' ) {
+            $data['created'] = now();
+        }
+
+        if(!isset($data['modified']) && isset($this->table->fields['modified']) && $this->table->fields['modified']['Type'] == 'datetime' ) {
+            $data['modified'] = now();
+        }
+
         // Filter relevant fields for this table
         $table_data = array_intersect_key($data, $this->table->fields);
 
         // If this domain extends another table, set the parent name on the discriminator column
-        if(!empty($this->joins)) {
+        if(!empty($this->params['extends'])) {
             $table_data['_type'] = $this->id;
         }
 
@@ -506,6 +578,8 @@ class TableStore extends OWHandler
         }
 
         $this->_insert_or_update_hasmany($data);
+
+
 
         $mysqli->commit();
 
@@ -569,6 +643,11 @@ class TableStore extends OWHandler
         $mysqli->autocommit(false);
 
         $cond = array($this->table->pk => $oid);
+
+        // Update 'modified' field if not provided
+        if(!isset($data['modified']) && isset($this->table->fields['modified']) && $this->table->fields['modified']['Type'] == 'datetime' ) {
+            $data['modified'] = now();
+        }
 
         // Filter relevant fields for this table
         $table_data = array_intersect_key($data, $this->table->fields);
