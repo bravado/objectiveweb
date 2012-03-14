@@ -46,13 +46,19 @@ function tpl_fetch($atts, $content = null, $code = "", $context = null)
     return $out;
 }
 
+function tpl_get($atts, $content = null, $code = "", $context = null) {
+    $rsrc = get($atts['from'], $atts['id']);
+
+    return $rsrc ? do_shortcode($content, $rsrc) : '';
+}
+
 function tpl_value($atts, $content = null, $code = "", $context = null)
 {
     return isset($context[$content]) ? $context[$content] : @$atts['default'];
 }
 
 
-function render($template, $context = null) {
+function render($template, $context = null, $return = false) {
 
     if(is_array($template)) {
         $template = get($template[0], $template[1]);
@@ -66,5 +72,11 @@ function render($template, $context = null) {
         }
     }
 
-    echo do_shortcode($template, $context);
+    if($return) {
+        return do_shortcode($template, $context);
+    }
+    else {
+        echo do_shortcode($template, $context);
+        return true;
+    }
 }
