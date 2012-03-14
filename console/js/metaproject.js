@@ -33,12 +33,62 @@ window.log = function () {
 //    nope:'json2.js'
 //});
 
-
 // Initialize metaproject
 (function (window, $) {
     window.metaproject = {
+        run: function(app) {
+
+            app = $.extend({
+                argv: ko.observable(),
+                routes: null
+            }, app);
+
+
+            if(app.routes) {
+                $(window).on('hashchange',
+                    function (e) {
+
+                        var params = window.location.hash.substr(1).split('/');
+
+                        if (params[0] == '') {
+                            params[0] = '/';
+                        }
+
+                        var path = app.routes[params[0]];
+
+                        if (undefined != path) {
+                            if (typeof(path) == 'string') {
+                                if(path.charAt(0) == '#') {
+
+                                }
+                                else {
+
+                                    $('#main-content').include(path, function(loaded) {
+//                                        if(loaded) {
+//                                            $(window).trigger('module.load');
+//                                        }
+//                                        app.argv(params.slice(1));
+                                    });
+                                    //app.load.apply(app, argv);
+                                }
+                            }
+                            else if(typeof(path) == 'function') {
+                                path.apply(app, params.slice(1));
+                            }
+                        }
+
+                    }).trigger('hashchange');
+
+
+
+            }
+        }
+
+/*
+
         routes:{},
         debug: 0,
+        module: ko.observable(null),
         init:function (target) {
             if (typeof(target) == 'string') {
                 target = $(target);
@@ -92,7 +142,7 @@ window.log = function () {
                         main_content.text('non ecsiste');
                     }
                 }).trigger('hashchange');
-        }
+        }*/
     };
 
     // jQuery plugins
@@ -104,7 +154,10 @@ window.log = function () {
     $.fn.include = function (url, callback) {
         var self = this;
         if(self.data('loaded') == url) {
-            return this;
+            if (undefined != callback) {
+                callback.call(self);
+            }
+            return self;
         }
         else {
             return this.addClass('loading').load(url, function () {
@@ -113,7 +166,7 @@ window.log = function () {
                 //metaproject.init(self.removeClass('loading'));
 
                 if (undefined != callback) {
-                    callback();
+                    callback.call(self);
                 }
             });
         }
@@ -166,10 +219,6 @@ window.log = function () {
         });
     };
 
-    $(function () {
-        // This initializes all dynamic elements on the main document
-        metaproject.init($(document));
-    });
 })(window, jQuery);
 
 

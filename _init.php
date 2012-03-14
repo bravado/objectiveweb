@@ -52,6 +52,7 @@ require_once OW_LIB.'/authentication.php';
 require_once OW_LIB.'/request.php';
 require_once OW_LIB.'/session.php';
 require_once OW_LIB.'/util.php';
+require_once OW_LIB.'/template.php';
 
 foreach($_apps as $_app) {
     require_once $_app;

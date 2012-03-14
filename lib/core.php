@@ -478,3 +478,63 @@ class OWHandler
     }
 }
 
+/**
+ * The FileStore lists a directory with files with an optional filter
+ * This also allows reading/writing to arbitrary files
+ *
+ * Note: This handler does not support subdirectories
+ */
+class FileStore extends OWHandler {
+
+    var $root;
+
+    function init($params) {
+        if(!is_dir($params['root'])) {
+            throw new Exception('Invalid Directory Root '.$params['root']);
+        }
+
+        $this->root = $params['root'];
+    }
+
+    function get_metadata($file) {
+        $file = "$this->root/$file";
+
+        $file_meta = array(
+            "name" => basename($file),
+            "size" => filesize($file),
+            "md5" => md5(file_get_contents($file))
+        );
+
+        if(substr($file, -4) == 'html') {
+            $contents = file_get_contents($file);
+            if(preg_match('/<title>([^<]+)/', $contents, $matches)) {
+                $file_meta['title'] = $matches[1];
+            }
+        }
+
+        return $file_meta;
+    }
+
+    function fetch($params) {
+        $dir = opendir($this->root);
+
+        $files = array();
+        while (($file = readdir($dir)) != null) {
+
+
+            if (!is_dir($file)) {
+                $files[] = $this->get_metadata($file);
+
+            }
+        }
+
+        return $files;
+    }
+
+    function get($file) {
+        return file_get_contents($this->root."/".$file);
+    }
+
+
+}
+
