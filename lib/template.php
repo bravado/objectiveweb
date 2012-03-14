@@ -11,18 +11,16 @@
  
 require_once(dirname(__FILE__).'/functions.shortcodes.php');
 
-defined('TEMPLATES_ROOT') || define('TEMPLATES_ROOT', ROOT.'/templates');
+//defined('TEMPLATES_ROOT') || define('TEMPLATES_ROOT', ROOT.'/templates');
 
 /**
  * All templates are listed on the "templates" domain
  */
-register_domain('templates', array(
-    'handler' => 'FileStore',
-    'root' => TEMPLATES_ROOT
-));
+//
 
 add_shortcode('fetch', 'tpl_fetch');
-add_shortcode('value', 'tpl_value');
+add_shortcode('val', 'tpl_value');
+add_shortcode('get', 'tpl_get');
 
 function tpl_fetch($atts, $content = null, $code = "", $context = null)
 {
@@ -56,10 +54,16 @@ function tpl_value($atts, $content = null, $code = "", $context = null)
 
 function render($template, $context = null) {
 
-    $template = get('templates', $template);
-
-    if(!$template) {
-        throw new Exception('Invalid template!');
+    if(is_array($template)) {
+        $template = get($template[0], $template[1]);
+    }
+    else {
+        if(is_readable($template)) {
+            $template = file_get_contents($template);
+        }
+        else {
+            throw new Exception('Invalid template!');
+        }
     }
 
     echo do_shortcode($template, $context);
