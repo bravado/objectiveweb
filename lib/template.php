@@ -68,7 +68,7 @@ function render($template, $context = null, $return = false) {
             $template = file_get_contents($template);
         }
         else {
-            throw new Exception('Invalid template!');
+            throw new Exception('Invalid template '.$template);
         }
     }
 
