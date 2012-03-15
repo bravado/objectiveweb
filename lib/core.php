@@ -75,22 +75,30 @@ function ow_version()
 }
 
 
-function post($domain, $data)
-{
+function delete($domain, $id) {
     $handler = get($domain);
 
-    // TODO verificar permissão de criar
-    return $handler->post($data);
+    return $handler->delete($id);
 }
 
-function put($domain, $id, $data)
+function fetch($domain, $params = array())
 {
-
     $handler = get($domain);
+    // TODO adicionar acl no handler
 
-    // TODO verificar permissão do $domain/$id
+    return $handler->fetch($params);
+}
 
-    return $handler->put($id, $data);
+function first($domain, $params = array()){
+    $handler = get($domain);
+    $params['_limit'] = 1;
+    $result = $handler->fetch($params);
+    if(!empty($result)) {
+        return $result[0];
+    }
+    else {
+        return null;
+    }
 }
 
 /**
@@ -140,18 +148,22 @@ function get($domain_id, $id = null, $attachment = null)
 
 }
 
-function delete($domain, $id) {
-    $handler = get($domain);
-
-    return $handler->delete($id);
-}
-
-function fetch($domain, $params = array())
+function post($domain, $data)
 {
     $handler = get($domain);
-    // TODO adicionar acl no handler
 
-    return $handler->fetch($params);
+    // TODO verificar permissão de criar
+    return $handler->post($data);
+}
+
+function put($domain, $id, $data)
+{
+
+    $handler = get($domain);
+
+    // TODO verificar permissão do $domain/$id
+
+    return $handler->put($id, $data);
 }
 
 function attach($domain, $id, $data)
