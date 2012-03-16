@@ -63,7 +63,7 @@ window.log = function () {
                                 }
                                 else {
 
-                                    $('#main-content').include(path, function (loaded) {
+                                    $('#main-content').include(path + '?ts=' + encodeURIComponent(new Date().toString()), function (loaded) {
 //                                        if(loaded) {
 //                                            $(window).trigger('module.load');
 //                                        }
@@ -1019,80 +1019,51 @@ ko.bindingHandlers.money = {
 };
 // - end of mask/money input
 
-// RTE
-
+// Rich Text Editor
+// Depends on tinymce, options are passed via the tinymceOptions binding
+// Binding structure taken from http://jsfiddle.net/rniemeyer/BwQ4k/
 
 ko.bindingHandlers.rte = {
     init:function (element, valueAccessor, allBindingsAccessor, context) {
         var options = allBindingsAccessor().tinymceOptions || {};
         var modelValue = valueAccessor();
 
-        options.setup = function (ed) {
-            ed.onChange.add(function (ed, l) {
-                if (ko.isWriteableObservable(modelValue)) {
-                    modelValue(l.content);
-                }
-            });
-        };
+        $(element).val(ko.utils.unwrapObservable(modelValue));
 
-        tinymce.init($.extend({
-            mode:"none",
+        if (ko.isWriteableObservable(modelValue)) {
+            options.setup = function (ed) {
+                ed.onChange.add(function (ed, l) {
+                        modelValue(l.content);
+                });
+            };
+        }
+
+        if(!element.id) {
+            element.id = 'mp_rte_' + new Date().getTime();
+        }
+
+        options = $.extend({
             theme:"simple"
-        }, options));
+        }, options);
 
+        options.mode = 'exact';
+        options.elements = element.id;
 
-        $(element).val(modelValue());
-        tinyMCE.execCommand('mceAddControl', false, element);
-        //tinyMCE.execCommand('setContent', modelValue(), element);
+        tinymce.init(options);
+
+        //tinyMCE.execCommand('mceAddControl', false, element);
         ko.utils.domNodeDisposal.addDisposeCallback(element, function () {
-            tinyMCE.execCommand('mceFocus', false, element);
-            tinyMCE.execCommand('mceRemoveControl', false, element);
+            tinyMCE.execCommand('mceFocus', false, element.id);
+            tinyMCE.execCommand('mceRemoveControl', false, element.id);
         });
     },
     update:function (element, valueAccessor, allBindingsAccessor, context) {
         //handle programmatic updates to the observable
         var value = ko.utils.unwrapObservable(valueAccessor());
-        var editor = tinyMCE.get(element);
+        var editor = tinyMCE.get(element.id);
         if(editor) {
             editor.setContent(value)
         }
-    }
-};
-
-ko.bindingHandlers.tinymce = {
-    init:function (element, valueAccessor, allBindingsAccessor, context) {
-        var options = allBindingsAccessor().tinymceOptions || {};
-        var modelValue = valueAccessor();
-
-        //handle edits made in the editor
-        options.setup = function (ed) {
-            ed.onChange.add(function (ed, l) {
-                if (ko.isWriteableObservable(modelValue)) {
-                    modelValue(l.content);
-                }
-            });
-        };
-
-        //handle destroying an editor (based on what jQuery plugin does)
-        ko.utils.domNodeDisposal.addDisposeCallback(element, function () {
-            $(element).parent().find("span.mceEditor,div.mceEditor").each(function (i, node) {
-                var ed = tinyMCE.get(node.id.replace(/_parent$/, ""));
-                if (ed) {
-                    ed.remove();
-                }
-            });
-        });
-
-        //$(element).tinymce(options);
-        setTimeout(function () {
-            $(element).tinymce(options);
-        }, 0);
-
-    },
-    update:function (element, valueAccessor, allBindingsAccessor, context) {
-        //handle programmatic updates to the observable
-        var value = ko.utils.unwrapObservable(valueAccessor());
-        $(element).html(value);
     }
 };
 
