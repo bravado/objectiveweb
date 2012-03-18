@@ -102,8 +102,9 @@ function route($request, $callback) {
  * Constructs an URL for a given path
  *  - If the given url is external or exists as a file on disk, return that file's url
  *  - If the file does not exist, construct a url based on the current script + path info
+ *  - If portions of the path exist, treat the rest as parameters (point to another controller)
  *
- * If path is NULL, returns the current url with protocol, port and so on
+ * If the given path is NULL, returns the current url with protocol, port and so on
  *
  * Examples
  *  url('css/style.css'); returns '/some_root/my_application/css/style.css'
@@ -111,20 +112,46 @@ function route($request, $callback) {
  *  url('othercontroller.php/1/2'); returns '/some_root/my_application/othercontroller.php/1/2' (if othercontroller.php exists)
  *
  * @param $str
- * @param bool $return
+ * @param bool $return if false (default) prints the url, if true returns the url as string
  * @return string
  */
-function url($str, $return = false) {
-    if(empty($str)) {
-        // TODO retornar a URL atual
-    }
+function url($str = null, $return = false) {
+    if($str == 'self' || empty($str)) {
+        if(
+            isset( $_SERVER['HTTPS'] ) && ( $_SERVER['HTTPS'] == 'on' || $_SERVER['HTTPS'] == 1 )
+            || 	isset( $_SERVER['HTTP_X_FORWARDED_PROTO']) && $_SERVER['HTTP_X_FORWARDED_PROTO'] == 'https'
+        ){
+            $protocol = 'https://';
+        }
+        else {
+            $protocol = 'http://';
+        }
 
-    if(file_exists($str)) {
-        $out = dirname($_SERVER['SCRIPT_NAME']) .'/'. $str;
+        $url = $protocol . $_SERVER['HTTP_HOST'];
+
+        // use port if non default
+        $url .=
+            isset( $_SERVER['SERVER_PORT'] )
+                &&( ($protocol === 'http://' && $_SERVER['SERVER_PORT'] != 80) || ($protocol === 'https://' && $_SERVER['SERVER_PORT'] != 443) )
+                ? ':' . $_SERVER['SERVER_PORT']
+                : '';
+
+        $url .= empty($_SERVER['REQUEST_URI']) ? $_SERVER['PHP_SELF'] : $_SERVER['REQUEST_URI'];
+
+        // return current url
+        $out = $url;
     }
     else {
-        $out = $_SERVER['SCRIPT_NAME'].'/'.$str;
+        if(file_exists($str)) {
+            $out = dirname($_SERVER['SCRIPT_NAME']) .'/'. $str;
+        }
+        else {
+            $out = $_SERVER['SCRIPT_NAME'].'/'.$str;
+        }
+        // TODO check for pointers to other controllers + path info (other_controller.php/1/2 does not exist but other_controller.php could exist)
+
     }
+
 
     if($return) {
         return $out;

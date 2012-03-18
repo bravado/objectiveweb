@@ -82,3 +82,10 @@ function today() {
 function now() {
     return date('Y-m-d H:i:s');
 }
+
+function debug($str) {
+    if(DEBUG) {
+        $str = call_user_func_array('sprintf', func_get_args());
+        error_log($str);
+    }
+}

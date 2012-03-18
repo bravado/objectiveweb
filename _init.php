@@ -26,6 +26,8 @@ require_once OW_LIB.'/core.php';
 //print_r(file(OW_CONFIG));exit();
 require_once OW_CONFIG;
 
+defined('DEBUG') or define('DEBUG', FALSE);
+
 // Database Tables
 defined('OW_DIRECTORY') or define('OW_DIRECTORY', 'ow_directory');
 defined('OW_META') or define('OW_META', 'ow_meta');
@@ -51,7 +53,6 @@ require_once OW_LIB.'/directory.php';
 require_once OW_LIB.'/authentication.php';
 require_once OW_LIB.'/request.php';
 require_once OW_LIB.'/session.php';
-require_once OW_LIB.'/util.php';
 require_once OW_LIB.'/template.php';
 
 foreach($_apps as $_app) {

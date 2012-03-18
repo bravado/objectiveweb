@@ -20,11 +20,10 @@ class AuthenticationHandler extends OWHandler
 
         require_once(OW_LIB . '/hybridauth/Hybrid/Auth.php');
 
-
         $this->config = array(
             "base_url" => OW_URL . '/lib/hybridauth/',
             "providers" => array(),
-            "debug" => defined('DEBUG')
+            "debug" => DEBUG
         );
 
         if (defined('AUTH_FACEBOOK_ID')) {
@@ -38,43 +37,50 @@ class AuthenticationHandler extends OWHandler
         $this->hybridauth = new Hybrid_Auth($this->config);
     }
 
-    function authenticate($provider) {
-        $this->hybridauth->authenticate($provider);
+    function fetch($params)
+    {
+        return $this->get(null);
     }
 
     function get($provider)
     {
-        if($provider == 'logout') {
-            $this->hybridauth->logoutAllProviders();
-            return null;
+        switch ($provider) {
+            case null:
+                // TODO DUMP LOCAL LOGIN INFO + all hybridauth logged in accounts
+
+                break;
+            case 'logout':
+                // TODO também matar a session local
+                $this->hybridauth->logoutAllProviders();
+                break;
+            default:
+                if ($this->hybridauth->isConnectedWith($provider)) {
+                    $adapter = $this->hybridauth->getAdapter($provider);
+                    $user_profile = (Array)$adapter->getUserProfile();
+
+
+                    $local_profile = get('directory', $user_profile['identifier']);
+
+                    if (!$local_profile) {
+                        $user_profile['oid'] = $user_profile['identifier'];
+                        $user_profile['uid'] = $user_profile['identifier'];
+                        create('directory', $user_profile);
+                    }
+
+                    return $user_profile;
+                }
+                else {
+                    if (isset($_GET['authenticate'])) {
+                        $this->hybridauth->authenticate($provider);
+                    }
+
+                    return null;
+                }
         }
-
-        if ($this->hybridauth->isConnectedWith($provider)) {
-            $adapter = $this->hybridauth->getAdapter($provider);
-            $user_profile = (Array) $adapter->getUserProfile();
-
-
-            $local_profile = get('directory', $user_profile['identifier']);
-
-            if(!$local_profile) {
-                $user_profile['oid'] = $user_profile['identifier'];
-                $user_profile['uid'] = $user_profile['identifier'];
-                create('directory', $user_profile);
-            }
-
-            return $user_profile;
-        }
-        else {
-            if(isset($_GET['authenticate'])) {
-                $this->authenticate($provider);
-            }
-
-            return null;
-        }
-
     }
 
-    function post($data) {
+    function post($data)
+    {
         throw new Exception("Local login not implemented");
     }
 }

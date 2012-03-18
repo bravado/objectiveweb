@@ -37,9 +37,7 @@ class Table
 {
 
     var $name = null;
-
     var $pk = null;
-
 
     /*
      *
@@ -141,7 +139,10 @@ class Table
         $defaults = array(
             '_fields' => '*',
             '_op' => 'AND',
-            '_join' => array()
+            '_join' => array(),
+            '_offset' => null,
+            '_limit' => null,
+            '_page' => null
         );
 
         $params = array_merge($defaults, $params);
@@ -204,14 +205,9 @@ class Table
             $query .= " order by " . $params['_order'];
         }
 
-
-
         //print_r($params); exit();
 
-
-        if (defined('DEBUG')) {
-            error_log($query);
-        }
+        debug($query);
 
         $result = $mysqli->query($query);
 
@@ -289,9 +285,7 @@ class Table
 
         $query = sprintf("insert into `$this->name` (%s) values (%s)", implode(",", $query_fields), $values);
 
-        if (defined('DEBUG')) {
-            error_log($query);
-        }
+        debug($query);
 
         $stmt = $mysqli->prepare($query);
 
@@ -335,7 +329,6 @@ class Table
         $bind_params = array('');
         $query_args = array();
 
-
         foreach ($data as $k => $v) {
 
             if (is_array($v)) { // TODO or is_class/is_object ?
@@ -358,9 +351,7 @@ class Table
 
         $query = sprintf("update $this->name set %s where %s", implode(",", $query_args), implode("AND", $key_args));
 
-        if (defined('DEBUG')) {
-            error_log($query);
-        }
+        debug($query);
 
         $stmt = $mysqli->prepare($query);
 
@@ -398,9 +389,7 @@ class Table
 
         $stmt = $mysqli->prepare($query);
 
-        if (defined('DEBUG')) {
-            error_log($query);
-        }
+        debug($query);
 
         if ($stmt === FALSE) throw new Exception($mysqli->error, 500);
 
@@ -872,9 +861,7 @@ function query($query)
 {
     global $mysqli;
 
-    if(defined('DEBUG')) {
-        error_log($query);
-    }
+    debug($query);
 
     $result = $mysqli->query($query);
 

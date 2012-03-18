@@ -68,9 +68,8 @@ function ow_version()
     // TODO incluir informações de plugin se DEBUG
     global $_apps;
 
-    if (defined('DEBUG')) {
-        return sprintf('{ "objectiveweb": "%s", "apps" : %s }', OBJECTIVEWEB_VERSION, json_encode($_apps));
-    }
+    debug('{ "objectiveweb": "%s", "apps" : %s }', OBJECTIVEWEB_VERSION, json_encode($_apps));
+
     return sprintf('{ "objectiveweb": "%s" }', OBJECTIVEWEB_VERSION);
 }
 
