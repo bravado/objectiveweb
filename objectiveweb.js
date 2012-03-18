@@ -27,6 +27,14 @@ function ObjectiveWeb(url) {
         );
     };
 
+    this.post = function(domain, data) {
+        return jQuery.ajax({
+            url: self.url,
+            dataType: 'json',
+            type: 'POST',
+            data: data
+        })
+    };
     this.attach = function(object, file) {
         return jQuery.ajax({
             url: ow.getUrl(object) + '/' + file.name,

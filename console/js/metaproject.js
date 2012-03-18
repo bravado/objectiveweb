@@ -36,15 +36,15 @@ window.log = function () {
 // Initialize metaproject
 (function (window, $) {
     window.metaproject = {
-        run: function(app) {
+        run:function (app) {
 
             app = $.extend({
-                argv: ko.observable(),
-                routes: null
+                argv:ko.observable(),
+                routes:null
             }, app);
 
 
-            if(app.routes) {
+            if (app.routes) {
                 $(window).on('hashchange',
                     function (e) {
 
@@ -58,12 +58,12 @@ window.log = function () {
 
                         if (undefined != path) {
                             if (typeof(path) == 'string') {
-                                if(path.charAt(0) == '#') {
+                                if (path.charAt(0) == '#') {
 
                                 }
                                 else {
 
-                                    $('#main-content').include(path, function(loaded) {
+                                    $('#main-content').include(path + '?ts=' + encodeURIComponent(new Date().toString()), function (loaded) {
 //                                        if(loaded) {
 //                                            $(window).trigger('module.load');
 //                                        }
@@ -72,7 +72,7 @@ window.log = function () {
                                     //app.load.apply(app, argv);
                                 }
                             }
-                            else if(typeof(path) == 'function') {
+                            else if (typeof(path) == 'function') {
                                 path.apply(app, params.slice(1));
                             }
                         }
@@ -80,69 +80,68 @@ window.log = function () {
                     }).trigger('hashchange');
 
 
-
             }
         }
 
-/*
+        /*
 
-        routes:{},
-        debug: 0,
-        module: ko.observable(null),
-        init:function (target) {
-            if (typeof(target) == 'string') {
-                target = $(target);
-            }
-        },
-        route:function (routes) {
-            this.routes = routes;
-            $('div[role=page]').hide();
-            $(window).on('hashchange',
-                function (e) {
+         routes:{},
+         debug: 0,
+         module: ko.observable(null),
+         init:function (target) {
+         if (typeof(target) == 'string') {
+         target = $(target);
+         }
+         },
+         route:function (routes) {
+         this.routes = routes;
+         $('div[role=page]').hide();
+         $(window).on('hashchange',
+         function (e) {
 
-                    var params = window.location.hash.substr(1).split('/');
+         var params = window.location.hash.substr(1).split('/');
 
-                    if (params[0] == '') {
-                        params[0] = '/';
-                    }
+         if (params[0] == '') {
+         params[0] = '/';
+         }
 
-                    var page;
-                    var main_content = $('#main-content'); // TODO should be configurable
-                    var path = metaproject.routes[params[0]];
-                    if (undefined != path) {
-                        if (typeof(path) == 'string') {
-                            // If its an element, get the relative DOM node
-                            if (path.charAt(0) == '#') {
-                                page = jQuery(path);
-                            }
-                            else {
-                                if(metaproject.debug) {
-                                    path = path + '?' + new Date().time;
+         var page;
+         var main_content = $('#main-content'); // TODO should be configurable
+         var path = metaproject.routes[params[0]];
+         if (undefined != path) {
+         if (typeof(path) == 'string') {
+         // If its an element, get the relative DOM node
+         if (path.charAt(0) == '#') {
+         page = jQuery(path);
+         }
+         else {
+         if(metaproject.debug) {
+         path = path + '?' + new Date().time;
 
-                                }
-                                main_content.include(path);
-                                // If it's a path, include the file if necessary
-                                //page = jQuery('#' + params[0]);
+         }
+         main_content.include(path);
+         // If it's a path, include the file if necessary
+         //page = jQuery('#' + params[0]);
 
-                                //if (page.length == 0) {
-                                // load and insert page into body
-                                //    page = $('<div id="' + params[0] + '" role="page"></div>').include(path).appendTo('div[role=main]');
-                                //}
-                            }
-
-
-                            //$('div[role=page]:visible').hide();
-                            //page.show();
+         //if (page.length == 0) {
+         // load and insert page into body
+         //    page = $('<div id="' + params[0] + '" role="page"></div>').include(path).appendTo('div[role=main]');
+         //}
+         }
 
 
-                            //console.log(page);
-                        }
-                    }
-                    else {
-                        main_content.text('non ecsiste');
-                    }
-                }).trigger('hashchange');
-        }*/
+         //$('div[role=page]:visible').hide();
+         //page.show();
+
+
+         //console.log(page);
+         }
+         }
+         else {
+         main_content.text('non ecsiste');
+         }
+         }).trigger('hashchange');
+         }*/
     };
 
     // jQuery plugins
@@ -153,7 +152,7 @@ window.log = function () {
     /* Includes and initializes another file on the element */
     $.fn.include = function (url, callback) {
         var self = this;
-        if(self.data('loaded') == url) {
+        if (self.data('loaded') == url) {
             if (undefined != callback) {
                 callback.call(self);
             }
@@ -214,7 +213,7 @@ window.log = function () {
     };
 
     $.fn.applyBindings = function (viewModel) {
-        this.data('viewModel', viewModel).each(function(idx, element) {
+        this.data('viewModel', viewModel).each(function (idx, element) {
             ko.applyBindings(viewModel, element);
         });
     };
@@ -1019,3 +1018,57 @@ ko.bindingHandlers.money = {
     }
 };
 // - end of mask/money input
+
+// Rich Text Editor
+// Depends on tinymce, options are passed via the tinymceOptions binding
+// Binding structure taken from http://jsfiddle.net/rniemeyer/BwQ4k/
+(function ($, ko, tinymce) {
+    ko.bindingHandlers.rte = {
+        init:function (element, valueAccessor, allBindingsAccessor, context) {
+            var options = allBindingsAccessor().tinymceOptions || {};
+            var modelValue = valueAccessor();
+
+            $(element).val(ko.utils.unwrapObservable(modelValue));
+
+            if (ko.isWriteableObservable(modelValue)) {
+                options.setup = function (ed) {
+                    ed.onChange.add(function (ed, l) {
+                        modelValue(l.content);
+                    });
+                };
+            }
+
+            if (!element.id) {
+                element.id = 'mp_rte_' + new Date().getTime();
+            }
+
+            options = $.extend({
+                theme:"simple"
+            }, options);
+
+            options.mode = 'exact';
+            options.elements = element.id;
+
+            tinymce.init(options);
+
+            //tinyMCE.execCommand('mceAddControl', false, element);
+            ko.utils.domNodeDisposal.addDisposeCallback(element, function () {
+                tinymce.execCommand('mceFocus', false, element.id);
+                tinymce.execCommand('mceRemoveControl', false, element.id);
+            });
+        },
+        update:function (element, valueAccessor, allBindingsAccessor, context) {
+            //handle programmatic updates to the observable
+            var value = ko.utils.unwrapObservable(valueAccessor());
+            var editor = tinymce.get(element.id);
+//        if(editor) {
+//            if(editor.getContent() != value) {
+//                editor.setContent(value)
+//            }
+//        }
+        }
+    }
+})(jQuery, ko, tinymce);
+// - end of rich text editor
+
+
