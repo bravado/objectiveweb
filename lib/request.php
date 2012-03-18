@@ -7,6 +7,62 @@
  * Time: 22:24
  */
 
+
+function parse_post_body($decoded = true) {
+
+    if($_SERVER['REQUEST_METHOD'] === 'POST' || $_SERVER['REQUEST_METHOD'] === 'PUT') {
+
+        if(!empty($_POST)) {
+            return $_POST;
+        }
+        else {
+            $post_body = file_get_contents('php://input');
+
+            if($decoded && ($post_body[0] == '{' || $post_body[0] == '[')) {
+                return json_decode($post_body, true);
+            }
+            else {
+                return $post_body;
+            }
+        }
+    }
+    else {
+        return null;
+    }
+
+}
+
+function redirect($to) {
+    header('Location: '.url($to, true));
+    exit();
+}
+
+function respond($content, $code = 200) {
+
+    header("HTTP/1.1 $code");
+
+    if(is_array($content)) {
+
+        $content = json_encode($content);
+    }
+
+    if($content[0] == '{' || $content[0] == '[') {
+        header('Content-type: application/json');
+    }
+
+    exit($content);
+}
+
+/**
+ * Ensures that only the specified Content-type is accepted
+ * @param $type The valid mime type
+ * @return void
+ */
+function respond_to($type) {
+    // TODO Only accept the specified Content-type especificado
+    throw new Exception('Not implemented yet', 500);
+}
+
 /**
  * Route a particular request to a callback
  *
@@ -16,7 +72,6 @@
  * @param $callback - A valid callback. Regex capture groups are passed as arguments to this function
  * @return void or data - If the callback returns something, it's responded accordingly, otherwise, nothing happens
  */
-
 function route($request, $callback) {
     if(!is_callable($callback)) {
         throw new Exception(sprintf(_('%s: Invalid callback'), $callback), 500);
@@ -44,51 +99,37 @@ function route($request, $callback) {
 }
 
 /**
- * Ensures that only the specified Content-type is accepted
- * @param $type The valid mime type
- * @return void
+ * Constructs an URL for a given path
+ *  - If the given url is external or exists as a file on disk, return that file's url
+ *  - If the file does not exist, construct a url based on the current script + path info
+ *
+ * If path is NULL, returns the current url with protocol, port and so on
+ *
+ * Examples
+ *  url('css/style.css'); returns '/some_root/my_application/css/style.css'
+ *  url('1'); returns '/some_root/my_application/controller.php/1' (if we ran that command from controller.php)
+ *  url('othercontroller.php/1/2'); returns '/some_root/my_application/othercontroller.php/1/2' (if othercontroller.php exists)
+ *
+ * @param $str
+ * @param bool $return
+ * @return string
  */
-function respond_to($type) {
-    // TODO Only accept the specified Content-type especificado
-    throw new Exception('Not implemented yet', 500);
-}
+function url($str, $return = false) {
+    if(empty($str)) {
+        // TODO retornar a URL atual
+    }
 
-function parse_post_body($decoded = true) {
-
-    if($_SERVER['REQUEST_METHOD'] === 'POST' || $_SERVER['REQUEST_METHOD'] === 'PUT') {
-
-        if(!empty($_POST)) {
-            return $_POST;
-        }
-        else {
-            $post_body = file_get_contents('php://input');
-
-            if($decoded && ($post_body[0] == '{' || $post_body[0] == '[')) {
-                return json_decode($post_body, true);
-            }
-            else {
-                return $post_body;
-            }
-        }
+    if(file_exists($str)) {
+        $out = dirname($_SERVER['SCRIPT_NAME']) .'/'. $str;
     }
     else {
-        return null;
+        $out = $_SERVER['SCRIPT_NAME'].'/'.$str;
     }
 
-}
-
-function respond($content, $code = 200) {
-
-    header("HTTP/1.1 $code");
-
-    if(is_array($content)) {
-
-        $content = json_encode($content);
+    if($return) {
+        return $out;
     }
-
-    if($content[0] == '{' || $content[0] == '[') {
-        header('Content-type: application/json');
+    else {
+        echo $out;
     }
-
-    exit($content);
 }

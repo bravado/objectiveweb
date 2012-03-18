@@ -11,12 +11,12 @@
 
 require_once(dirname(__FILE__) . '/functions.shortcodes.php');
 
+add_shortcode('date', 'tpl_date');
 add_shortcode('each', 'tpl_each');
 add_shortcode('fetch', 'tpl_fetch');
 add_shortcode('get', 'tpl_get');
+add_shortcode('url', 'tpl_url');
 add_shortcode('val', 'tpl_value');
-
-add_shortcode('date', 'tpl_date');
 
 function tpl_date($atts, $content = null, $code = "", $context = null) {
     $date = $context[$content];
@@ -71,11 +71,14 @@ function tpl_get($atts, $content = null, $code = "", $context = null)
     return $rsrc ? do_shortcode($content, $rsrc) : '';
 }
 
+function tpl_url($atts, $content = null, $code = "", $context = null) {
+    return url(do_shortcode($content, $context), true);
+}
+
 function tpl_value($atts, $content = null, $code = "", $context = null)
 {
     return isset($context[$content]) ? $context[$content] : @$atts['default'];
 }
-
 
 function render($template, $context = null, $return = false)
 {
