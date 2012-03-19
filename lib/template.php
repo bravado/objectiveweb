@@ -15,6 +15,7 @@ add_shortcode('date', 'tpl_date');
 add_shortcode('each', 'tpl_each');
 add_shortcode('fetch', 'tpl_fetch');
 add_shortcode('get', 'tpl_get');
+add_shortcode('group', 'tpl_group');
 add_shortcode('if', 'tpl_if');
 add_shortcode('url', 'tpl_url');
 add_shortcode('val', 'tpl_value');
@@ -30,6 +31,11 @@ function tpl_date($atts, $content = null, $code = "", $context = null) {
 function tpl_each($atts, $content = null, $code = "", $context = null)
 {
     $items = isset($atts['in']) ? $context[$atts['in']] : $context;
+
+    if(isset($atts['group'])) {
+        tpl_set('group', $atts['group']);
+        unset($atts['group']);
+    }
 
     $out = '';
 
@@ -60,14 +66,27 @@ function tpl_fetch($atts, $content = null, $code = "", $context = null)
 
     $results = fetch($domain, $atts);
 
-    $out = '';
-    for($i = 0; $i < count($results); $i++) {
-        $item = $results[$i];
-        $item['_index'] = $i;
-        $out .= do_shortcode($content, $item);
+    return tpl_each($atts, $content, $code="", $results);
+
+}
+
+$_groupcurrent = null;
+$_groupindex = null;
+function tpl_group($atts, $content, $code="", $context) {
+    global $_groupcurrent, $_groupindex;
+
+    if($_groupcurrent != $context[$atts['by']]) {
+        $_groupcurrent = $context[$atts['by']];
+        $_groupindex = 0;
+    }
+    else {
+        $_groupindex++;
     }
 
-    return $out;
+    $context['_group'] = $_groupcurrent;
+    $context['_groupindex'] = $_groupindex;
+
+    return do_shortcode($content, $context);
 }
 
 function tpl_get($atts, $content = null, $code = "", $context = null)
@@ -82,7 +101,7 @@ function tpl_if($atts, $content = null, $code = "", $context = null) {
     foreach($atts as $k => $v) {
 
         if(!isset($context[$k])) {
-            error_log(sprintf("tpl_if: variable %s undefined", $k));
+            debug("tpl_if: variable %s undefined", $k);
             return '';
         }
 
@@ -103,7 +122,7 @@ function tpl_if($atts, $content = null, $code = "", $context = null) {
         }
 
         if($context[$k] == $v) {
-            return $content;
+            return do_shortcode($content, $context);
         }
         else {
             return '';

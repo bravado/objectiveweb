@@ -17,52 +17,6 @@ $_apps = array();
 
 // TODO register dynamic domains (on the directory)
 
-function register_domain($domain_id, $params = array())
-{
-    global $_domains;
-
-    if (isset($_domains[$domain_id])) {
-        throw new Exception(sprintf(_('Domain %s already registered'), $domain_id));
-    }
-
-    if (!is_array($params)) {
-        $params = json_decode($params, true);
-
-        if ($params === null) {
-            throw new Exception(_('Invalid domain parameters'));
-        }
-    }
-
-    $defaults = array(
-        'schema' => array(),
-        'handler' => 'ObjectHandler'
-    );
-
-    // TODO validate schema
-
-
-    $_domains[$domain_id] = array_merge($defaults, $params);
-}
-
-/**
- * @param $id - The application ID
- * @param string $root - ROOT directory when looking for apps (defaults to web root)
- * @throws Exception
- */
-function register_app($id, $root = ROOT)
-{
-    global $_apps;
-    $_init = "$root/$id/_init.php";
-    if (!isset($_apps[$id])) {
-        if (is_readable($_init)) {
-            $_apps[$id] = $_init;
-        }
-        else {
-            throw new Exception(sprintf(_('Impossible to register %s: %s not found'), $id, $_init));
-        }
-    }
-}
-
 function ow_version()
 {
     // TODO incluir informações de plugin se DEBUG
@@ -88,17 +42,6 @@ function fetch($domain, $params = array())
     return $handler->fetch($params);
 }
 
-function first($domain, $params = array()){
-    $handler = get($domain);
-    $params['_limit'] = 1;
-    $result = $handler->fetch($params);
-    if(!empty($result)) {
-        return $result[0];
-    }
-    else {
-        return null;
-    }
-}
 
 /**
  * @throws Exception
@@ -125,11 +68,12 @@ function get($domain_id, $id = null, $attachment = null)
 
         $instance->_init($domain_id, $_domains[$domain_id]);
 
-
         $_domains[$domain_id]['instance'] = $instance;
     }
 
     $handler = $_domains[$domain_id]['instance'];
+
+
 
     if ($id) {
         // TODO verificar permissão de ler este $domain/$id
@@ -146,6 +90,7 @@ function get($domain_id, $id = null, $attachment = null)
 
 
 }
+
 
 function post($domain, $data)
 {
@@ -182,6 +127,57 @@ function parse_path($path)
     return $matches;
 
 }
+
+// Bootstrap/initialization functions (register_*)
+
+/**
+ * @param $id - The application ID
+ * @param string $root - ROOT directory when looking for apps (defaults to web root)
+ * @throws Exception
+ */
+function register_app($id, $root = ROOT)
+{
+    global $_apps;
+    $_init = "$root/$id/_init.php";
+    if (!isset($_apps[$id])) {
+        if (is_readable($_init)) {
+            $_apps[$id] = $_init;
+        }
+        else {
+            throw new Exception(sprintf(_('Impossible to register %s: %s not found'), $id, $_init));
+        }
+    }
+}
+
+function register_domain($domain_id, $params = array())
+{
+    global $_domains;
+
+    if (isset($_domains[$domain_id])) {
+        throw new Exception(sprintf(_('Domain %s already registered'), $domain_id));
+    }
+
+    if (!is_array($params)) {
+        $params = json_decode($params, true);
+
+        if ($params === null) {
+            throw new Exception(_('Invalid domain parameters'));
+        }
+    }
+
+    $defaults = array(
+        'schema' => array(),
+        'handler' => 'ObjectHandler'
+    );
+
+    // TODO validate schema
+
+
+    $_domains[$domain_id] = array_merge($defaults, $params);
+}
+
+
+
 
 
 /**
@@ -489,6 +485,33 @@ class OWHandler
     }
 }
 
+class OWFilter {
+    var $handler;
+
+    function __construct($handler) {
+        $this->handler = $handler;
+    }
+
+    function delete() {
+        call_user_func_array(array($this->handler, 'delete'), func_get_args());
+    }
+
+    function get() {
+        call_user_func_array(array($this->handler, 'get'), func_get_args());
+    }
+
+    function init() {
+        call_user_func_array(array($this->handler, 'init'), func_get_args());
+    }
+
+    function post() {
+        call_user_func_array(array($this->handler, 'post'), func_get_args());
+    }
+
+    function put() {
+        call_user_func_array(array($this->handler, 'put'), func_get_args());
+    }
+}
 /**
  * The FileStore lists a directory with files with an optional filter
  * This also allows reading/writing to arbitrary files

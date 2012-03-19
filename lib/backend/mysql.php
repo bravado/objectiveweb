@@ -150,24 +150,23 @@ class Table
         // TODO sanitize _op (must be AND or OR)
 
 
-
         // fields
         // TODO escapar _fields
         $query = "select {$params['_fields']} from {$this->name}";
 
         // join
         // TODO escapar _join
-        if(!empty($params['_join'])) {
-            foreach($params['_join'] as $join => $on) {
+        if (!empty($params['_join'])) {
+            foreach ($params['_join'] as $join => $on) {
                 $query .= " inner join $join on $on";
             }
         }
 
         // TODO usar prepared statements
         $conditions = array();
-        foreach($params as $k => $v) {
+        foreach ($params as $k => $v) {
 
-            if($v[0] == '!') {
+            if ($v[0] == '!') {
                 $v = substr($v, 1);
                 $_not = true;
             }
@@ -175,28 +174,30 @@ class Table
                 $_not = false;
             }
 
-            if($k[0] != '_') {
+            if ($k[0] != '_') {
 
-                if($v === NULL || $v == 'NULL') {
-                    $conditions[] = sprintf("%s %s null", $mysqli->escape_string($k), $_not ? "is not" : "is");
+                $key = $this->_cleanup_field($k);
+
+                if ($v === NULL || $v == 'NULL') {
+                    $conditions[] = sprintf("%s %s null", $key, $_not ? "is not" : "is");
                 }
-                else if(strpos($v, '%')) {
-                    $conditions[] = sprintf("%s %s '%s'", $mysqli->escape_string($k),
+                else if (strpos($v, '%')) {
+                    $conditions[] = sprintf("%s %s '%s'", $key,
                         $_not ? "not like" : "like",
                         $mysqli->escape_string($v));
                 }
                 else {
                     // TODO tratar >, <, >=, <=, <>
-                    $conditions[] = sprintf("%s %s %s", $mysqli->escape_string($k),
+                    $conditions[] = sprintf("%s %s %s", $key,
                         $_not ? "!=" : "=",
-                        is_numeric($v) ? $v : "'".$mysqli->escape_string($v)."'");
+                        is_numeric($v) ? $v : "'" . $mysqli->escape_string($v) . "'");
 
                 }
 
             }
         }
 
-        if(!empty($conditions)) {
+        if (!empty($conditions)) {
             $query .= " where " . implode(" {$params['_op']} ", $conditions);
         }
 
@@ -224,8 +225,8 @@ class Table
                 // TODO verify/optimize for overlapping fields
                 // This way SHOULD use the first table's field (not 100% sure)
                 $r = array();
-                for($i = 0; $i < count($finfo); $i++) {
-                    if(!isset($r[$finfo[$i]->name])) {
+                for ($i = 0; $i < count($finfo); $i++) {
+                    if (!isset($r[$finfo[$i]->name])) {
                         $r[$finfo[$i]->name] = $data[$i];
                     }
                 }
@@ -237,6 +238,30 @@ class Table
         return $results;
 
     }
+
+    function _cleanup_field($field)
+    {
+        global $mysqli;
+
+        if (strpos($field, '.')) {
+            $f = explode('.', $field);
+
+            $key = null;
+            foreach ($f as $k) {
+                if($key) {
+                    $key .= '.';
+                }
+                $key .= sprintf("`%s`", $mysqli->escape_string($k));
+            }
+
+            return $key;
+        }
+        else
+        {
+            return sprintf("`%s`", $mysqli->escape_string($field));
+        }
+    }
+
     /**
      * Low level SQL INSERT helper
      *
@@ -248,7 +273,7 @@ class Table
     {
         global $mysqli;
 
-        if (empty($data)) throw new Exception( 'Trying to write nothing', 405);
+        if (empty($data)) throw new Exception('Trying to write nothing', 405);
 
         $bind_params = array('');
         $query_fields = array();
@@ -261,18 +286,18 @@ class Table
 
             $query_fields[] = "`$k`";
 
-            if(is_bool($data[$k])) {
+            if (is_bool($data[$k])) {
                 $data[$k] = $data[$k] ? '1' : '0';
             }
-//            else if(is_float($data[$k])) {
-//                $bind_params[0] .= 'd';
-//            }
-//            else if(is_float($data[$k])) {
-//                $bind_params[0] .= 'd';
-//            }
-//            else {
-//                $bind_params[0] .= 's';
-//            }
+            //            else if(is_float($data[$k])) {
+            //                $bind_params[0] .= 'd';
+            //            }
+            //            else if(is_float($data[$k])) {
+            //                $bind_params[0] .= 'd';
+            //            }
+            //            else {
+            //                $bind_params[0] .= 's';
+            //            }
 
             $bind_params[0] .= 's';
             $bind_params[] = &$data[$k];
@@ -324,7 +349,7 @@ class Table
 
         if (empty($key)) throw new Exception('A condition is required for UPDATEs', 405);
 
-        if (empty($data)) throw new Exception( 'Trying to write nothing', 405);
+        if (empty($data)) throw new Exception('Trying to write nothing', 405);
 
         $bind_params = array('');
         $query_args = array();
@@ -443,10 +468,17 @@ class TableStore extends OWHandler
 
     }
 
-    function get($oid, $params = array())
+    function get($oid)
     {
-        // TODO support compound keys
-        $params["{$this->table->name}.{$this->table->pk}"] = $oid;
+        $params = array('_op' => 'AND');
+        if (is_array($oid)) {
+            foreach ($oid as $k => $v) {
+                $params[$k] = $v;
+            }
+        }
+        else {
+            $params["{$this->table->name}.{$this->table->pk}"] = $oid;
+        }
 
         $result = $this->fetch($params);
         if (!empty($result)) {
@@ -454,10 +486,10 @@ class TableStore extends OWHandler
             $result = $result[0];
 
             // Fetch relations
-            foreach($this->hasMany as $hasMany_id => $hasMany_params) {
+            foreach ($this->hasMany as $hasMany_id => $hasMany_params) {
                 $hasMany_defaults = array(
                     'table' => $hasMany_id,
-                    'key' => $this->table->name."_id",
+                    'key' => $this->table->name . "_id",
                     'join' => array()
                 );
 
@@ -487,10 +519,11 @@ class TableStore extends OWHandler
         return $this->table->select($params);
     }
 
-    function _insert_or_update_hasmany($data) {
-        foreach($this->hasMany as $hasMany => $hasMany_params) {
-            if(!empty($data[$hasMany])) {
-                foreach($data[$hasMany] as $hasMany_data) {
+    function _insert_or_update_hasmany($data)
+    {
+        foreach ($this->hasMany as $hasMany => $hasMany_params) {
+            if (!empty($data[$hasMany])) {
+                foreach ($data[$hasMany] as $hasMany_data) {
                     $table = new Table($hasMany_params['table']);
 
                     $_delete = @$hasMany_data['_delete'];
@@ -499,8 +532,8 @@ class TableStore extends OWHandler
                     $hasMany_data = array_intersect_key($hasMany_data, $table->fields);
 
                     // If has PK, update or delete
-                    if(isset($hasMany_data[$table->pk])) {
-                        if($_delete) {
+                    if (isset($hasMany_data[$table->pk])) {
+                        if ($_delete) {
                             $table->delete($hasMany_data[$table->pk]);
                         }
                         else {
@@ -512,7 +545,7 @@ class TableStore extends OWHandler
                     else {
                         // Insert new relation
                         // TODO should we really verify if _delete was set on an INSERT operation ?
-                        if(!isset($hasMany_data['_delete'])) {
+                        if (!isset($hasMany_data['_delete'])) {
                             $hasMany_data[$hasMany_params['key']] = $data[$this->table->pk];
                             $table->insert($hasMany_data);
                         }
@@ -537,11 +570,11 @@ class TableStore extends OWHandler
         }
 
         // Autogenerate 'created' and 'modified' fields if not provided
-        if(!isset($data['created']) && isset($this->table->fields['created']) && $this->table->fields['created']['Type'] == 'datetime' ) {
+        if (!isset($data['created']) && isset($this->table->fields['created']) && $this->table->fields['created']['Type'] == 'datetime') {
             $data['created'] = now();
         }
 
-        if(!isset($data['modified']) && isset($this->table->fields['modified']) && $this->table->fields['modified']['Type'] == 'datetime' ) {
+        if (!isset($data['modified']) && isset($this->table->fields['modified']) && $this->table->fields['modified']['Type'] == 'datetime') {
             $data['modified'] = now();
         }
 
@@ -549,7 +582,7 @@ class TableStore extends OWHandler
         $table_data = array_intersect_key($data, $this->table->fields);
 
         // If this domain extends another table, set the parent name on the discriminator column
-        if(!empty($this->params['extends'])) {
+        if (!empty($this->params['extends'])) {
             $table_data['_type'] = $this->id;
         }
 
@@ -557,7 +590,7 @@ class TableStore extends OWHandler
         $data[$this->table->pk] = $this->table->insert($table_data);
 
         // Store data on other tables
-        foreach(array_keys($this->joins) as $joined) {
+        foreach (array_keys($this->joins) as $joined) {
             $table = new Table($joined);
 
             $table_data = array_intersect_key($data, $table->fields);
@@ -567,7 +600,6 @@ class TableStore extends OWHandler
         }
 
         $this->_insert_or_update_hasmany($data);
-
 
 
         $mysqli->commit();
@@ -620,8 +652,8 @@ class TableStore extends OWHandler
     {
         global $mysqli;
 
-        if(isset($data[$this->table->pk])) {
-            if($data[$this->table->pk] != $oid) {
+        if (isset($data[$this->table->pk])) {
+            if ($data[$this->table->pk] != $oid) {
                 throw new Exception(_('Cannot update the primary key, use rename instead'), 405);
             }
             else {
@@ -634,25 +666,25 @@ class TableStore extends OWHandler
         $cond = array($this->table->pk => $oid);
 
         // Update 'modified' field if not provided
-        if(!isset($data['modified']) && isset($this->table->fields['modified']) && $this->table->fields['modified']['Type'] == 'datetime' ) {
+        if (!isset($data['modified']) && isset($this->table->fields['modified']) && $this->table->fields['modified']['Type'] == 'datetime') {
             $data['modified'] = now();
         }
 
         // Filter relevant fields for this table
         $table_data = array_intersect_key($data, $this->table->fields);
 
-        if(!empty($table_data)) {
+        if (!empty($table_data)) {
 
             $this->table->update($cond, $table_data);
         }
 
         // Update data on other tables
-        foreach(array_keys($this->joins) as $joined) {
+        foreach (array_keys($this->joins) as $joined) {
             $table = new Table($joined);
 
             $table_data = array_intersect_key($data, $table->fields);
 
-            if(!empty($table_data)) {
+            if (!empty($table_data)) {
                 $table->update($cond, $table_data);
             }
 
@@ -722,10 +754,10 @@ class TableStore extends OWHandler
         $affected_rows = 0;
 
         // Delete relations
-        foreach($this->hasMany as $hasMany_id => $hasMany_params) {
+        foreach ($this->hasMany as $hasMany_id => $hasMany_params) {
             $hasMany_defaults = array(
                 'table' => $hasMany_id,
-                'key' => $this->table->name."_id",
+                'key' => $this->table->name . "_id",
                 'join' => array()
             );
 
@@ -744,7 +776,7 @@ class TableStore extends OWHandler
         $affected_rows += $table->delete($id);
 
         // Delete parents (if exist)
-        if($this->params['extends']) {
+        if ($this->params['extends']) {
             $table = new Table($this->params['extends']);
             $affected_rows += $table->delete($id);
         }
@@ -775,11 +807,6 @@ class ObjectStore extends TableStore
         // TODO check if all necessary tables exist (meta, versioning, etc)
     }
 
-    function schema($name)
-    {
-
-    }
-
     function get($oid, $decoded = false)
     {
         $object = parent::get($oid);
@@ -796,15 +823,12 @@ class ObjectStore extends TableStore
 
     function post($params)
     {
-
+        // TODO apenas se o field OID for VARCHAR 36
         if (empty($params['oid'])) {
             $params['oid'] = ow_oid();
         }
 
-        if (empty($params['schema'])) {
-            $params['schema'] = 'ow/data';
-        }
-
+        // index params (if fields exist)
         foreach (array_keys($params) as $k) {
             if ($this->has_field($k)) {
                 $data[$k] = $params[$k];
@@ -820,7 +844,6 @@ class ObjectStore extends TableStore
 
 
         // Parameters are encoded as json
-        // TODO index params (if indexed)
         $data['_content'] = json_encode($params);
 
         return parent::post($data);
@@ -829,16 +852,10 @@ class ObjectStore extends TableStore
     function put($oid, $data)
     {
 
-        $new_data = array();
-
         $object = parent::get($oid);
 
         // We will overwrite the dynamic content
         unset($object['_content']);
-
-        // Changed and created fields should not be updated
-        unset($object['_changed']);
-        unset($object['_created']);
 
         // Now object has only valid fields, let's update those
         foreach (array_keys($object) as $k) {

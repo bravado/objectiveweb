@@ -49,10 +49,11 @@ defined('OW_BACKEND') or define('OW_BACKEND', dirname(__FILE__) . '/lib/backend/
 defined('OW_CHARSET') or define('OW_CHARSET', 'utf8');
 
 require_once OW_BACKEND;
+require_once OW_LIB.'/session.php';
 require_once OW_LIB.'/directory.php';
 require_once OW_LIB.'/authentication.php';
 require_once OW_LIB.'/request.php';
-require_once OW_LIB.'/session.php';
+
 require_once OW_LIB.'/template.php';
 
 foreach($_apps as $_app) {

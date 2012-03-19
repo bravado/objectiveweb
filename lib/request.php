@@ -146,7 +146,12 @@ function url($str = null, $return = false) {
             $out = dirname($_SERVER['SCRIPT_NAME']) .'/'. $str;
         }
         else {
-            $out = $_SERVER['SCRIPT_NAME'].'/'.$str;
+//            if(dirname($str) != '/' && file_exists(dirname($str))) {
+//                $out = dirname($_SERVER['SCRIPT_NAME']) .'/'. dirname($str) . '/'.basename($str);
+//            }
+//            else {
+                $out = $_SERVER['SCRIPT_NAME'].'/'.$str;
+//            }
         }
         // TODO check for pointers to other controllers + path info (other_controller.php/1/2 does not exist but other_controller.php could exist)
 

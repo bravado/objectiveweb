@@ -9,6 +9,7 @@
 
 register_domain('auth', array('handler' => 'AuthenticationHandler'));
 
+
 class AuthenticationHandler extends OWHandler
 {
 
@@ -57,21 +58,28 @@ class AuthenticationHandler extends OWHandler
                 if ($this->hybridauth->isConnectedWith($provider)) {
                     $adapter = $this->hybridauth->getAdapter($provider);
                     $user_profile = (Array)$adapter->getUserProfile();
-
-
-                    $local_profile = get('directory', $user_profile['identifier']);
+                    $schema = 'HA::'.$provider;
+                    $local_profile = get('directory', array(
+                            'schema' => $schema,
+                            'identifier' => $user_profile['identifier'])
+                    );
 
                     if (!$local_profile) {
-                        $user_profile['oid'] = $user_profile['identifier'];
-                        $user_profile['uid'] = $user_profile['identifier'];
-                        create('directory', $user_profile);
+                        $user_profile['schema'] = $schema;
+
+                        // TODO não pode criar aqui, tem que ver se existe current user[id] e criar no mesmo {id, _schema}
+                        $r = post('directory', $user_profile);
+
+                        if ($r) {
+                            $user_profile['id'] = $r['id'];
+                        }
                     }
 
                     return $user_profile;
                 }
                 else {
                     if (isset($_GET['authenticate'])) {
-                        $this->hybridauth->authenticate($provider);
+                        $this->authenticate($provider);
                     }
 
                     return null;
@@ -79,8 +87,32 @@ class AuthenticationHandler extends OWHandler
         }
     }
 
+    function authenticate($provider) {
+        return $this->hybridauth->authenticate($provider);
+    }
+
     function post($data)
     {
-        throw new Exception("Local login not implemented");
+
+        $account = get('directory', array(
+            'provider' => 'local',
+            'identifier' => $data['identifier']));
+
+        if (!$account) {
+            throw new Exception('User not found');
+        }
+        else {
+            $userPassword = null;
+            switch (strlen($account['userPassword'])) {
+                case 32:
+                    $userPassword = md5($data['password']);
+                    break;
+                default:
+            }
+
+            if($account['userPassword'] == $userPassword) {
+                set_current_user($account);
+            }
+        }
     }
 }

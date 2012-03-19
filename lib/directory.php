@@ -7,4 +7,6 @@
  * Time: 15:29
  */
 
-register_domain('directory', array('handler' => 'ObjectStore', 'table' => OW_DIRECTORY));
+register_domain('directory', array('handler' => 'ObjectStore',
+    'table' => OW_DIRECTORY
+));
