@@ -1033,7 +1033,7 @@ ko.bindingHandlers.money = {
             if (ko.isWriteableObservable(modelValue)) {
                 options.setup = function (ed) {
                     ed.onChange.add(function (ed, l) {
-                        modelValue(l.content);
+                        modelValue(ed.getContent());
                     });
                 };
             }
