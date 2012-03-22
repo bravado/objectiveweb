@@ -514,6 +514,13 @@ class TableStore extends OWHandler
 
     function fetch($params = array())
     {
+
+        if(!is_array($params)) {
+            $arr = array();
+            parse_str($params, $arr);
+            $params = $arr;
+        }
+
         $params['_join'] = $this->joins;
 
         return $this->table->select($params);
@@ -807,18 +814,27 @@ class ObjectStore extends TableStore
         // TODO check if all necessary tables exist (meta, versioning, etc)
     }
 
-    function get($oid, $decoded = false)
+    function get($oid)
     {
         $object = parent::get($oid);
+        return $object;
 
-        return $decoded ? json_decode($object['_content'], true) : $object['_content'];
+        //return $decoded ? json_decode($object['_content'], true) : $object['_content'];
 
     }
 
     function fetch($params)
     {
         // TODO só preciso trazer o _content nos fields!
-        return parent::fetch($params);
+        $results = parent::fetch($params);
+
+        $entries = array();
+        for($i = 0; $i < count($results); $i++) {
+            $results[$i] = array_merge($results[$i], json_decode($results[$i]['_content'], true));
+            unset($results[$i]['_content']);
+        }
+
+        return $results;
     }
 
     function post($params)
@@ -832,6 +848,7 @@ class ObjectStore extends TableStore
         foreach (array_keys($params) as $k) {
             if ($this->has_field($k)) {
                 $data[$k] = $params[$k];
+                unset($params[$k]);
             }
         }
 
@@ -852,23 +869,32 @@ class ObjectStore extends TableStore
     function put($oid, $data)
     {
 
-        $object = parent::get($oid);
+        $object = $this->get($oid);
 
-        // We will overwrite the dynamic content
-        unset($object['_content']);
+        $content = array();
+        foreach(array_keys($object) as $k) {
+            if(isset($data[$k])) {
+                $object[$k] = $data[$k];
+                unset($data[$k]);
+            }
 
-        // Now object has only valid fields, let's update those
-        foreach (array_keys($object) as $k) {
-            if (isset($data[$k])) {
+            if($this->has_field($k)) {
+                $content[$k] = $object[$k];
+                unset($object[$k]);
+            }
+        }
+
+        foreach(array_keys($data) as $k) {
+            if(!isset($object[$k])) {
                 $object[$k] = $data[$k];
             }
         }
 
         // Final content will be everything on data + original fields
         // (dynamic content is ALWAYS OVERWRITTEN)
-        $object['_content'] = json_encode(array_merge($data, $object));
+        $content['_content'] = json_encode($object);
 
-        return parent::put($oid, $object);
+        return parent::put($oid, $content);
     }
 }
 

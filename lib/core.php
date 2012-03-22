@@ -81,7 +81,12 @@ function get($domain_id, $id = null, $attachment = null)
             return $handler->attachment($id, $attachment);
         }
         else {
-            return $handler->get($id);
+            if(isset($handler->params['get'])) {
+                return call_user_func_array($handler->params['get'], array($handler, $id));
+            }
+            else {
+                return $handler->get($id);
+            }
         }
     }
     else {

@@ -21,20 +21,27 @@ session_start();
  */
 function current_user($field = null)
 {
-    $_current_user = $_SESSION['current_user'];
+    $_current_user = @$_SESSION['current_user'];
 
-    if ($field) {
-        if (!isset($_current_user[$field])) {
-            throw new Exception('Invalid field');
-        }
-        else {
-            return $_current_user[$field];
+    if ($_current_user && $field) {
+        $field = explode(".", $field);
+
+        for($i = 0; $i < count($field); $i++) {
+            if(isset($_current_user[$field[$i]])) {
+                $_current_user = $_current_user[$field[$i]];
+            }
+            else {
+                return NULL;
+            }
         }
     }
-    else {
-        return $_current_user;
-    }
 
+    return $_current_user;
+
+}
+
+function logged_in() {
+    return isset($_SESSION['current_user']['oid']);
 }
 
 function set_current_user($user) {

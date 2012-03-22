@@ -48,10 +48,10 @@ class AuthenticationHandler extends OWHandler
         switch ($provider) {
             case null:
                 // TODO DUMP LOCAL LOGIN INFO + all hybridauth logged in accounts
-
+                return $_SESSION['current_user'];
                 break;
             case 'logout':
-                // TODO também matar a session local
+                session_destroy();
                 $this->hybridauth->logoutAllProviders();
                 break;
             default:
@@ -95,7 +95,7 @@ class AuthenticationHandler extends OWHandler
     {
 
         $account = get('directory', array(
-            'provider' => 'local',
+            'schema' => 'Account',
             'identifier' => $data['identifier']));
 
         if (!$account) {
@@ -111,7 +111,10 @@ class AuthenticationHandler extends OWHandler
             }
 
             if($account['userPassword'] == $userPassword) {
-                set_current_user($account);
+                set_current_user(get('directory', $account['oid']));
+            }
+            else {
+                throw new Exception('Invalid password supplied', 403);
             }
         }
     }
