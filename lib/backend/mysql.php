@@ -439,20 +439,23 @@ class TableStore extends OWHandler
     var $table = null;
     var $joins = array();
 
-    // TODO associations
+    // associations
     var $hasMany = array();
+    var $belongsTo = array();
 
     function init($params)
     {
         $defaults = array(
             'table' => $this->id,
             'extends' => null,
-            'hasMany' => array()
+            'hasMany' => array(),
+            'belongsTo' => array()
         );
 
         $this->params = array_merge($defaults, $params);
 
         $this->hasMany = $this->params['hasMany'];
+        $this->belongsTo = $this->params['belongsTo'];
 
         if ($this->params['extends']) {
             $this->table = new Table($this->params['extends']);
@@ -522,6 +525,15 @@ class TableStore extends OWHandler
         }
 
         $params['_join'] = $this->joins;
+
+        if($this->belongsTo) {
+            foreach($this->belongsTo as $k => $v) {
+                $belongsTo_table = new Table($v['table']);
+                $params['_join'][$v['table']] = sprintf("%s.%s = %s.%s", $belongsTo_table->name, $belongsTo_table->pk, $this->table->name, $v['key']);
+            }
+        }
+
+
 
         return $this->table->select($params);
     }
@@ -903,6 +915,7 @@ class ObjectStore extends TableStore
 function query($query)
 {
     global $mysqli;
+    $query = call_user_func_array('sprintf', func_get_args());
 
     debug($query);
 

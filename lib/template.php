@@ -31,7 +31,12 @@ function tpl_current_user($atts, $content) {
 
 function tpl_date($atts, $content = null, $code = "", $context = null)
 {
-    $date = $context[$content];
+    if(isset($context[$content])) {
+        $date = $context[$content];
+    }
+    else {
+        $date = $content;
+    }
 
     $format = empty($atts['format']) ? 'd/m/Y h:m:i' : $atts['format'];
 
