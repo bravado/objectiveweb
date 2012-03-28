@@ -5,6 +5,7 @@
  * The default "mysql" backend
  *
  * Provides:
+ *  Table - Low-level OO representation of a table with insert/select/delete/update methods
  *  TableStore - A handler that maps data to one or more SQL tables
  *  ObjectStore - Schemaless storage backed by a single SQL table
  *
@@ -32,6 +33,59 @@ if ($mysqli === FALSE) {
 
 $mysqli->set_charset(OW_CHARSET);
 
+// Generic query function
+function query($query)
+{
+    global $mysqli;
+    $query = call_user_func_array('sprintf', func_get_args());
+
+    debug($query);
+
+    $result = $mysqli->query($query);
+
+    if ($result === FALSE) {
+        throw new Exception($mysqli->error);
+    }
+
+    /* Get field information for all columns */
+    $finfo = $result->fetch_fields();
+
+    $results = array();
+    if ($result->num_rows > 0) {
+        while ($data = $result->fetch_row()) {
+            $r = array();
+            for ($i = 0; $i < count($finfo); $i++) {
+                $_field = $finfo[$i]->name;
+                $_dot = strpos($_field, '.');
+                if($_dot !== FALSE) {
+                    $_e = substr($_field, 0, $_dot);
+                    $_f = substr($_field, $_dot + 1);
+
+                    if(!isset($r[$_e])) {
+                        $r[$_e] = array($_f => $data[$i]);
+                    }
+                    else {
+                        if(!isset($r[$_e][$_f])) {
+                            $r[$_e][$_f] = $data[$i];
+                        }
+                    }
+                }
+                else {
+                    // Never overwrite a field
+                    // This way we use the first table's field
+                    if (!isset($r[$finfo[$i]->name])) {
+                        $r[$finfo[$i]->name] = $data[$i];
+                    }
+                }
+            }
+
+            $results[] = $r;
+        }
+    }
+
+    return $results;
+
+}
 
 class Table
 {
@@ -88,6 +142,7 @@ class Table
     var $fields = array();
 
 
+
     function Table($name)
     {
         global $mysqli;
@@ -125,6 +180,14 @@ class Table
     }
 
     /**
+     * Lists this table's fields
+     * @return array with all the table field names
+     */
+    function fields() {
+        return array_keys($this->fields);
+    }
+
+    /**
      * Low-level SELECT Helper
      *
      * @param  $cond
@@ -135,34 +198,62 @@ class Table
     {
         global $mysqli;
 
-        //print_r($params); exit();
         $defaults = array(
             '_fields' => '*',
             '_op' => 'AND',
-            '_join' => array(),
+            '_inner' => array(),
+            '_left' => array(),
             '_offset' => null,
             '_limit' => null,
-            '_page' => null
+            '_group' => null,
+            '_order' => null
         );
 
         $params = array_merge($defaults, $params);
 
+
+        // Fields
+        if(is_string($params['_fields'])) {
+            $params['_fields'] = array($params['_fields']);
+        }
+
+        $_fields = '';
+        for($i = 0; $i < count($params['_fields']); $i++) {
+            $_fields .= ($i > 0 ? ',' : '');
+
+            if(strpos($params['_fields'][$i], '.') === FALSE) {
+                if($params['_fields'][$i] != '*') {
+                    $_fields .= "`{$this->name}`.`{$params['_fields'][$i]}` as `{$params['_fields'][$i]}`";
+                }
+                else {
+                    $_fields .= '*';
+                }
+            }
+            else {
+                $_fields .= $this->_cleanup_field($params['_fields'][$i])." as `{$params['_fields'][$i]}`";
+            }
+
+            // TODO verificar se $field não é uma function - a-zA-Z(.*)
+        }
+
+        $query = "select {$_fields} from {$this->name}";
+
         // TODO sanitize _op (must be AND or OR)
 
+        // joins
+        // TODO escape _join ON conditions
+        foreach(array('inner', 'left') as $i) {
+            foreach ($params["_$i"] as $join => $on) {
 
-        // fields
-        // TODO escapar _fields
-        $query = "select {$params['_fields']} from {$this->name}";
-
-        // join
-        // TODO escapar _join
-        if (!empty($params['_join'])) {
-            foreach ($params['_join'] as $join => $on) {
-                $query .= " inner join $join on $on";
+                if(is_array($on)) {
+                    $query .= " $i join `{$on['table']}` as `$join` on {$on['on']}";
+                }
+                else {
+                    $query .= " $i join `$join` on $on";
+                }
             }
         }
 
-        // TODO usar prepared statements
         $conditions = array();
         foreach ($params as $k => $v) {
 
@@ -187,6 +278,25 @@ class Table
                         $mysqli->escape_string($v));
                 }
                 else {
+//                    do {
+//                        switch($v[0]) {
+//                            case '>':
+//                                $_gt = true;
+//                                $v = substr($v, 1);
+//                                break;
+//                            case '<':
+//                                $_lt = true;
+//                                $v = substr($v, 1);
+//                                break;
+//                            case '=':
+//                                $v = substr($v, 1);
+//                            default:
+//                                $_equal = true;
+//                                break;
+//                        }
+//                    } while(strpos('><=', $v[0]));
+
+
                     // TODO tratar >, <, >=, <=, <>
                     $conditions[] = sprintf("%s %s %s", $key,
                         $_not ? "!=" : "=",
@@ -202,40 +312,18 @@ class Table
         }
 
         if (!empty($params['_order'])) {
-            // TODO if is array...
-            $query .= " order by " . $params['_order'];
-        }
-
-        //print_r($params); exit();
-
-        debug($query);
-
-        $result = $mysqli->query($query);
-
-        if ($result === FALSE) {
-            throw new Exception($mysqli->error, 500);
-        }
-
-        /* Get field information for all columns */
-        $finfo = $result->fetch_fields();
-
-        $results = array();
-        if ($result->num_rows > 0) {
-            while ($data = $result->fetch_row()) {
-                // TODO verify/optimize for overlapping fields
-                // This way SHOULD use the first table's field (not 100% sure)
-                $r = array();
-                for ($i = 0; $i < count($finfo); $i++) {
-                    if (!isset($r[$finfo[$i]->name])) {
-                        $r[$finfo[$i]->name] = $data[$i];
-                    }
-                }
-
-                $results[] = $r;
+            if(is_string($params['_order'])) {
+                $params['_order'] = array($params['_order']);
             }
+            $_order = '';
+            for($i = 0; $i < count($params['_order']); $i++) {
+                // TODO parse/escape _order
+                $_order .= ($i > 0 ? ',' : '')."{$params['_order'][$i]}";
+            }
+            $query .= " order by $_order";
         }
 
-        return $results;
+        return query($query);
 
     }
 
@@ -467,7 +555,6 @@ class TableStore extends OWHandler
         }
 
 
-        //print_r($this); exit;
 
     }
 
@@ -524,16 +611,41 @@ class TableStore extends OWHandler
             $params = $arr;
         }
 
-        $params['_join'] = $this->joins;
+//        $params = array_merge($defaults, $params);
 
-        if($this->belongsTo) {
-            foreach($this->belongsTo as $k => $v) {
-                $belongsTo_table = new Table($v['table']);
-                $params['_join'][$v['table']] = sprintf("%s.%s = %s.%s", $belongsTo_table->name, $belongsTo_table->pk, $this->table->name, $v['key']);
+        $_fields = $this->table->fields();
+
+        // Table Inheritance
+        foreach($this->joins as $join => $on) {
+            if(is_array($on)) {
+                $join_table = new Table($on['table']);
+                // Keep fields from the first table
+                $_fields = array_merge($join_table->fields(), $_fields);
             }
         }
 
+        // belongsTo = array(
+        //      'owner' => array( 'table' => 'owners', 'key' => 'owner_id' );
+        foreach($this->belongsTo as $k => $v) {
+            $belongsTo_table = new Table($v['table']);
+            foreach($belongsTo_table->fields() as $f) {
+                $_fields[] = "$k.$f";
+            }
 
+            $params['_inner'][$k] = array(
+                'table' => $v['table'],
+                'on' => sprintf("`%s`.`%s` = `%s`.`%s`", $k, $belongsTo_table->pk, $this->table->name, $v['key'])
+            );
+        }
+
+        // TODO hasOne
+        if($params['hasOne']) {
+            throw new Exception('Not implemented');
+        }
+
+        if(empty($params['_fields'])) {
+            $params['_fields'] = $_fields;
+        }
 
         return $this->table->select($params);
     }
@@ -911,31 +1023,5 @@ class ObjectStore extends TableStore
 }
 
 
-// Generic query function
-function query($query)
-{
-    global $mysqli;
-    $query = call_user_func_array('sprintf', func_get_args());
 
-    debug($query);
-
-    $result = $mysqli->query($query);
-
-    if ($result === FALSE) {
-        throw new Exception($mysqli->error);
-    }
-
-    $results = array();
-
-    if ($result->num_rows > 0) {
-
-        while ($data = $result->fetch_assoc()) {
-            $results[] = $data;
-        }
-
-    }
-
-    return $results;
-
-}
 
