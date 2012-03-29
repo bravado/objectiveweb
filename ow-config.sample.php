@@ -1,7 +1,7 @@
 <?php
 /**
  * 
- * Bravado config
+ * Objectiveweb config
  *
  * User: guigouz
  * Date: 08/04/11

@@ -141,8 +141,6 @@ class Table
      */
     var $fields = array();
 
-
-
     function Table($name)
     {
         global $mysqli;
@@ -213,11 +211,11 @@ class Table
 
 
         // Fields
+        $_fields = '';
         if(is_string($params['_fields'])) {
-            $params['_fields'] = array($params['_fields']);
+            $params['_fields'] = explode(",", $params['_fields']);
         }
 
-        $_fields = '';
         for($i = 0; $i < count($params['_fields']); $i++) {
             $_fields .= ($i > 0 ? ',' : '');
 
