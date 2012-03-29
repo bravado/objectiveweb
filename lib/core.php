@@ -9,7 +9,7 @@
  * Time: 01:09
  */
 
-define('OBJECTIVEWEB_VERSION', '0.4');
+define('OBJECTIVEWEB_VERSION', '0.5');
 
 // Global system variables
 $_domains = array();
