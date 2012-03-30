@@ -230,6 +230,17 @@ function tpl_value($atts, $content = null, $code = "", $context = null)
     }
 }
 
+function render_str($str, $context, $return = false) {
+
+    if ($return) {
+        return do_shortcode($str, $context);
+    }
+    else {
+        echo do_shortcode($str, $context);
+        return true;
+    }
+}
+
 function render($template, $context = null, $return = false)
 {
 
@@ -245,11 +256,5 @@ function render($template, $context = null, $return = false)
         }
     }
 
-    if ($return) {
-        return do_shortcode($template, $context);
-    }
-    else {
-        echo do_shortcode($template, $context);
-        return true;
-    }
+    render_str($template, $context, $return);
 }

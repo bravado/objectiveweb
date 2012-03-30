@@ -219,19 +219,14 @@ class Table
         for($i = 0; $i < count($params['_fields']); $i++) {
             $_fields .= ($i > 0 ? ',' : '');
 
-            if(strpos($params['_fields'][$i], '.') === FALSE) {
-                if($params['_fields'][$i] != '*') {
-                    $_fields .= "`{$this->name}`.`{$params['_fields'][$i]}` as `{$params['_fields'][$i]}`";
-                }
-                else {
-                    $_fields .= '*';
-                }
-            }
-            else {
+            if($params['_fields'][$i] != '*') {
                 $_fields .= $this->_cleanup_field($params['_fields'][$i])." as `{$params['_fields'][$i]}`";
             }
+            else {
+                $_fields .= '*';
+            }
 
-            // TODO verificar se $field não é uma function - a-zA-Z(.*)
+
         }
 
         $query = "select {$_fields} from {$this->name}";
@@ -264,6 +259,8 @@ class Table
             }
 
             if ($k[0] != '_') {
+
+
 
                 $key = $this->_cleanup_field($k);
 
@@ -329,6 +326,7 @@ class Table
     {
         global $mysqli;
 
+        // TODO verificar se $field não é uma function - a-zA-Z(.*)
         if (strpos($field, '.')) {
             $f = explode('.', $field);
 
@@ -344,7 +342,7 @@ class Table
         }
         else
         {
-            return sprintf("`%s`", $mysqli->escape_string($field));
+            return sprintf("`{$this->name}`.`%s`", $mysqli->escape_string($field));
         }
     }
 
