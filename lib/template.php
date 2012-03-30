@@ -14,6 +14,8 @@ require_once(dirname(__FILE__) . '/functions.shortcodes.php');
 add_shortcode('current_user', 'tpl_current_user');
 add_shortcode('date', 'tpl_date');
 add_shortcode('each', 'tpl_each');
+add_shortcode('error', 'tpl_error');
+add_shortcode('errors', 'tpl_errors');
 add_shortcode('fetch', 'tpl_fetch');
 add_shortcode('get', 'tpl_get');
 add_shortcode('group', 'tpl_group');
@@ -21,12 +23,11 @@ add_shortcode('if', 'tpl_if');
 add_shortcode('if2', 'tpl_if');
 add_shortcode('if3', 'tpl_if');
 add_shortcode('url', 'tpl_url');
-add_shortcode('val', 'tpl_value');
+add_shortcode('val', 'tpl_val');
 
 function tpl_current_user($atts, $content) {
 
-
-    return current_user($content);
+    return val($content, current_user());
 }
 
 function tpl_date($atts, $content = null, $code = "", $context = null)
@@ -45,7 +46,7 @@ function tpl_date($atts, $content = null, $code = "", $context = null)
 
 function tpl_each($atts, $content = null, $code = "", $context = null)
 {
-    $items = isset($atts['in']) ? $context[$atts['in']] : $context;
+    $items = isset($atts['in']) ? val($atts['in'], $context) : $context;
 
     $out = '';
 
@@ -55,6 +56,20 @@ function tpl_each($atts, $content = null, $code = "", $context = null)
         $out .= do_shortcode($content, $item);
     }
 
+    return $out;
+}
+
+function tpl_error($atts, $content = null, $code = "", $context = null) {
+    return error($content);
+}
+
+function tpl_errors($atts, $content = null, $code = "", $context = null) {
+    $out = '';
+    if(have_errors()) {
+        foreach(errors() as $error) {
+            $out .= do_shortcode($content, $error);
+        }
+    }
     return $out;
 }
 
@@ -107,21 +122,10 @@ function tpl_get($atts, $content = null, $code = "", $context = null)
     return $rsrc ? do_shortcode($content, $rsrc) : '';
 }
 
-function tpl_check($field, $str)
-{
-    $value = array(
-        'op' => 0,
-        'value' => ''
-    );
-
-
-}
-
 function tpl_if($atts, $content = null, $code = "", $context = null)
 {
     $test = FALSE;
     if (isset($atts[0])) {
-
         if($atts[0][0] == '!') {
             $_not = true;
             $atts[0] = substr($atts[0], 1);
@@ -130,24 +134,24 @@ function tpl_if($atts, $content = null, $code = "", $context = null)
             $_not = false;
         }
 
-        switch ($atts[0]) {
-            case 'logged_in':
-                $test = current_user() != null;
-                break;
-        }
+        $test = val($atts[0], $context) != null;
 
         if($_not) {
             $test = !$test;
         }
     }
     else {
+
+        // TODO não deve estar funcionando para mais variáveis
+        // Definir operador para mais variáveis AND|OR
         foreach ($atts as $k => $v) {
 
-            if (!isset($context[$k])) {
+            $val = val($k, $context);
+
+            if ($val === NULL) {
                 debug("tpl_if: variable %s undefined", $k);
                 return '';
             }
-
 
             $op = 0;
             while (in_array($v[0], array("!", ">", "<"))) {
@@ -166,36 +170,37 @@ function tpl_if($atts, $content = null, $code = "", $context = null)
             }
 
             // Helpers for numeric types
-            if (is_numeric($context[$k])) {
+            if (is_numeric($val)) {
                 switch ($v) {
                     case 'even':
-                        $test = ($context[$k] % 2 == 0);
+                        $test = ($val % 2 == 0);
                         break;
                     case 'odd':
-                        $test = ($context[$k] % 2 != 0);
+                        $test = ($val % 2 != 0);
                         break;
                     default:
                         switch ($op) {
                             case 0:
-                                $test = ($context[$k] == $v);
+                                $test = ($val == $v);
                                 break;
                             case 2:
-                                $test = ($context[$k] > $v);
+                                $test = ($val > $v);
                                 break;
                             case 4:
-                                $test = ($context[$k] < $v);
+                                $test = ($val < $v);
                                 break;
                         }
 
-                        if ($op & 1) {
-                            $test = !$test;
-                        }
+
                 }
             }
             else {
-                $test = ($context[$k] == $v);
+                $test = ($val == $v);
             }
 
+            if ($op & 1) {
+                $test = !$test;
+            }
 
         }
     }
@@ -213,33 +218,45 @@ function tpl_url($atts, $content = null, $code = "", $context = null)
     return url(do_shortcode($content, $context), true);
 }
 
-function tpl_value($atts, $content = null, $code = "", $context = null)
+function tpl_val($atts, $content = null, $code = "", $context = null)
 {
-    if ($content == '$') {
-        switch (@$atts['format']) {
-            case 'json':
-                return json_encode($context);
-            case 'php':
-                return serialize($context);
-            default:
-                return $context;
+    if(empty($content)) {
+        $return = $context;
+    }
+    else {
+        $return = val($content, $context);
+    }
+
+    if(!$return) {
+        if(isset($atts['default'])) {
+            if($atts['default'][0] == '$') {
+                $return = val(substr($atts['default'], 1), $context);
+            }
+            else {
+                $return = $atts['default'];
+            }
         }
     }
-    else {
-        return isset($context[$content]) ? $context[$content] : @$atts['default'];
+
+    switch (@$atts['format']) {
+        case 'json':
+            return json_encode($return);
+        case 'php':
+            return serialize($return);
+        case 'dump':
+            return print_r($return, true);
+        default:
+            return $return;
     }
 }
 
-function render_str($str, $context, $return = false) {
-
-    if ($return) {
-        return do_shortcode($str, $context);
-    }
-    else {
-        echo do_shortcode($str, $context);
-        return true;
-    }
-}
+/**
+ * Renders a template from file or resource
+ * @param $template
+ * @param null $context
+ * @param bool $return
+ * @throws Exception
+ */
 
 function render($template, $context = null, $return = false)
 {
@@ -258,3 +275,110 @@ function render($template, $context = null, $return = false)
 
     render_str($template, $context, $return);
 }
+
+/**
+ * Renders a template from string
+ * @param $str
+ * @param $context
+ * @param bool $return
+ * @return bool|string
+ */
+function render_str($str, $context, $return = false) {
+
+    if ($return) {
+        return do_shortcode($str, $context);
+    }
+    else {
+        echo do_shortcode($str, $context);
+        return true;
+    }
+}
+
+/**
+ * Extracts a value from context or global variables
+ * @param $content
+ * @param $context
+ * @return array|bool|mixed|null
+ */
+function val($content, $context) {
+    $val = explode(".", $content);
+    $return = null;
+    switch($val[0]) {
+        case '$':
+            break;
+        case 'current_user':
+            $context = current_user();
+            break;
+        case 'GET':
+            $context = $_GET;
+            break;
+        case 'POST':
+            $context = $_POST;
+            break;
+        case 'SERVER':
+            $context = $_SERVER;
+            break;
+        default:
+            $context = @$context[$val[0]];
+            break;
+    }
+
+    $return = $context;
+    for($i = 1; $i < count($val); $i++) {
+        if(isset($return[$val[$i]])) {
+            $return = $return[$val[$i]];
+        }
+        else {
+            debug("%s not found in %s", $content, json_encode($context));
+            $return = null; // TODO retornar erro ?
+        }
+    }
+
+    return $return;
+}
+
+
+
+
+//-----------------------------------------------------------------------------
+// TRATAMENTO DE ERROS E VALIDAÇÃO
+//-----------------------------------------------------------------------------
+
+$ERROR = array();
+
+function errors() {
+    global $ERROR;
+    return $ERROR;
+}
+
+/**
+ * Marca um erro
+ * @global <type> $ERROR
+ * @param <type> $key - chave do erro (identificação)
+ * @param <type> $value - String detalhando o erro
+ */
+function error($key, $value = null) {
+    global $ERROR;
+
+    if($value) {
+        $ERROR[$key] = $value;
+    } else {
+        if(isset($ERROR[$key])) {
+            return $ERROR[$key];
+        }
+        else {
+            return FALSE;
+        }
+    }
+}
+
+function have_errors($field = null) {
+    global $ERROR;
+
+    if(!$field) {
+        return count($ERROR) > 0;
+    } else {
+        return isset($ERROR[$field]);
+    }
+}
+

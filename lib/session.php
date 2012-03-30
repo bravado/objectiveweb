@@ -44,6 +44,4 @@ function logged_in() {
     return isset($_SESSION['current_user']['oid']);
 }
 
-function set_current_user($user) {
-    $_SESSION['current_user'] = $user;
-}
+

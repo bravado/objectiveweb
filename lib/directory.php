@@ -22,19 +22,39 @@ function directory_get($self, $id) {
     }
     else {
         $entries = $self->fetch("oid=$id");
-        $result = array();
-        foreach($entries as $entry) {
-            if(empty($entry['schema'])) {
-                foreach($entry as $k => $v){
-                    $result[$k] = $v;
+        if(count($entries)) {
+            $result = array('oid' => $id);
+            foreach($entries as $entry) {
+                if(empty($entry['schema'])) {
+                    foreach($entry as $k => $v){
+                        $result[$k] = $v;
+                    }
+                }
+                else {
+                    $result[$entry['schema']] = $entry;
                 }
             }
-            else {
-                $result[$entry['schema']] = $entry;
-            }
+        }
+        else {
+            $result = null;
         }
 
         return $result;
+    }
+}
+
+function set_current_user($user) {
+    if(is_array($user)) {
+        $_SESSION['current_user'] = $user;
+    }
+    else {
+        $user = get('directory', $user);
+        if(!$user) {
+            throw new Exception('Invalid user');
+        }
+        else {
+            $_SESSION['current_user'] = $user;
+        }
     }
 }
 
@@ -94,16 +114,17 @@ class AuthenticationHandler extends OWHandler
 
                     if (!$local_profile) {
                         $user_profile['schema'] = $schema;
+                        $user_profile['oid'] = current_user('oid');
 
-                        // TODO não pode criar aqui, tem que ver se existe current user[id] e criar no mesmo {id, _schema}
+                        // TODO post deve retornar OID também (objectstore SE tiver field oid)
                         $r = post('directory', $user_profile);
 
-                        if ($r) {
-                            $user_profile['id'] = $r['id'];
-                        }
+                        $local_profile = get('directory', $r['id']);
                     }
 
-                    return $user_profile;
+//                    if(isset($_SESSION['current_user'])) copiar o displayName, email, etc
+                    return $local_profile;
+
                 }
                 else {
                     if (isset($_GET['authenticate'])) {
@@ -123,7 +144,7 @@ class AuthenticationHandler extends OWHandler
     {
 
         $account = get('directory', array(
-            'schema' => 'Account',
+            'schema' => '',
             'identifier' => $data['identifier']));
 
         if (!$account) {

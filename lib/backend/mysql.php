@@ -950,7 +950,9 @@ class ObjectStore extends TableStore
 
         $entries = array();
         for($i = 0; $i < count($results); $i++) {
-            $results[$i] = array_merge($results[$i], json_decode($results[$i]['_content'], true));
+            if($results[$i]['_content']) {
+                $results[$i] = array_merge($results[$i], json_decode($results[$i]['_content'], true));
+            }
             unset($results[$i]['_content']);
         }
 
