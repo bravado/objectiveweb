@@ -11,7 +11,9 @@
 register_domain('directory', array(
     'handler' => 'ObjectStore',
     'table' => OW_DIRECTORY,
-    'get' => 'directory_get'));
+    'get' => 'directory_get',
+    'put' => 'directory_put'
+));
 
 register_domain('auth', array(
     'handler' => 'AuthenticationHandler'));
@@ -41,6 +43,14 @@ function directory_get($self, $id) {
 
         return $result;
     }
+}
+
+function directory_put($self, $id, $data) {
+    if(!is_numeric($id)) {
+        throw new Exception("Invalid ID for put (must be numeric)", 405);
+    }
+
+    return $self->put($id, $data);
 }
 
 function set_current_user($user) {
@@ -167,4 +177,5 @@ class AuthenticationHandler extends OWHandler
             }
         }
     }
+
 }

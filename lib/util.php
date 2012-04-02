@@ -89,3 +89,15 @@ function debug($str) {
         error_log($str);
     }
 }
+
+/**
+ *
+ * Logic taken from http://stackoverflow.com/questions/4260086/php-how-to-use-array-filter-to-filter-array-keys
+ *
+ * @param $array
+ * @param array $valid_keys
+ * @return array
+ */
+function array_cleanup($array, $valid_keys = array()) {
+    return array_intersect_key($array, array_flip($valid_keys));
+}

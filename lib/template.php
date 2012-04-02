@@ -32,16 +32,16 @@ function tpl_current_user($atts, $content) {
 
 function tpl_date($atts, $content = null, $code = "", $context = null)
 {
-    if(isset($context[$content])) {
-        $date = $context[$content];
+    $data = val($content, $context);
+
+    if($data) {
+        $format = empty($atts['format']) ? 'd/m/Y h:m:i' : $atts['format'];
+        return date($format, strtotime($data));
     }
     else {
-        $date = $content;
+        return '';
     }
 
-    $format = empty($atts['format']) ? 'd/m/Y h:m:i' : $atts['format'];
-
-    return date($format, strtotime($date));
 }
 
 function tpl_each($atts, $content = null, $code = "", $context = null)
@@ -153,6 +153,7 @@ function tpl_if($atts, $content = null, $code = "", $context = null)
                 return '';
             }
 
+            debug(print_r($val, true));
             $op = 0;
             while (in_array($v[0], array("!", ">", "<"))) {
                 switch ($v[0]) {
@@ -164,13 +165,20 @@ function tpl_if($atts, $content = null, $code = "", $context = null)
                         break;
                     case '<':
                         $op |= 4;
+                        break;
                 }
 
                 $v = substr($v, 1);
             }
 
-            // Helpers for numeric types
-            if (is_numeric($val)) {
+
+            if(is_array($val)) {
+                debug("%s is array", $k);
+                debug("testing %s in %s", $v, print_r($val, true));
+                $test = in_array($v, $val);
+                debug("result: %d", $test);
+            }
+            else if (is_numeric($val)) {
                 switch ($v) {
                     case 'even':
                         $test = ($val % 2 == 0);
@@ -249,7 +257,12 @@ function tpl_val($atts, $content = null, $code = "", $context = null)
             return $return;
     }
 }
-
+/**
+ * [with var]template here[/with]
+ */
+//function tpl_with($atts, $content, $code, $context) {
+//
+//}
 /**
  * Renders a template from file or resource
  * @param $template

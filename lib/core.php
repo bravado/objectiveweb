@@ -30,11 +30,15 @@ function ow_version()
     }
 }
 
-
 function delete($domain, $id) {
     $handler = get($domain);
 
-    return $handler->delete($id);
+    if(isset($handler->params['delete'])) {
+        return call_user_func_array($handler->params['delete'], array($handler, $id));
+    }
+    else {
+        return $handler->delete($id);
+    }
 }
 
 function fetch($domain, $params = array())
@@ -42,7 +46,13 @@ function fetch($domain, $params = array())
     $handler = get($domain);
     // TODO adicionar acl no handler
 
-    return $handler->fetch($params);
+    if(isset($handler->params['fetch'])) {
+        return call_user_func_array($handler->params['fetch'], array($handler, $params));
+    }
+    else {
+        return $handler->fetch($params);
+    }
+
 }
 
 
@@ -105,7 +115,14 @@ function post($domain, $data)
     $handler = get($domain);
 
     // TODO verificar permissão de criar
-    return $handler->post($data);
+
+    if(isset($handler->params['post'])) {
+        return call_user_func_array($handler->params['post'], array($handler, $data));
+    }
+    else {
+        return $handler->post($data);
+    }
+
 }
 
 function put($domain, $id, $data)
@@ -114,8 +131,12 @@ function put($domain, $id, $data)
     $handler = get($domain);
 
     // TODO verificar permissão do $domain/$id
-
-    return $handler->put($id, $data);
+    if(isset($handler->params['put'])) {
+        return call_user_func_array($handler->params['put'], array($handler, $id, $data));
+    }
+    else {
+        return $handler->put($id, $data);
+    }
 }
 
 function attach($domain, $id, $data)

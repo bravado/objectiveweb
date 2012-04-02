@@ -402,10 +402,16 @@ class Table
 
         call_user_func_array(array($stmt, 'bind_param'), $bind_params);
 
-        if ($stmt->execute() === FALSE) throw new Exception($stmt->error, 500);
+        if ($stmt->execute() === FALSE) {
+            switch($stmt->errno) {
+                case 1062: // Error: 1062 SQLSTATE: 23000 (ER_DUP_ENTRY)
+                    throw new Exception($stmt->error, 409);
+                default:
+                    throw new Exception($stmt->errno.' '.$stmt->error, 500);
+            }
+        }
 
         $stmt->close();
-
 
         if (empty($data[$this->pk])) {
             // TODO só retornar insert_id se for auto_increment
@@ -790,7 +796,7 @@ class TableStore extends OWHandler
 
         $mysqli->autocommit(false);
 
-        $cond = array($this->table->pk => $oid);
+        $cond = is_array($oid) ? $oid : array($this->table->pk => $oid);
 
         // Update 'modified' field if not provided
         if (!isset($data['modified']) && isset($this->table->fields['modified']) && $this->table->fields['modified']['Type'] == 'datetime') {
@@ -868,6 +874,7 @@ class TableStore extends OWHandler
         //        }
         //
 
+        return array($this->table->pk => $oid);
     }
 
     function delete($id)
@@ -961,9 +968,15 @@ class ObjectStore extends TableStore
 
     function post($params)
     {
+        $return = array();
+
         // TODO apenas se o field OID for VARCHAR 36
-        if (empty($params['oid'])) {
-            $params['oid'] = ow_oid();
+        if($this->has_field('oid')) {
+            if (empty($params['oid'])) {
+                $params['oid'] = ow_oid();
+            }
+
+            $return['oid'] = $params['oid'];
         }
 
         // index params (if fields exist)
@@ -985,7 +998,8 @@ class ObjectStore extends TableStore
         // Parameters are encoded as json
         $data['_content'] = json_encode($params);
 
-        return parent::post($data);
+        return array_merge($return, parent::post($data));
+
     }
 
     function put($oid, $data)
@@ -993,6 +1007,7 @@ class ObjectStore extends TableStore
 
         $object = $this->get($oid);
 
+        // TODO please review this =)
         $content = array();
         foreach(array_keys($object) as $k) {
             if(isset($data[$k])) {
@@ -1013,7 +1028,6 @@ class ObjectStore extends TableStore
         }
 
         // Final content will be everything on data + original fields
-        // (dynamic content is ALWAYS OVERWRITTEN)
         $content['_content'] = json_encode($object);
 
         return parent::put($oid, $content);
