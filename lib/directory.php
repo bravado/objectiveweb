@@ -8,6 +8,9 @@
  * Time: 15:29
  */
 
+// Default directory table
+defined('OW_DIRECTORY') or define('OW_DIRECTORY', 'ow_directory');
+
 register_domain('directory', array(
     'handler' => 'ObjectStore',
     'table' => OW_DIRECTORY,
@@ -19,16 +22,16 @@ register_domain('auth', array(
     'handler' => 'AuthenticationHandler'));
 
 function directory_get($self, $id) {
-    if(is_numeric($id) || is_array($id)) {
+    if (is_numeric($id) || is_array($id)) {
         return $self->get($id);
     }
     else {
         $entries = $self->fetch("oid=$id");
-        if(count($entries)) {
+        if (count($entries)) {
             $result = array('oid' => $id);
-            foreach($entries as $entry) {
-                if(empty($entry['schema'])) {
-                    foreach($entry as $k => $v){
+            foreach ($entries as $entry) {
+                if (empty($entry['schema'])) {
+                    foreach ($entry as $k => $v) {
                         $result[$k] = $v;
                     }
                 }
@@ -46,7 +49,7 @@ function directory_get($self, $id) {
 }
 
 function directory_put($self, $id, $data) {
-    if(!is_numeric($id)) {
+    if (!is_numeric($id)) {
         throw new Exception("Invalid ID for put (must be numeric)", 405);
     }
 
@@ -54,12 +57,12 @@ function directory_put($self, $id, $data) {
 }
 
 function set_current_user($user) {
-    if(is_array($user)) {
+    if (is_array($user)) {
         $_SESSION['current_user'] = $user;
     }
     else {
         $user = get('directory', $user);
-        if(!$user) {
+        if (!$user) {
             throw new Exception('Invalid user');
         }
         else {
@@ -68,14 +71,12 @@ function set_current_user($user) {
     }
 }
 
-class AuthenticationHandler extends OWHandler
-{
+class AuthenticationHandler extends OWHandler {
 
     var $hybridauth;
     var $config;
 
-    function init()
-    {
+    function init() {
 
         require_once(OW_LIB . '/hybridauth/Hybrid/Auth.php');
 
@@ -96,13 +97,11 @@ class AuthenticationHandler extends OWHandler
         $this->hybridauth = new Hybrid_Auth($this->config);
     }
 
-    function fetch($params)
-    {
+    function fetch($params) {
         return $this->get(null);
     }
 
-    function get($provider)
-    {
+    function get($provider) {
         switch ($provider) {
             case null:
                 // TODO DUMP LOCAL LOGIN INFO + all hybridauth logged in accounts
@@ -116,7 +115,7 @@ class AuthenticationHandler extends OWHandler
                 if ($this->hybridauth->isConnectedWith($provider)) {
                     $adapter = $this->hybridauth->getAdapter($provider);
                     $user_profile = (Array)$adapter->getUserProfile();
-                    $schema = 'HA::'.$provider;
+                    $schema = 'HA::' . $provider;
                     $local_profile = get('directory', array(
                             'schema' => $schema,
                             'identifier' => $user_profile['identifier'])
@@ -150,8 +149,7 @@ class AuthenticationHandler extends OWHandler
         return $this->hybridauth->authenticate($provider);
     }
 
-    function post($data)
-    {
+    function post($data) {
 
         $account = get('directory', array(
             'schema' => '',
@@ -169,7 +167,7 @@ class AuthenticationHandler extends OWHandler
                 default:
             }
 
-            if($account['userPassword'] == $userPassword) {
+            if ($account['userPassword'] == $userPassword) {
                 set_current_user(get('directory', $account['oid']));
             }
             else {

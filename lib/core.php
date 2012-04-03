@@ -17,12 +17,11 @@ $_apps = array();
 
 // TODO register dynamic domains (on the directory)
 
-function ow_version()
-{
+function ow_version() {
     // TODO incluir informações de plugin se DEBUG
     global $_apps;
 
-    if(DEBUG) {
+    if (DEBUG) {
         return sprintf('{ "objectiveweb": "%s", "apps" : %s }', OBJECTIVEWEB_VERSION, json_encode($_apps));
     }
     else {
@@ -33,7 +32,7 @@ function ow_version()
 function delete($domain, $id) {
     $handler = get($domain);
 
-    if(isset($handler->params['delete'])) {
+    if (isset($handler->params['delete'])) {
         return call_user_func_array($handler->params['delete'], array($handler, $id));
     }
     else {
@@ -41,12 +40,11 @@ function delete($domain, $id) {
     }
 }
 
-function fetch($domain, $params = array())
-{
+function fetch($domain, $params = array()) {
     $handler = get($domain);
     // TODO adicionar acl no handler
 
-    if(isset($handler->params['fetch'])) {
+    if (isset($handler->params['fetch'])) {
         return call_user_func_array($handler->params['fetch'], array($handler, $params));
     }
     else {
@@ -62,8 +60,7 @@ function fetch($domain, $params = array())
  * @param null $id
  * @return OW_Handler
  */
-function get($domain_id, $id = null, $attachment = null)
-{
+function get($domain_id, $id = null, $params = array()) {
     global $_domains;
 
     if (empty($_domains[$domain_id])) {
@@ -87,20 +84,15 @@ function get($domain_id, $id = null, $attachment = null)
     $handler = $_domains[$domain_id]['instance'];
 
 
-
     if ($id) {
-        // TODO verificar permissão de ler este $domain/$id
-        if ($attachment) {
-            return $handler->attachment($id, $attachment);
+
+        if (isset($handler->params['get'])) {
+            return call_user_func_array($handler->params['get'], array($handler, $id, $params));
         }
         else {
-            if(isset($handler->params['get'])) {
-                return call_user_func_array($handler->params['get'], array($handler, $id));
-            }
-            else {
-                return $handler->get($id);
-            }
+            return $handler->get($id, $params);
         }
+
     }
     else {
         return $handler;
@@ -110,13 +102,12 @@ function get($domain_id, $id = null, $attachment = null)
 }
 
 
-function post($domain, $data)
-{
+function post($domain, $data) {
     $handler = get($domain);
 
     // TODO verificar permissão de criar
 
-    if(isset($handler->params['post'])) {
+    if (isset($handler->params['post'])) {
         return call_user_func_array($handler->params['post'], array($handler, $data));
     }
     else {
@@ -125,13 +116,12 @@ function post($domain, $data)
 
 }
 
-function put($domain, $id, $data)
-{
+function put($domain, $id, $data) {
 
     $handler = get($domain);
 
     // TODO verificar permissão do $domain/$id
-    if(isset($handler->params['put'])) {
+    if (isset($handler->params['put'])) {
         return call_user_func_array($handler->params['put'], array($handler, $id, $data));
     }
     else {
@@ -139,15 +129,7 @@ function put($domain, $id, $data)
     }
 }
 
-function attach($domain, $id, $data)
-{
-    $handler = get($domain);
-
-    return $handler->attach($id, $data);
-}
-
-function parse_path($path)
-{
+function parse_path($path) {
 
     $pattern = '/\/([^/]+)\/?(.*)/';
 
@@ -164,8 +146,7 @@ function parse_path($path)
  * @param string $root - ROOT directory when looking for apps (defaults to web root)
  * @throws Exception
  */
-function register_app($id, $root = ROOT)
-{
+function register_app($id, $root = ROOT) {
     global $_apps;
     $_init = "$root/$id/_init.php";
     if (!isset($_apps[$id])) {
@@ -178,8 +159,7 @@ function register_app($id, $root = ROOT)
     }
 }
 
-function register_domain($domain_id, $params = array())
-{
+function register_domain($domain_id, $params = array()) {
     global $_domains;
 
     if (isset($_domains[$domain_id])) {
@@ -206,9 +186,6 @@ function register_domain($domain_id, $params = array())
 }
 
 
-
-
-
 /**
  * @brief Generates a Universally Unique IDentifier, version 4.
  *
@@ -216,8 +193,7 @@ function register_domain($domain_id, $params = array())
  * @see http://en.wikipedia.org/wiki/UUID
  * @return string A UUID, made up of 32 hex digits and 4 hyphens.
  */
-function ow_oid()
-{
+function ow_oid() {
 
     $pr_bits = null;
     $fp = @fopen('/dev/urandom', 'rb');
@@ -262,8 +238,7 @@ function ow_oid()
 
 // publish/subscribe (may become realtime)
 
-function ow_subscribe($domain, $event, $callback)
-{
+function ow_subscribe($domain, $event, $callback) {
 
     global $_subscriptions;
 
@@ -278,8 +253,7 @@ function ow_subscribe($domain, $event, $callback)
 
 }
 
-function ow_trigger($domain, $event, $data)
-{
+function ow_trigger($domain, $event, $data) {
     global $_subscriptions;
 
     foreach (@$_subscriptions["$domain:$event"] as $callback) {
@@ -291,10 +265,8 @@ function ow_trigger($domain, $event, $data)
 /**
  * from http://www.php.net/manual/en/function.uniqid.php#94959
  */
-class UUID
-{
-    public static function v3($namespace, $name)
-    {
+class UUID {
+    public static function v3($namespace, $name) {
         if (!self::is_valid($namespace)) return false;
 
         // Get hexadecimal components of namespace
@@ -333,8 +305,7 @@ class UUID
         );
     }
 
-    public static function v4()
-    {
+    public static function v4() {
         return sprintf('%04x%04x-%04x-%04x-%04x-%04x%04x%04x',
 
 // 32 bits for "time_low"
@@ -357,8 +328,7 @@ class UUID
         );
     }
 
-    public static function v5($namespace, $name)
-    {
+    public static function v5($namespace, $name) {
         if (!self::is_valid($namespace)) return false;
 
         // Get hexadecimal components of namespace
@@ -397,28 +367,24 @@ class UUID
         );
     }
 
-    public static function is_valid($uuid)
-    {
+    public static function is_valid($uuid) {
         return preg_match('/^\{?[0-9a-f]{8}\-?[0-9a-f]{4}\-?[0-9a-f]{4}\-?' .
             '[0-9a-f]{4}\-?[0-9a-f]{12}\}?$/i', $uuid) === 1;
     }
 }
 
 
-class OWHandler
-{
+class OWHandler {
 
     var $id;
 
-    function _init($id, $params = array())
-    {
+    function _init($id, $params = array()) {
         $this->id = $id;
 
         $this->init($params);
     }
 
-    function init()
-    {
+    function init() {
 
     }
 
@@ -430,14 +396,12 @@ class OWHandler
      * @param array $params
      * @return void
      */
-    function get($oid)
-    {
+    function get($oid) {
         throw new Exception('Not implemented', 500);
     }
 
 
-    function fetch($cond = array())
-    {
+    function fetch($cond = array()) {
         throw new Exception('Not implemented', 500);
     }
 
@@ -448,8 +412,7 @@ class OWHandler
      * @param null $data The object data
      * @return string|The object's new oid.
      */
-    function post($data = null)
-    {
+    function post($data = null) {
         throw new Exception('Not implemented', 500);
     }
 
@@ -459,57 +422,12 @@ class OWHandler
      * @param Array $data
      * @return array The changed data
      */
-    function put($oid, $data)
-    {
+    function put($oid, $data) {
         throw new Exception('Not implemented', 500);
     }
 
-    /**
-     * @param $oid
-     * @param $name
-     * @return Array attachment info
-     */
-    function attachment($oid, $name)
-    {
-        $filename = sprintf("%s/%s/%s/%s", OW_CONTENT, $this->id, $oid, $name);
 
-        if (!is_readable($filename)) {
-            throw new Exception('Attachment not found', 404);
-        }
-        else {
-            return array('url' => sprintf("%s/%s/%s/%s", OW_CONTENT_URL, $this->id, $oid, $name));
-        }
-    }
-
-    /**
-     * Creates/updates an attachment
-     * @param $oid
-     * @param Array $data describing the attachment
-     *  array("name" => "file_name.ext", "type" => "mime/type", "data" => "file_data")
-     * @return Array
-     */
-    function attach($oid, $data)
-    {
-        $directory = sprintf("%s/%s/%s", OW_CONTENT, $this->id, $oid);
-
-        if (!is_dir($directory)) {
-            if (file_exists($directory)) {
-                throw new Exception("Cannot write to $directory", 500);
-            }
-
-            mkdirs($directory);
-        }
-
-        $filename = sprintf("%s/%s", $directory, $data['name']);
-
-
-        file_put_contents($filename, $data['data']);
-
-        return array("ok" => 1);
-    }
-
-    function delete($oid)
-    {
+    function delete($oid) {
         throw new Exception('Not implemented', 500);
     }
 }
@@ -541,6 +459,7 @@ class OWFilter {
         call_user_func_array(array($this->handler, 'put'), func_get_args());
     }
 }
+
 /**
  * The FileStore lists a directory with files with an optional filter
  * This also allows reading/writing to arbitrary files
@@ -552,8 +471,8 @@ class FileStore extends OWHandler {
     var $root;
 
     function init($params) {
-        if(!is_dir($params['root'])) {
-            throw new Exception('Invalid Directory Root '.$params['root']);
+        if (!is_dir($params['root'])) {
+            throw new Exception('Invalid Directory Root ' . $params['root']);
         }
 
         $this->root = $params['root'];
@@ -568,9 +487,9 @@ class FileStore extends OWHandler {
             "md5" => md5(file_get_contents($file))
         );
 
-        if(substr($file, -4) == 'html') {
+        if (substr($file, -4) == 'html') {
             $contents = file_get_contents($file);
-            if(preg_match('/<title>([^<]+)/', $contents, $matches)) {
+            if (preg_match('/<title>([^<]+)/', $contents, $matches)) {
                 $file_meta['title'] = $matches[1];
             }
         }
@@ -595,7 +514,7 @@ class FileStore extends OWHandler {
     }
 
     function get($file) {
-        return file_get_contents($this->root."/".$file);
+        return file_get_contents($this->root . "/" . $file);
     }
 
 

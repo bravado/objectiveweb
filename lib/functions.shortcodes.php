@@ -34,6 +34,7 @@
  * @since 2.5
  */
 
+
 /**
  * Container for storing shortcode tags and their hook to call for the shortcode
  *
@@ -56,7 +57,7 @@ $shortcode_tags = array();
  * <code>
  * // [footag foo="bar"]
  * function footag_func($atts) {
- * 	return "foo = {$atts[foo]}";
+ *     return "foo = {$atts[foo]}";
  * }
  * add_shortcode('footag', 'footag_func');
  * </code>
@@ -66,12 +67,12 @@ $shortcode_tags = array();
  * <code>
  * // [bartag foo="bar"]
  * function bartag_func($atts) {
- * 	extract(shortcode_atts(array(
- * 		'foo' => 'no foo',
- * 		'baz' => 'default baz',
- * 	), $atts));
+ *     extract(shortcode_atts(array(
+ *         'foo' => 'no foo',
+ *         'baz' => 'default baz',
+ *     ), $atts));
  *
- * 	return "foo = {$foo}";
+ *     return "foo = {$foo}";
  * }
  * add_shortcode('bartag', 'bartag_func');
  * </code>
@@ -81,7 +82,7 @@ $shortcode_tags = array();
  * <code>
  * // [baztag]content[/baztag]
  * function baztag_func($atts, $content='') {
- * 	return "content = $content";
+ *     return "content = $content";
  * }
  * add_shortcode('baztag', 'baztag_func');
  * </code>
@@ -93,10 +94,10 @@ $shortcode_tags = array();
  * @param callable $func Hook to run when shortcode is found.
  */
 function add_shortcode($tag, $func) {
-	global $shortcode_tags;
+    global $shortcode_tags;
 
-	if ( is_callable($func) )
-		$shortcode_tags[$tag] = $func;
+    if (is_callable($func))
+        $shortcode_tags[$tag] = $func;
 }
 
 /**
@@ -108,9 +109,9 @@ function add_shortcode($tag, $func) {
  * @param string $tag shortcode tag to remove hook for.
  */
 function remove_shortcode($tag) {
-	global $shortcode_tags;
+    global $shortcode_tags;
 
-	unset($shortcode_tags[$tag]);
+    unset($shortcode_tags[$tag]);
 }
 
 /**
@@ -124,14 +125,14 @@ function remove_shortcode($tag) {
  * @uses $shortcode_tags
  */
 function remove_all_shortcodes() {
-	global $shortcode_tags;
+    global $shortcode_tags;
 
-	$shortcode_tags = array();
+    $shortcode_tags = array();
 }
 
-
 /**
- * Allows passing an arbitrary context to the callback
+ * The RenderContext class allows passing an arbitrary context to the callback
+ *
  */
 class RenderContext {
     var $ctx = array();
@@ -160,14 +161,15 @@ class RenderContext {
  * @return string Content with shortcodes filtered out.
  */
 function do_shortcode($content, $context = null) {
-	global $shortcode_tags;
+    global $shortcode_tags;
 
-	if (empty($shortcode_tags) || !is_array($shortcode_tags))
-		return $content;
+    if (empty($shortcode_tags) || !is_array($shortcode_tags))
+        return $content;
 
+    // Instantiate the RenderContext class with the current context, so we can use that on preg_replace_callback
     $ctx = new RenderContext($context);
     $pattern = get_shortcode_regex();
-	return preg_replace_callback('/'.$pattern.'/s', array($ctx, 'do_shortcode_tag'), $content);
+    return preg_replace_callback('/' . $pattern . '/s', array($ctx, 'do_shortcode_tag'), $content);
 }
 
 /**
@@ -190,12 +192,12 @@ function do_shortcode($content, $context = null) {
  * @return string The shortcode search regular expression
  */
 function get_shortcode_regex() {
-	global $shortcode_tags;
-	$tagnames = array_keys($shortcode_tags);
-	$tagregexp = join( '|', array_map('preg_quote', $tagnames) );
+    global $shortcode_tags;
+    $tagnames = array_keys($shortcode_tags);
+    $tagregexp = join('|', array_map('preg_quote', $tagnames));
 
-	// WARNING! Do not change this regex without changing do_shortcode_tag() and strip_shortcodes()
-	return '(.?)\[('.$tagregexp.')\b(.*?)(?:(\/))?\](?:(.+?)\[\/\2\])?(.?)';
+    // WARNING! Do not change this regex without changing do_shortcode_tag() and strip_shortcodes()
+    return '(.?)\[(' . $tagregexp . ')\b(.*?)(?:(\/))?\](?:(.+?)\[\/\2\])?(.?)';
 }
 
 /**
@@ -210,22 +212,22 @@ function get_shortcode_regex() {
  * @return mixed False on failure.
  */
 function do_shortcode_tag($m, $context = null) {
-	global $shortcode_tags;
-	// allow [[foo]] syntax for escaping a tag
-	if ($m[1] == '[' && $m[6] == ']') {
-		return substr($m[0], 1, -1);
-	}
+    global $shortcode_tags;
+    // allow [[foo]] syntax for escaping a tag
+    if ($m[1] == '[' && $m[6] == ']') {
+        return substr($m[0], 1, -1);
+    }
 
-	$tag = $m[2];
-	$attr = shortcode_parse_atts($m[3]);
+    $tag = $m[2];
+    $attr = shortcode_parse_atts($m[3]);
 
-	if ( isset($m[5]) ) {
-		// enclosing tag - extra parameter
-		return $m[1] . call_user_func($shortcode_tags[$tag], $attr, $m[5], $m[2], $context) . $m[6];
-	} else {
-		// self-closing tag
-		return $m[1] . call_user_func($shortcode_tags[$tag], $attr, NULL, $m[2], $context) . $m[6];
-	}
+    if (isset($m[5])) {
+        // enclosing tag - extra parameter
+        return $m[1] . call_user_func($shortcode_tags[$tag], $attr, $m[5], $m[2], $context) . $m[6];
+    } else {
+        // self-closing tag
+        return $m[1] . call_user_func($shortcode_tags[$tag], $attr, NULL, $m[2], $context) . $m[6];
+    }
 }
 
 /**
@@ -241,26 +243,26 @@ function do_shortcode_tag($m, $context = null) {
  * @return array List of attributes and their value.
  */
 function shortcode_parse_atts($text) {
-	$atts = array();
-	$pattern = '/(\w+)\s*=\s*"([^"]*)"(?:\s|$)|(\w+)\s*=\s*\'([^\']*)\'(?:\s|$)|(\w+)\s*=\s*([^\s\'"]+)(?:\s|$)|"([^"]*)"(?:\s|$)|(\S+)(?:\s|$)/';
-	$text = preg_replace("/[\x{00a0}\x{200b}]+/u", " ", $text);
-	if ( preg_match_all($pattern, $text, $match, PREG_SET_ORDER) ) {
-		foreach ($match as $m) {
-			if (!empty($m[1]))
-				$atts[strtolower($m[1])] = stripcslashes($m[2]);
-			elseif (!empty($m[3]))
-				$atts[strtolower($m[3])] = stripcslashes($m[4]);
-			elseif (!empty($m[5]))
-				$atts[strtolower($m[5])] = stripcslashes($m[6]);
-			elseif (isset($m[7]) and strlen($m[7]))
-				$atts[] = stripcslashes($m[7]);
-			elseif (isset($m[8]))
-				$atts[] = stripcslashes($m[8]);
-		}
-	} else {
-		$atts = ltrim($text);
-	}
-	return $atts;
+    $atts = array();
+    $pattern = '/(\w+)\s*=\s*"([^"]*)"(?:\s|$)|(\w+)\s*=\s*\'([^\']*)\'(?:\s|$)|(\w+)\s*=\s*([^\s\'"]+)(?:\s|$)|"([^"]*)"(?:\s|$)|(\S+)(?:\s|$)/';
+    $text = preg_replace("/[\x{00a0}\x{200b}]+/u", " ", $text);
+    if (preg_match_all($pattern, $text, $match, PREG_SET_ORDER)) {
+        foreach ($match as $m) {
+            if (!empty($m[1]))
+                $atts[strtolower($m[1])] = stripcslashes($m[2]);
+            elseif (!empty($m[3]))
+                $atts[strtolower($m[3])] = stripcslashes($m[4]);
+            elseif (!empty($m[5]))
+                $atts[strtolower($m[5])] = stripcslashes($m[6]);
+            elseif (isset($m[7]) and strlen($m[7]))
+                $atts[] = stripcslashes($m[7]);
+            elseif (isset($m[8]))
+                $atts[] = stripcslashes($m[8]);
+        }
+    } else {
+        $atts = ltrim($text);
+    }
+    return $atts;
 }
 
 /**
@@ -280,15 +282,15 @@ function shortcode_parse_atts($text) {
  * @return array Combined and filtered attribute list.
  */
 function shortcode_atts($pairs, $atts) {
-	$atts = (array)$atts;
-	$out = array();
-	foreach($pairs as $name => $default) {
-		if ( array_key_exists($name, $atts) )
-			$out[$name] = $atts[$name];
-		else
-			$out[$name] = $default;
-	}
-	return $out;
+    $atts = (array)$atts;
+    $out = array();
+    foreach ($pairs as $name => $default) {
+        if (array_key_exists($name, $atts))
+            $out[$name] = $atts[$name];
+        else
+            $out[$name] = $default;
+    }
+    return $out;
 }
 
 /**
@@ -300,13 +302,13 @@ function shortcode_atts($pairs, $atts) {
  * @param string $content Content to remove shortcode tags.
  * @return string Content without shortcode tags.
  */
-function strip_shortcodes( $content ) {
-	global $shortcode_tags;
+function strip_shortcodes($content) {
+    global $shortcode_tags;
 
-	if (empty($shortcode_tags) || !is_array($shortcode_tags))
-		return $content;
+    if (empty($shortcode_tags) || !is_array($shortcode_tags))
+        return $content;
 
-	$pattern = get_shortcode_regex();
+    $pattern = get_shortcode_regex();
 
-	return preg_replace('/'.$pattern.'/s', '$1$6', $content);
+    return preg_replace('/' . $pattern . '/s', '$1$6', $content);
 }

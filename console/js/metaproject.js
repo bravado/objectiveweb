@@ -1061,6 +1061,7 @@ ko.bindingHandlers.money = {
             //handle programmatic updates to the observable
             var value = ko.utils.unwrapObservable(valueAccessor());
             var editor = tinymce.get(element.id);
+            // TODO can't remember exactly why this is commented, had issues with multiple editors and/or focus problems after update
 //        if(editor) {
 //            if(editor.getContent() != value) {
 //                editor.setContent(value)
@@ -1071,4 +1072,69 @@ ko.bindingHandlers.money = {
 })(jQuery, ko, tinymce);
 // - end of rich text editor
 
+/**
+ * init and destroy run when the element is initialized/destroyed
+ *
+ * useful for running code when you use the with binding (which renders and disposes the child elements) and 3rd party js plugins
+ */
+(function(ko) {
+    ko.bindingHandlers.init = {
+        init: function(element,valueAccessor, allBindingsAccessor, context) {
+            var fn = valueAccessor();
 
+            if(fn instanceof Array) {
+                ko.utils.arrayForEach(fn, function(item) {
+                    if(typeof(item) == 'function') {
+                        item(element);
+                    }
+                });
+            }
+            else if(typeof(fn) == 'function') {
+                fn(element);
+            }
+        }
+    };
+
+    ko.bindingHandlers.destroy = {
+        init: function(element, valueAccessor, allBindingsAccessor, context) {
+            var fn = valueAccessor();
+
+            ko.utils.domNodeDisposal.addDisposeCallback(element, function () {
+                if(fn instanceof Array) {
+                    ko.utils.arrayForEach(fn, function(item) {
+                        if(typeof(item) == 'function') {
+                            item(element);
+                        }
+                    });
+                }
+                else if(typeof(fn) == 'function') {
+                    fn(element);
+                }
+            });
+        }
+    }
+})(ko);
+// - end of init/destroy
+
+// Fileupload
+(function($, ko) {
+    ko.bindingHandlers.fileupload = {
+        init: function(element, valueAccessor) {
+            var options = ko.utils.unwrapObservable(valueAccessor());
+
+            console.log(options);
+            $(element).fileupload(options);
+
+            ko.utils.domNodeDisposal.addDisposeCallback(element, function() {
+                $(element).fileupload('destroy');
+            });
+        },
+        update:function (element, valueAccessor, allBindingsAccessor, context) {
+            //handle programmatic updates to the observable
+            var options = ko.utils.unwrapObservable(valueAccessor());
+            $(element).fileupload('option', options);
+
+        }
+    }
+})(jQuery, ko);
+// - end of Fileupload

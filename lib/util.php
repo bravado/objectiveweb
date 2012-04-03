@@ -7,8 +7,7 @@
  * Time: 12:49
  */
 
-function curl_get($url, $params = null, $decode_response = false)
-{
+function curl_get($url, $params = null, $decode_response = false) {
 
     if ($params) {
         if (is_array($params)) {
@@ -50,8 +49,7 @@ function curl_get($url, $params = null, $decode_response = false)
 }
 
 
-function curl_post($url, $params = null, $decode_response = false)
-{
+function curl_post($url, $params = null, $decode_response = false) {
     if ($params) {
         if (is_array($params)) {
             $params = http_build_query($params);
@@ -59,8 +57,7 @@ function curl_post($url, $params = null, $decode_response = false)
     }
 }
 
-function mkdirs($dir, $mode = 0777)
-{
+function mkdirs($dir, $mode = 0777) {
     if (is_dir($dir) || @mkdir($dir, $mode)) return TRUE;
     if (!mkdirs(dirname($dir), $mode)) return FALSE;
     return @mkdir($dir, $mode);
@@ -69,8 +66,7 @@ function mkdirs($dir, $mode = 0777)
 
 // Internationalization fallback (no internationalization)
 if (!function_exists('_')) {
-    function _($string)
-    {
+    function _($string) {
         return $string;
     }
 }
@@ -84,7 +80,7 @@ function now() {
 }
 
 function debug($str) {
-    if(DEBUG) {
+    if (DEBUG) {
         $str = call_user_func_array('sprintf', func_get_args());
         error_log($str);
     }

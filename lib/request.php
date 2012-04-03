@@ -1,7 +1,7 @@
 <?php
 /**
- * 
- * 
+ *
+ *
  * User: guigouz
  * Date: 24/04/11
  * Time: 22:24
@@ -10,15 +10,15 @@
 
 function parse_post_body($decoded = true) {
 
-    if($_SERVER['REQUEST_METHOD'] === 'POST' || $_SERVER['REQUEST_METHOD'] === 'PUT') {
+    if ($_SERVER['REQUEST_METHOD'] === 'POST' || $_SERVER['REQUEST_METHOD'] === 'PUT') {
 
-        if(!empty($_POST)) {
+        if (!empty($_POST)) {
             return $_POST;
         }
         else {
             $post_body = file_get_contents('php://input');
 
-            if($decoded && ($post_body[0] == '{' || $post_body[0] == '[')) {
+            if ($decoded && ($post_body[0] == '{' || $post_body[0] == '[')) {
                 return json_decode($post_body, true);
             }
             else {
@@ -33,7 +33,7 @@ function parse_post_body($decoded = true) {
 }
 
 function redirect($to) {
-    header('Location: '.url($to, true));
+    header('Location: ' . url($to, true));
     exit();
 }
 
@@ -41,12 +41,12 @@ function respond($content, $code = 200) {
 
     header("HTTP/1.1 $code");
 
-    if(is_array($content)) {
+    if (is_array($content)) {
 
         $content = json_encode($content);
     }
 
-    if($content[0] == '{' || $content[0] == '[') {
+    if ($content[0] == '{' || $content[0] == '[') {
         header('Content-type: application/json');
     }
 
@@ -73,26 +73,26 @@ function respond_to($type) {
  * @return void or data - If the callback returns something, it's responded accordingly, otherwise, nothing happens
  */
 function route($request, $callback) {
-    if(!is_callable($callback)) {
+    if (!is_callable($callback)) {
         throw new Exception(sprintf(_('%s: Invalid callback'), $callback), 500);
     }
 
     // TODO check if using PATH_INFO is ok in all cases (rewrite, different servers, etc)
 
-    if(preg_match(sprintf("/^%s$/", str_replace('/', '\/', $request) ), "{$_SERVER['REQUEST_METHOD']} {$_SERVER['PATH_INFO']}", $params)) {
+    if (preg_match(sprintf("/^%s$/", str_replace('/', '\/', $request)), "{$_SERVER['REQUEST_METHOD']} {$_SERVER['PATH_INFO']}", $params)) {
         array_shift($params);
 
-        if(func_num_args() > 2) {
+        if (func_num_args() > 2) {
             $params = array_merge($params, array_slice(func_get_args(), 2));
         }
 
         try {
             $response = call_user_func_array($callback, $params);
-            if($response !== NULL) {
+            if ($response !== NULL) {
                 respond($response);
             }
         }
-        catch(Exception $ex) {
+        catch (Exception $ex) {
             respond($ex->getMessage(), $ex->getCode());
         }
     }
@@ -116,11 +116,11 @@ function route($request, $callback) {
  * @return string
  */
 function url($str = null, $return = false) {
-    if($str == 'self' || empty($str)) {
-        if(
-            isset( $_SERVER['HTTPS'] ) && ( $_SERVER['HTTPS'] == 'on' || $_SERVER['HTTPS'] == 1 )
-            || 	isset( $_SERVER['HTTP_X_FORWARDED_PROTO']) && $_SERVER['HTTP_X_FORWARDED_PROTO'] == 'https'
-        ){
+    if ($str == 'self' || empty($str)) {
+        if (
+            isset($_SERVER['HTTPS']) && ($_SERVER['HTTPS'] == 'on' || $_SERVER['HTTPS'] == 1)
+            || isset($_SERVER['HTTP_X_FORWARDED_PROTO']) && $_SERVER['HTTP_X_FORWARDED_PROTO'] == 'https'
+        ) {
             $protocol = 'https://';
         }
         else {
@@ -131,8 +131,8 @@ function url($str = null, $return = false) {
 
         // use port if non default
         $url .=
-            isset( $_SERVER['SERVER_PORT'] )
-                &&( ($protocol === 'http://' && $_SERVER['SERVER_PORT'] != 80) || ($protocol === 'https://' && $_SERVER['SERVER_PORT'] != 443) )
+            isset($_SERVER['SERVER_PORT'])
+                && (($protocol === 'http://' && $_SERVER['SERVER_PORT'] != 80) || ($protocol === 'https://' && $_SERVER['SERVER_PORT'] != 443))
                 ? ':' . $_SERVER['SERVER_PORT']
                 : '';
 
@@ -142,15 +142,15 @@ function url($str = null, $return = false) {
         $out = $url;
     }
     else {
-        if(file_exists($str)) {
-            $out = dirname($_SERVER['SCRIPT_NAME']) .'/'. $str;
+        if (file_exists($str)) {
+            $out = dirname($_SERVER['SCRIPT_NAME']) . '/' . $str;
         }
         else {
 //            if(dirname($str) != '/' && file_exists(dirname($str))) {
 //                $out = dirname($_SERVER['SCRIPT_NAME']) .'/'. dirname($str) . '/'.basename($str);
 //            }
 //            else {
-                $out = $_SERVER['SCRIPT_NAME'].'/'.$str;
+            $out = $_SERVER['SCRIPT_NAME'] . '/' . $str;
 //            }
         }
         // TODO check for pointers to other controllers + path info (other_controller.php/1/2 does not exist but other_controller.php could exist)
@@ -158,7 +158,7 @@ function url($str = null, $return = false) {
     }
 
 
-    if($return) {
+    if ($return) {
         return $out;
     }
     else {

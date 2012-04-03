@@ -12,36 +12,75 @@
 // Load ObjectiveWeb
 require_once "_init.php";
 
-// Obligatory aboutbox
+// Mandatory aboutbox
 route('GET /?', 'ow_version');
+
+// Attachments before, because they may use php://stdin
+route('POST /(\w+)/(\w+)/?', 'handle_attachment_post');
+route('POST /(\w+)/(\w+)/([\w.]+)', 'handle_attachment_post');
+route('PUT /(\w+)/(\w+)/([\w.]+)', 'handle_attachment_post');
+route('DELETE /(\w+)/(\w+)/([\w.]+)', 'handle_attachment_delete');
+route('GET /(\w+)/(\w+)/([\w.]+)', 'handle_attachment_get');
 
 $body = parse_post_body();
 
 // /domain
-route('GET /(\w*)/?', 'fetch', $_GET);
+route('GET /(\w+)/?', 'fetch', $_GET);
 route('POST /(\w*)/?', 'post', $body);
 
-// /domain/_plugin
-route('GET /(\w*)/_(\w*)/?', 'handle_domain_plugin');
-route('POST /(\w*)/_(\w*)/?', 'handle_domain_plugin');
-route('PUT /(\w*)/_(\w*)/?', 'handle_domain_plugin');
 
 // /domain/id
-route('GET /(\w*)/([\w-]*)/?', 'get');
-route('POST /(\w*)/([\w-]*)/?', 'handle_add_attachments');
+route('GET /(\w*)/([\w-]*)/?', 'get', $_GET);
 route('PUT /(\w*)/([\w-]*)/?', 'put', $body);
 route('DELETE /(\w*)/(\w*)/?', 'delete');
 
-//route('GET /(\w*)/(\w*)/_(\w*)', 'handle_object_plugin');
-//route('POST /(\w*)/(\w*)/_(\w*)', 'handle_object_plugin');
-//route('PUT /(\w*)/(\w*)/_(\w*)', 'handle_object_plugin');
-//route('DELETE /(\w*)/(\w*)/_(\w*)', 'handle_object_plugin');
-//
-//route('GET /(\w*)/(\w*)/(\w*)', 'get');
-//route('POST /(\w*)/(\w*)/(\w*)', 'handle_update_attachment');
-//route('PUT /(\w*)/(\w*)/(\w*)', 'handle_update_attachment');
-//route('DELETE /(\w*)/(\w*)/(\w*)', 'handle_delete_attachment');
+route('GET /(\w*)/(\w*)/_(\w*)', 'handle_plugin');
+//route('POST /(\w*)/(\w*)/_(\w*)', 'handle_plugin');
+//route('PUT /(\w*)/(\w*)/_(\w*)', 'handle_plugin');
+//route('DELETE /(\w*)/(\w*)/_(\w*)', 'handle_plugin');
 
+//// /domain/_view
+//route('GET /(\w*)/_(\w*)/?', 'handle_view');
+//route('POST /(\w*)/_(\w*)/?', 'handle_view');
+//route('PUT /(\w*)/_(\w*)/?', 'handle_view');
+
+function handle_attachment_delete($domain, $id, $attachment_id) {
+    throw new Exception('Not Implemented', 500);
+}
+
+function handle_attachment_get($domain, $id, $attachment) {
+    // TODO set header
+    $fp = attachment_open($domain, $id, $attachment);
+    fpassthru($fp);
+    fclose($fp);
+    exit;
+}
+
+function handle_attachment_post($domain, $id, $attachment_id = null) {
+    $files = array();
+    if ($attachment_id) {
+        // TODO if $_FILES put($domain,$id, $attachment_id, fopen($_FILES['tmp_file']), $metadata);
+        throw new Exception('Not implemented', 500);
+    }
+    else {
+        foreach ($_FILES as $key => $fileinput) {
+            if (!is_array($fileinput['name'])) {
+                // single file
+
+                $files[] = attach_local($domain, $id, $key, $fileinput['tmp_name'], ATTACHMENT_UNLINK);
+            }
+            else {
+                // array of files
+                foreach ($fileinput['name'] as $file => $filename) {
+
+                    $files[] = attach_local($domain, $id, is_numeric($file) ? $fileinput['name'][$file] : $key, $fileinput['tmp_name'][$file], ATTACHMENT_UNLINK);
+                }
+            }
+        }
+    }
+
+    respond($files);
+}
 
 // Domain handlers
 function handle_get_domain($domain) {
@@ -49,15 +88,16 @@ function handle_get_domain($domain) {
 }
 
 function handle_domain_plugin($domain, $plugin) {
-    switch($plugin) {
+    switch ($plugin) {
         case 'schema':
             respond($domain->schema());
             break;
         default:
-            throw new Exception( F3::get('PARAMS["plugin"]'));
+            throw new Exception(F3::get('PARAMS["plugin"]'));
     }
 
 }
+
 
 // Object handlers
 function handle_get_object($domain, $id) {
@@ -80,12 +120,13 @@ function handle_create_object($domain) {
 
 function handle_update_object($domain, $id) {
     $data = parse_post_body();
-    respond(array("ok" => true, "_id" =>write($domain, $id, $data) ));
+    respond(array("ok" => true, "_id" => write($domain, $id, $data)));
 }
 
 function handle_delete_object($domain, $id) {
-    
+
 }
+
 // Attachment handlers
 
 function handle_get_attachment($domain, $id, $attachment) {
@@ -107,4 +148,14 @@ function handle_update_attachment($domain, $id, $attachment) {
     respond(attach($domain, $id, $data));
 
 }
+
+function handle_plugin($domain, $id, $view) {
+    if($view == 'attachments') {
+        respond(attachment_list($domain, $id));
+    }
+    else {
+        respond('View not found', 404);
+    }
+}
+
 

@@ -19,15 +19,14 @@ session_start();
  * @return mixed
  * @throws Exception
  */
-function current_user($field = null)
-{
+function current_user($field = null) {
     $_current_user = @$_SESSION['current_user'];
 
     if ($_current_user && $field) {
         $field = explode(".", $field);
 
-        for($i = 0; $i < count($field); $i++) {
-            if(isset($_current_user[$field[$i]])) {
+        for ($i = 0; $i < count($field); $i++) {
+            if (isset($_current_user[$field[$i]])) {
                 $_current_user = $_current_user[$field[$i]];
             }
             else {
