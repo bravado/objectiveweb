@@ -83,6 +83,16 @@ function attach_local($domain, $id, $attachment, $local_filename, $params = 0) {
 
 }
 
+function attachment_delete($domain, $id, $attachment) {
+    $filename = attachment_filename($domain, $id, $attachment);
+
+    if(!file_exists($filename)) {
+        throw new Exception('Attachment does not exist', 404);
+    }
+    else {
+        unlink($filename);
+    }
+}
 /**
  *
  * @param $domain
@@ -142,9 +152,25 @@ function attachment_meta($domain, $id, $attachment) {
 //            $file_meta['title'] = $matches[1];
 //        }
 //    }
+
+    $mime = "application/octet-stream";
+    $extension = strtolower(substr($filename, strrpos($filename, ".") + 1));
+
+    switch($extension) {
+        case 'jpeg':
+        case 'jpg':
+        case 'gif':
+        case 'png':
+            $mime = "image/$extension";
+            break;
+    }
+
     return array(
+        'seq' => rand(),
+        'name' => $attachment,
         'url' => "/$domain/$id/$attachment",
-        'size' => filesize($filename)
+        'size' => filesize($filename),
+        'mime' => $mime
     );
 }
 

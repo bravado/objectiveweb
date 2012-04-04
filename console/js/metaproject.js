@@ -1077,37 +1077,37 @@ ko.bindingHandlers.money = {
  *
  * useful for running code when you use the with binding (which renders and disposes the child elements) and 3rd party js plugins
  */
-(function(ko) {
+(function (ko) {
     ko.bindingHandlers.init = {
-        init: function(element,valueAccessor, allBindingsAccessor, context) {
+        init:function (element, valueAccessor, allBindingsAccessor, context) {
             var fn = valueAccessor();
 
-            if(fn instanceof Array) {
-                ko.utils.arrayForEach(fn, function(item) {
-                    if(typeof(item) == 'function') {
+            if (fn instanceof Array) {
+                ko.utils.arrayForEach(fn, function (item) {
+                    if (typeof(item) == 'function') {
                         item(element);
                     }
                 });
             }
-            else if(typeof(fn) == 'function') {
+            else if (typeof(fn) == 'function') {
                 fn(element);
             }
         }
     };
 
     ko.bindingHandlers.destroy = {
-        init: function(element, valueAccessor, allBindingsAccessor, context) {
+        init:function (element, valueAccessor, allBindingsAccessor, context) {
             var fn = valueAccessor();
 
             ko.utils.domNodeDisposal.addDisposeCallback(element, function () {
-                if(fn instanceof Array) {
-                    ko.utils.arrayForEach(fn, function(item) {
-                        if(typeof(item) == 'function') {
+                if (fn instanceof Array) {
+                    ko.utils.arrayForEach(fn, function (item) {
+                        if (typeof(item) == 'function') {
                             item(element);
                         }
                     });
                 }
-                else if(typeof(fn) == 'function') {
+                else if (typeof(fn) == 'function') {
                     fn(element);
                 }
             });
@@ -1117,15 +1117,14 @@ ko.bindingHandlers.money = {
 // - end of init/destroy
 
 // Fileupload
-(function($, ko) {
+(function ($, ko) {
     ko.bindingHandlers.fileupload = {
-        init: function(element, valueAccessor) {
+        init:function (element, valueAccessor) {
             var options = ko.utils.unwrapObservable(valueAccessor());
-
-            console.log(options);
+            // TODO pass options to the customFileInput
             $(element).fileupload(options);
 
-            ko.utils.domNodeDisposal.addDisposeCallback(element, function() {
+            ko.utils.domNodeDisposal.addDisposeCallback(element, function () {
                 $(element).fileupload('destroy');
             });
         },
