@@ -10,26 +10,27 @@
 
 function parse_post_body($decoded = true) {
 
-    if ($_SERVER['REQUEST_METHOD'] === 'POST' || $_SERVER['REQUEST_METHOD'] === 'PUT') {
+    switch($_SERVER['REQUEST_METHOD']) {
 
-        if (!empty($_POST)) {
-            return $_POST;
-        }
-        else {
+        case 'POST':
+            if (!empty($_POST)) {
+                return $_POST;
+            };
+        case 'PUT':
             $post_body = file_get_contents('php://input');
-
-            if ($decoded && ($post_body[0] == '{' || $post_body[0] == '[')) {
-                return json_decode($post_body, true);
+            if($decoded) {
+                if($post_body[0] == '{' || $post_body[0] == '[') {
+                    return json_decode($post_body, true);
+                }
+                else {
+                    parse_str($post_body, $return);
+                    return $return;
+                }
             }
             else {
                 return $post_body;
             }
-        }
     }
-    else {
-        return null;
-    }
-
 }
 
 function redirect($to) {
