@@ -17,7 +17,7 @@ define('DOCUMENT_ROOT', substr(realpath($_SERVER['SCRIPT_FILENAME']), 0, -1 * st
 define('OW_URL', (isset($_SERVER['HTTPS']) ? "https" : "http"). "://{$_SERVER['SERVER_NAME']}"
                  .($_SERVER['SERVER_PORT'] != 80 && $_SERVER['SERVER_PORT'] != 443 ? ":{$_SERVER['SERVER_PORT']}" : "")
                  .substr(dirname(__FILE__).'/', strlen(DOCUMENT_ROOT)));
-defined('DEBUG') or define('DEBUG', FALSE);
+
 
 // Load the configuration file
 defined('OW_CONFIG') || define('OW_CONFIG', ROOT.'/ow-config.php');
@@ -26,6 +26,7 @@ require_once OW_LIB.'/core.php';
 
 require_once OW_CONFIG;
 
+defined('DEBUG') or define('DEBUG', FALSE);
 
 // Default database Tables
 defined('OW_META') or define('OW_META', 'ow_meta');

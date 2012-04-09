@@ -153,7 +153,6 @@ function tpl_if($atts, $content = null, $code = "", $context = null) {
                 return '';
             }
 
-            debug(print_r($val, true));
             $op = 0;
             while (in_array($v[0], array("!", ">", "<"))) {
                 switch ($v[0]) {
@@ -166,17 +165,19 @@ function tpl_if($atts, $content = null, $code = "", $context = null) {
                     case '<':
                         $op |= 4;
                         break;
+
                 }
 
                 $v = substr($v, 1);
+
             }
 
+            if($v[0] == '$') {
+                 $v = val(substr($v, 1), $context);
+            }
 
             if (is_array($val)) {
-                debug("%s is array", $k);
-                debug("testing %s in %s", $v, print_r($val, true));
                 $test = in_array($v, $val);
-                debug("result: %d", $test);
             }
             else if (is_numeric($val)) {
                 switch ($v) {

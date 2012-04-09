@@ -81,14 +81,13 @@ function now() {
 
 function debug($str) {
     if (DEBUG) {
-        $str = call_user_func_array('sprintf', func_get_args());
-        error_log($str);
+        error_log(call_user_func_array('sprintf', func_get_args()));
     }
 }
 
 /**
  *
- * Logic taken from http://stackoverflow.com/questions/4260086/php-how-to-use-array-filter-to-filter-array-keys
+ * From http://stackoverflow.com/questions/4260086/php-how-to-use-array-filter-to-filter-array-keys
  *
  * @param $array
  * @param array $valid_keys

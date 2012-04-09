@@ -117,7 +117,7 @@ function route($request, $callback) {
  * @return string
  */
 function url($str = null, $return = false) {
-    if ($str == 'self' || empty($str)) {
+    if ($str == 'self' || $str === null) {
         if (
             isset($_SERVER['HTTPS']) && ($_SERVER['HTTPS'] == 'on' || $_SERVER['HTTPS'] == 1)
             || isset($_SERVER['HTTP_X_FORWARDED_PROTO']) && $_SERVER['HTTP_X_FORWARDED_PROTO'] == 'https'
@@ -143,17 +143,22 @@ function url($str = null, $return = false) {
         $out = $url;
     }
     else {
-        if (file_exists($str)) {
-            $out = dirname($_SERVER['SCRIPT_NAME']) . '/' . $str;
-        }
-        else {
+        if(empty($str)) {
+            $out = $_SERVER['SCRIPT_NAME'];
+        } else {
+            if (file_exists($str)) {
+                $out = dirname($_SERVER['SCRIPT_NAME']) . '/' . $str;
+            }
+            else {
 //            if(dirname($str) != '/' && file_exists(dirname($str))) {
 //                $out = dirname($_SERVER['SCRIPT_NAME']) .'/'. dirname($str) . '/'.basename($str);
 //            }
 //            else {
-            $out = $_SERVER['SCRIPT_NAME'] . '/' . $str;
+                $out = $_SERVER['SCRIPT_NAME'] . '/' . $str;
 //            }
+            }
         }
+
         // TODO check for pointers to other controllers + path info (other_controller.php/1/2 does not exist but other_controller.php could exist)
 
     }
