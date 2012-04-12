@@ -2,7 +2,7 @@
 /**
  * ObjectiveWeb
  *
- * Main REST endpoint
+ * Main Controller, which exposes all the configured domains
  *
  * User: guigouz
  * Date: 12/05/11
@@ -61,7 +61,7 @@ function handle_attachment_post($domain, $id, $attachment_id = null) {
     if ($attachment_id) {
         // TODO if $_FILES put($domain,$id, $attachment_id, fopen($_FILES['tmp_file']), $metadata);
         if(empty($_FILES)) {
-            $files[] = attach($domain, $id, $attachment_id, $fp = fopen('php://input', "rb"));
+            $files[] = attach($domain, $id, $attachment_id, $fp = fopen('php://input', "rb"), ATTACHMENT_OVERWRITE);
             fclose($fp);
         }
         else {
