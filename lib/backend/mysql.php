@@ -573,13 +573,13 @@ class TableStore extends OWHandler {
 
                     $hasMany_params = array_merge($hasMany_defaults, $hasMany_params);
 
-                    $table = new Table($hasMany_params['table']);
+                    $table = new TableStore();
+                    $table->init($hasMany_params);
                     $select_params = array(
-                        "{$table->name}.{$hasMany_params['key']}" => $result[$this->table->pk],
-                        '_join' => $hasMany_params['join']
+                        "{$hasMany_params['key']}" => $result[$this->table->pk]
                     );
 
-                    $result[$hasMany_id] = $table->select($select_params);
+                    $result[$hasMany_id] = $table->fetch($select_params);
 
                 }
 
