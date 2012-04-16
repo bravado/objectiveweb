@@ -13,8 +13,8 @@ body { overflow: auto;}
 body.with-header { padding-top: 40px; }
 
 .with-header .main-content { top: 40px; }
-.with-footer .main-content { bottom: 40px;}
-.pane { position: absolute; width: 100%; top:0; left: 0; }
+.with-footer .main-content { bottom: 20px;}
+.main-content .pane { position: absolute; right: 0; bottom: 0; top:0; left: 0; }
 
 /* sidebar */
 .sidebar { width: 200px; top:0; bottom: 0; left: 0; }
