@@ -174,7 +174,9 @@ class AuthenticationHandler extends OWHandler {
             }
 
             if ($account['userPassword'] == $userPassword) {
-                set_current_user(get('directory', $account['oid']));
+                $user = get('directory', $account['oid']);
+                set_current_user($user);
+                return $user;
             }
             else {
                 throw new Exception('Invalid password supplied', 403);
