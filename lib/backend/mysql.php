@@ -441,18 +441,27 @@ class Table {
                 $data[$k] = json_encode($v);
             }
 
-            $query_args[] = "`$k` = ?";
-            // TODO tratar null ?
-            $bind_params[0] .= 's';
-            $bind_params[] = &$data[$k];
+            if($v == NULL || $v == 'NULL') {
+                $query_args[] = "`$k` = NULL";
+            }
+            else {
+                $query_args[] = "`$k` = ?";
+                $bind_params[0] .= 's';
+                $bind_params[] = &$data[$k];
+            }
         }
 
         $key_args = array();
         foreach ($key as $k => $v) {
-            $key_args[] = "`$k` = ?";
-            // TODO tratar null ?
-            $bind_params[0] .= 's';
-            $bind_params[] = &$key[$k];
+            if($v == NULL || $v == 'NULL') {
+                $key_args[] = "`$k` is NULL";
+            }
+            else {
+                $key_args[] = "`$k` = ?";
+                // TODO tratar null ?
+                $bind_params[0] .= 's';
+                $bind_params[] = &$key[$k];
+            }
         }
 
         $query = sprintf("update $this->name set %s where %s", implode(",", $query_args), implode("AND", $key_args));
@@ -986,6 +995,7 @@ class ObjectStore extends TableStore {
         $object = $this->get($oid);
 
         // TODO please review this =)
+        unset($object['_attachments']);
         $content = array();
         foreach (array_keys($object) as $k) {
             if (isset($data[$k])) {
