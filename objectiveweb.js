@@ -7,42 +7,52 @@
  */
 
 function ObjectiveWeb(url) {
-    var ow = this;
-    this.url = url + '/index.php';
+    var self = this;
 
-    this.getUrl = function(object) {
+    self.url = function(object) {
         if(object[0] != '/') {
             object = '/' + object;
         }
 
-        return ow.url + object;
+        return url + '/index.php' + object;
     };
-    this.get = function(object) {
 
+    self.get = function(object, params) {
         return jQuery.ajax({
-                url: ow.getUrl(object),
+                url: self.url(object),
+                data: params || {},
                 dataType: 'json',
                 type: 'GET'
             }
         );
     };
 
-    this.post = function(domain, data) {
+    self.post = function(object, data) {
         return jQuery.ajax({
-            url: self.url,
+            url: self.url(object),
             dataType: 'json',
             type: 'POST',
             data: data
-        })
-    };
-    this.attach = function(object, file) {
-        return jQuery.ajax({
-            url: ow.getUrl(object) + '/' + file.name,
-            type: 'PUT',
-            contentType: file.type,
-            data: file.data
         });
-        
+    };
+
+    self.put = function(object, data) {
+        return jQuery.ajax({
+            url: self.url(object),
+            dataType: 'json',
+            type: 'PUT',
+            data: data
+        });
+    };
+
+
+    self['delete'] = function(object, data) {
+        return jQuery.ajax({
+            url: self.url(object),
+            dataType: 'json',
+            type: 'DELETE',
+            data: data
+        });
     };
 
 }

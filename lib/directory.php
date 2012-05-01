@@ -104,8 +104,14 @@ class AuthenticationHandler extends OWHandler {
     function get($provider) {
         switch ($provider) {
             case null:
-                // TODO DUMP LOCAL LOGIN INFO + all hybridauth logged in accounts
-                return $_SESSION['current_user'];
+
+                if(current_user('oid')) {
+                    return current_user();
+                }
+                else {
+                    throw new Exception('Not authorized', 403);
+                }
+
                 break;
             case 'logout':
                 session_destroy();
@@ -168,7 +174,9 @@ class AuthenticationHandler extends OWHandler {
             }
 
             if ($account['userPassword'] == $userPassword) {
-                set_current_user(get('directory', $account['oid']));
+                $user = get('directory', $account['oid']);
+                set_current_user($user);
+                return $user;
             }
             else {
                 throw new Exception('Invalid password supplied', 403);
