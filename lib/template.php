@@ -26,6 +26,7 @@ add_shortcode('if2', 'tpl_if');
 add_shortcode('if3', 'tpl_if');
 add_shortcode('url', 'tpl_url');
 add_shortcode('val', 'tpl_val');
+add_shortcode('with', 'tpl_with');
 
 function tpl_current_user($atts, $content) {
 
@@ -36,7 +37,7 @@ function tpl_date($atts, $content = null, $code = "", $context = null) {
     $data = val($content, $context);
 
     if ($data) {
-        $format = empty($atts['format']) ? 'd/m/Y h:m:i' : $atts['format'];
+        $format = empty($atts['format']) ? 'd/m/Y H:m:i' : $atts['format'];
         return date($format, strtotime($data));
     }
     else {
@@ -255,6 +256,14 @@ function tpl_val($atts, $content = null, $code = "", $context = null) {
         default:
             return $return;
     }
+}
+
+
+function tpl_with($atts, $content = null, $code = "", $context = null) {
+    $ctx = val($atts[0], $context);
+
+    return !empty($ctx) ? do_shortcode($content, $ctx) : '';
+
 }
 
 /**

@@ -94,5 +94,9 @@ function debug($str) {
  * @return array
  */
 function array_cleanup($array, $valid_keys = array()) {
+    if(!is_array($valid_keys)) {
+        $valid_keys = array($valid_keys);
+    }
+
     return array_intersect_key($array, array_flip($valid_keys));
 }

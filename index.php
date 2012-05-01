@@ -15,6 +15,12 @@ require_once "_init.php";
 // Mandatory aboutbox
 route('GET /?', 'ow_version');
 
+// Views before attachments
+// /domain/_view
+route('GET /(\w*/_\w*/?.*)', 'fetch', $_GET);
+//route('POST /(\w*)/_(\w*)/?', 'handle_view');
+//route('PUT /(\w*)/_(\w*)/?', 'handle_view');
+
 // Attachments before, because they may use php://stdin
 route('POST /(\w+)/([\w-]+)?', 'handle_attachment_post');
 route('POST /(\w+)/([\w-]+)/([\w-.\ ]+)', 'handle_attachment_post');
@@ -39,10 +45,6 @@ route('GET /(\w+)/([\w-]+)/_(\w+)', 'handle_plugin');
 //route('PUT /(\w*)/(\w*)/_(\w*)', 'handle_plugin');
 //route('DELETE /(\w*)/(\w*)/_(\w*)', 'handle_plugin');
 
-//// /domain/_view
-//route('GET /(\w*)/_(\w*)/?', 'handle_view');
-//route('POST /(\w*)/_(\w*)/?', 'handle_view');
-//route('PUT /(\w*)/_(\w*)/?', 'handle_view');
 
 function handle_attachment_delete($domain, $id, $attachment) {
     attachment_delete($domain, $id, $attachment);
@@ -97,4 +99,6 @@ function handle_plugin($domain, $id, $plugin) {
     }
 }
 
-
+function handle_view($path) {
+    fetch($path, $_GET);
+}

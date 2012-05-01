@@ -41,8 +41,24 @@ function delete($domain, $id) {
 }
 
 function fetch($domain, $params = array()) {
-    $handler = get($domain);
-    // TODO adicionar acl no handler
+
+    preg_match('/([a-z]+)\/?_?([a-z]*)\/?(.*)/', $domain, $m);
+
+    $handler = get($m[1]);
+
+    if($m[2]) {
+        $view_handler = @$handler->params['views'][$m[2]];
+
+        if(is_array($view_handler)) {
+            $params = array_merge($params, $view_handler);
+        }
+        elseif(is_callable($view_handler)){
+            $params = call_user_func_array($view_handler, array($m[3], $params));
+        }
+        else {
+            throw new Exception(_('View not found'), 404);
+        }
+    }
 
     if (isset($handler->params['fetch'])) {
         return call_user_func_array($handler->params['fetch'], array($handler, $params));

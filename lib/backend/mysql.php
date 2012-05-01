@@ -86,11 +86,32 @@ function query($query) {
 
 }
 
+function tablestore_page($args, $params = array()) {
+    if ($args) {
+        // Page
+        isset($params["_limit"]) || $params["_limit"] = 20;
+        $page = intval($args);
+
+        $params['_offset'] = ($page ? $page - 1 : 0) * $params['_limit'];
+        return $params;
+    }
+    else {
+
+
+        $params['_fields'] = array(
+            'total' => 'COUNT(*)'
+        );
+
+        return $params;
+    }
+}
+
 class Table {
 
     var $name = null;
     var $pk = null;
 
+    var $filters = array();
     /*
      *
      * Array
@@ -182,6 +203,25 @@ class Table {
         return array_keys($this->fields);
     }
 
+    function filter($key, $callback) {
+        if (!isset($this->filters[$key])) {
+            $this->filters[$key] = array($callback);
+        }
+        else {
+            $this->filters[$key][] = $callback;
+        }
+    }
+
+    function apply_filter($key, $content) {
+        if (isset($this->filters[$key])) {
+            foreach ($this->filters[$key] as $callback) {
+                $content = call_user_func($callback, $content);
+            }
+        }
+
+        return $content;
+    }
+
     /**
      * Low-level SELECT Helper
      *
@@ -197,7 +237,7 @@ class Table {
             '_op' => 'AND',
             '_inner' => array(),
             '_left' => array(),
-            '_offset' => null,
+            '_offset' => 0,
             '_limit' => null,
             '_group' => null,
             '_order' => null
@@ -212,19 +252,18 @@ class Table {
             $params['_fields'] = explode(",", $params['_fields']);
         }
 
-        for ($i = 0; $i < count($params['_fields']); $i++) {
-            $_fields .= ($i > 0 ? ',' : '');
+        $i = 0;
+        foreach($params['_fields'] as $alias => $_field) {
+            $_fields .= ($i++ > 0 ? ',' : '');
 
-            if ($params['_fields'][$i] != '*') {
-                $_fields .= $this->_cleanup_field($params['_fields'][$i]) . " as `{$params['_fields'][$i]}`";
-            }
-            else {
-                $_fields .= '*';
+            if($_field != '*') {
+                $_field = $this->_cleanup_field($_field)." as `".(is_numeric($alias) ? $_field : $alias)."`";
             }
 
-
+            $_fields .= $_field;
         }
 
+        $_fields = $this->apply_filter('fields', $_fields);
         $query = "select {$_fields} from {$this->name}";
 
         // TODO sanitize _op (must be AND or OR)
@@ -301,6 +340,10 @@ class Table {
             $query .= " where " . implode(" {$params['_op']} ", $conditions);
         }
 
+        if (!empty($params['_limit'])) {
+            $query .= sprintf(" limit %d,%d", $params['_offset'], $params['_limit']);
+        }
+
         if (!empty($params['_order'])) {
             if (is_string($params['_order'])) {
                 $params['_order'] = array($params['_order']);
@@ -319,9 +362,11 @@ class Table {
 
     function _cleanup_field($field) {
         global $mysqli;
-
-        // TODO verificar se $field não é uma function - a-zA-Z(.*)
-        if (strpos($field, '.')) {
+        // TODO verificar se $field não é uma function - a-zA-Z\(.*\)
+        if(preg_match('/[a-zA-Z]+\(.*\)/', $field)) {
+            return $field;
+        }
+        elseif (strpos($field, '.')) {
             $f = explode('.', $field);
 
             $key = null;
@@ -527,7 +572,10 @@ class TableStore extends OWHandler {
             'table' => $this->id,
             'extends' => null,
             'hasMany' => array(),
-            'belongsTo' => array()
+            'belongsTo' => array(),
+            'views' => array(
+                'page' => 'tablestore_page'
+            )
         );
 
         $this->params = array_merge($defaults, $params);
@@ -548,6 +596,14 @@ class TableStore extends OWHandler {
     }
 
     function get($oid, $params = array()) {
+
+        // Accept params in querystring form
+        if (!is_array($params)) {
+            $arr = array();
+            parse_str($params, $arr);
+            $params = $arr;
+        }
+
         if (is_array($oid)) {
             foreach ($oid as $k => $v) {
                 $params[$k] = $v;
@@ -557,13 +613,18 @@ class TableStore extends OWHandler {
             $params["{$this->table->name}.{$this->table->pk}"] = $oid;
         }
 
+        $defaults = array(
+            '_eager' => true
+        );
+
+        $params = array_merge($defaults, $params);
         $result = $this->fetch($params);
         if (!empty($result)) {
             // Grab first result
             $result = $result[0];
 
-            // Fetch relations
-            if (isset($result[$this->table->pk])) {
+            // If eager and pk is set, fetch relations
+            if ($params['_eager'] && isset($result[$this->table->pk])) {
                 foreach ($this->hasMany as $hasMany_id => $hasMany_params) {
                     $hasMany_defaults = array(
                         'table' => $hasMany_id,
@@ -596,13 +657,19 @@ class TableStore extends OWHandler {
 
     function fetch($params = array()) {
 
+        // Accept params in querystring form
         if (!is_array($params)) {
             $arr = array();
             parse_str($params, $arr);
             $params = $arr;
         }
 
-//        $params = array_merge($defaults, $params);
+        $defaults = array(
+            '_fields' => null,
+            '_eager' => true
+        );
+
+        $params = array_merge($defaults, $params);
 
         $_fields = $this->table->fields();
 
@@ -615,26 +682,29 @@ class TableStore extends OWHandler {
             }
         }
 
-        // belongsTo = array(
-        //      'owner' => array( 'table' => 'owners', 'key' => 'owner_id' );
-        foreach ($this->belongsTo as $k => $v) {
-            $belongsTo_table = new Table($v['table']);
-            foreach ($belongsTo_table->fields() as $f) {
-                $_fields[] = "$k.$f";
+        if ($params['_eager']) {
+            // TODO _eager pode ser a lista de relações que pode pegar
+            // ex: post _eager=comments,votes
+
+            foreach ($this->belongsTo as $k => $v) {
+                $belongsTo_table = new Table($v['table']);
+                foreach ($belongsTo_table->fields() as $f) {
+                    $_fields[] = "$k.$f";
+                }
+
+                $params['_inner'][$k] = array(
+                    'table' => $v['table'],
+                    'on' => sprintf("`%s`.`%s` = `%s`.`%s`", $k, $belongsTo_table->pk, $this->table->name, $v['key'])
+                );
             }
 
-            $params['_inner'][$k] = array(
-                'table' => $v['table'],
-                'on' => sprintf("`%s`.`%s` = `%s`.`%s`", $k, $belongsTo_table->pk, $this->table->name, $v['key'])
-            );
+            // TODO hasOne
+            if ($params['hasOne']) {
+                throw new Exception('hasOne Not implemented');
+            }
         }
 
-        // TODO hasOne
-        if ($params['hasOne']) {
-            throw new Exception('Not implemented');
-        }
-
-        if (empty($params['_fields'])) {
+        if (!$params['_fields']) {
             $params['_fields'] = $_fields;
         }
 
