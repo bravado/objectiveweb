@@ -34,8 +34,9 @@ if ($mysqli === FALSE) {
 $mysqli->set_charset(OW_CHARSET);
 
 // Generic query function
-function query($query) {
+function query() {
     global $mysqli;
+
     $query = call_user_func_array('sprintf', func_get_args());
 
     debug($query);
@@ -304,7 +305,7 @@ class Table {
                 else if (strpos($v, '%')) {
                     $conditions[] = sprintf("%s %s '%s'", $key,
                         $_not ? "not like" : "like",
-                        $mysqli->escape_string($v));
+                        $mysqli->escape_string(str_replace('%', '%%',$v)));
                 }
                 else {
 //                    do {
@@ -340,9 +341,6 @@ class Table {
             $query .= " where " . implode(" {$params['_op']} ", $conditions);
         }
 
-        if (!empty($params['_limit'])) {
-            $query .= sprintf(" limit %d,%d", $params['_offset'], $params['_limit']);
-        }
 
         if (!empty($params['_order'])) {
             if (is_string($params['_order'])) {
@@ -356,6 +354,11 @@ class Table {
             $query .= " order by $_order";
         }
 
+
+        if (!empty($params['_limit'])) {
+            $query .= sprintf(" limit %d,%d", $params['_offset'], $params['_limit']);
+        }
+        
         return query($query);
 
     }
@@ -675,20 +678,33 @@ class TableStore extends OWHandler {
 
         $defaults = array(
             '_fields' => null,
-            '_eager' => true
+            '_eager' => true,
+            '_inner' => array()
         );
 
         $params = array_merge($defaults, $params);
 
-        $_fields = $this->table->fields();
-
         // Table Inheritance
-        foreach ($this->joins as $join => $on) {
-            if (is_array($on)) {
-                $join_table = new Table($on['table']);
-                // Keep fields from the first table
-                $_fields = array_merge($join_table->fields(), $_fields);
+        if(!empty($this->joins)) {
+            foreach($this->table->fields() as $_field) {
+                $_fields[$_field] = $this->table->name.'.'.$_field;
             }
+            foreach ($this->joins as $join => $on) {
+
+                $join_table = new Table($join);
+                // Keep fields from the first table
+                foreach($join_table->fields() as $_field) {
+                    $_fields[$_field] = "$join.$_field";
+                }
+
+                //$_fields = array_merge($join_table->fields(), $_fields);
+                $params['_inner'][$join] = array('table' => $join, 'on' => $on);
+
+            }
+
+        }
+        else {
+            $_fields = $this->table->fields();
         }
 
         if ($params['_eager']) {
@@ -697,13 +713,16 @@ class TableStore extends OWHandler {
 
             foreach ($this->belongsTo as $k => $v) {
                 $belongsTo_table = new Table($v['table']);
-                foreach ($belongsTo_table->fields() as $f) {
+
+                $belongsTo_fields = isset($v['fields']) ? $v['fields'] : $belongsTo_table->fields();
+
+                foreach ($belongsTo_fields as $f) {
                     $_fields[] = "$k.$f";
                 }
 
                 $params['_inner'][$k] = array(
                     'table' => $v['table'],
-                    'on' => sprintf("`%s`.`%s` = `%s`.`%s`", $k, $belongsTo_table->pk, $this->table->name, $v['key'])
+                    'on' => sprintf("`%s`.`%s` = `%s`.`%s`", $k, $belongsTo_table->pk, isset($v['from']) ? $v['from'] : $this->table->name, $v['key'])
                 );
             }
 

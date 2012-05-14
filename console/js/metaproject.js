@@ -1022,7 +1022,7 @@ ko.bindingHandlers.money = {
 // Rich Text Editor
 // Depends on tinymce, options are passed via the tinymceOptions binding
 // Binding structure taken from http://jsfiddle.net/rniemeyer/BwQ4k/
-(function ($, ko, tinymce) {
+(undefined != window.tinymce) && (function ($, ko, tinymce) {
     ko.bindingHandlers.rte = {
         init:function (element, valueAccessor, allBindingsAccessor, context) {
             var options = allBindingsAccessor().tinymceOptions || {};

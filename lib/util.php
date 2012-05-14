@@ -81,7 +81,7 @@ function now() {
 
 function debug($str) {
     if (DEBUG) {
-        error_log(call_user_func_array('sprintf', func_get_args()));
+        error_log( (func_num_args() > 1) ? call_user_func_array('sprintf', func_get_args()) : func_get_arg(0));
     }
 }
 
