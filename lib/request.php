@@ -137,7 +137,7 @@ function url($str = null, $return = false) {
                 ? ':' . $_SERVER['SERVER_PORT']
                 : '';
 
-        $url .= empty($_SERVER['REQUEST_URI']) ? $_SERVER['PHP_SELF'] : $_SERVER['REQUEST_URI'];
+        $url .= $_SERVER['PHP_SELF'];
 
         // return current url
         $out = $url;
