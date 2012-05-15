@@ -94,11 +94,10 @@ function tablestore_page($args, $params = array()) {
         $page = intval($args);
 
         $params['_offset'] = ($page ? $page - 1 : 0) * $params['_limit'];
+
         return $params;
     }
     else {
-
-
         $params['_fields'] = array(
             'total' => 'COUNT(*)'
         );
@@ -358,7 +357,7 @@ class Table {
         if (!empty($params['_limit'])) {
             $query .= sprintf(" limit %d,%d", $params['_offset'], $params['_limit']);
         }
-        
+
         return query($query);
 
     }
