@@ -90,13 +90,17 @@ function debug($str) {
  * From http://stackoverflow.com/questions/4260086/php-how-to-use-array-filter-to-filter-array-keys
  *
  * @param $array
- * @param array $valid_keys
+ * @param array $valid_keys Keys that are valid
+ * @param array $defaults (optional) Default values for the clean array
  * @return array
  */
-function array_cleanup($array, $valid_keys = array()) {
+function array_cleanup($array, $valid_keys = array(), $defaults = null) {
     if(!is_array($valid_keys)) {
         $valid_keys = array($valid_keys);
     }
 
-    return array_intersect_key($array, array_flip($valid_keys));
+    $clean_array = array_intersect_key($array, array_flip($valid_keys));
+    if(is_array($defaults)) {
+        return !empty($defaults) ? array_merge($defaults, $clean_array) : $clean_array;
+    }
 }
