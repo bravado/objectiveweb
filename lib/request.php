@@ -78,6 +78,10 @@ function route($request, $callback) {
         throw new Exception(sprintf(_('%s: Invalid callback'), $callback), 500);
     }
 
+    if(!isset($_SERVER['PATH_INFO'])) {
+        $_SERVER['PATH_INFO'] = '/';
+    }
+
     // TODO check if using PATH_INFO is ok in all cases (rewrite, different servers, etc)
 
     if (preg_match(sprintf("/^%s$/", str_replace('/', '\/', $request)), "{$_SERVER['REQUEST_METHOD']} {$_SERVER['PATH_INFO']}", $params)) {

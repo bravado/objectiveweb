@@ -71,7 +71,7 @@ window.log = function () {
                             }
                             else {
                                 if(metaproject.debug) {
-                                    path = path + '?' + new Date().time;
+                                    path = path + '?' + new Date().getTime();
                                 }
 
                                 main_content.include(path);
