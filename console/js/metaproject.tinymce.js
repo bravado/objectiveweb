@@ -2,7 +2,7 @@
 // Depends on tinymce, options are passed via the tinymceOptions binding
 // Binding structure taken from http://jsfiddle.net/rniemeyer/BwQ4k/
 (undefined != window.tinymce) && (function ($, ko, tinymce) {
-    ko.bindingHandlers.rte = {
+    ko.bindingHandlers.tinymce = {
         init:function (element, valueAccessor, allBindingsAccessor, context) {
             var options = allBindingsAccessor().tinymceOptions || {};
             var modelValue = valueAccessor();
