@@ -100,7 +100,6 @@ function array_cleanup($array, $valid_keys = array(), $defaults = null) {
     }
 
     $clean_array = array_intersect_key($array, array_flip($valid_keys));
-    if(is_array($defaults)) {
-        return !empty($defaults) ? array_merge($defaults, $clean_array) : $clean_array;
-    }
+
+    return !empty($defaults) ? array_merge($defaults, $clean_array) : $clean_array;
 }
