@@ -301,34 +301,39 @@ class Table {
                 if ($v === NULL || $v == 'NULL') {
                     $conditions[] = sprintf("%s %s null", $key, $_not ? "is not" : "is");
                 }
-                else if (strpos($v, '%')) {
+                else if (strpos($v, '%') !== FALSE) {
                     $conditions[] = sprintf("%s %s '%s'", $key,
                         $_not ? "not like" : "like",
                         $mysqli->escape_string(str_replace('%', '%%',$v)));
                 }
                 else {
-//                    do {
-//                        switch($v[0]) {
-//                            case '>':
-//                                $_gt = true;
-//                                $v = substr($v, 1);
-//                                break;
-//                            case '<':
-//                                $_lt = true;
-//                                $v = substr($v, 1);
-//                                break;
-//                            case '=':
-//                                $v = substr($v, 1);
-//                            default:
-//                                $_equal = true;
-//                                break;
-//                        }
-//                    } while(strpos('><=', $v[0]));
+                    do {
+                        $_gt = false;
+                        $_lt = false;
+                        $_equal = false;
+                        switch($v[0]) {
+                            case '>':
+                                $_gt = true;
+                                $v = substr($v, 1);
+                                break;
+                            case '<':
+                                $_lt = true;
+                                $v = substr($v, 1);
+                                break;
+                            case '=':
+                                $v = substr($v, 1);
+                                $_equal = true;
+                            default:
+                                break;
+                        }
+                    } while(strpos('><=', $v[0]) !== FALSE);
+
+                    $_op = $_gt ? ($_equal ? '>=' : '>') : ($_lt ? ($_equal ? '<=' : '<') : ($_not ? "!=" : "=") );
 
 
                     // TODO tratar >, <, >=, <=, <>
                     $conditions[] = sprintf("%s %s %s", $key,
-                        $_not ? "!=" : "=",
+                        $_op,
                         is_numeric($v) ? $v : "'" . $mysqli->escape_string($v) . "'");
 
                 }
@@ -364,7 +369,7 @@ class Table {
 
     function _cleanup_field($field) {
         global $mysqli;
-        // TODO verificar se $field não é uma function - a-zA-Z\(.*\)
+        // verifica se $field não é uma function - a-zA-Z\(.*\)
         if(preg_match('/[a-zA-Z]+\(.*\)/', $field)) {
             return $field;
         }
@@ -482,16 +487,18 @@ class Table {
         $bind_params = array('');
         $query_args = array();
 
-        foreach ($data as $k => $v) {
+        foreach (array_keys($data) as $k) {
 
             if (is_array($data[$k])) { // TODO or is_class/is_object ?
                 $data[$k] = json_encode($data[$k]);
             }
-            else if(is_bool($data[$k])) {
+            elseif(is_bool($data[$k])) {
                 $data[$k] = $data[$k] ? '1' : '0';
             }
-
-            if($data[$k] === NULL || $data[$k] == 'NULL') {
+//            TODO elseif(preg_match('/[a-zA-Z]+\(.*\)/', $data[$k])) {
+//                $query_args[] = "`$k` = {$data[$k]}";
+//            }
+            elseif($data[$k] === NULL || $data[$k] == 'NULL') {
                 $query_args[] = "`$k` = NULL";
             }
             else {
@@ -578,6 +585,7 @@ class TableStore extends OWHandler {
     var $joins = array();
 
     // associations
+    var $hasOne = array();
     var $hasMany = array();
     var $belongsTo = array();
 
@@ -585,6 +593,7 @@ class TableStore extends OWHandler {
         $defaults = array(
             'table' => $this->id,
             'extends' => null,
+            'hasOne' => array(),
             'hasMany' => array(),
             'belongsTo' => array(),
             'views' => array(
@@ -594,6 +603,7 @@ class TableStore extends OWHandler {
 
         $this->params = array_merge($defaults, $params);
 
+        $this->hasOne = $this->params['hasOne'];
         $this->hasMany = $this->params['hasMany'];
         $this->belongsTo = $this->params['belongsTo'];
 
@@ -728,9 +738,21 @@ class TableStore extends OWHandler {
                 );
             }
 
-            // TODO hasOne
-            if ($params['hasOne']) {
-                throw new Exception('hasOne Not implemented');
+            foreach($this->hasOne as $k => $v) {
+
+                $hasOne_table = new Table($v['table']);
+
+                $hasOne_fields = isset($v['fields']) ? $v['fields'] : $hasOne_table->fields();
+
+                foreach ($hasOne_fields as $f) {
+                    $_fields[] = "$k.$f";
+                }
+
+                $params['_left'][$k] = array(
+                    'table' => $v['table'],
+                    'on' => sprintf("`%s`.`%s` = `%s`.`%s`", $k, $hasOne_table->pk, isset($v['from']) ? $v['from'] : $this->table->name, $v['key'])
+                );
+
             }
         }
 
