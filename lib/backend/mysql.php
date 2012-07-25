@@ -495,12 +495,13 @@ class Table {
             elseif(is_bool($data[$k])) {
                 $data[$k] = $data[$k] ? '1' : '0';
             }
+
+            if($data[$k] === NULL || $data[$k] == 'NULL') {
+                $query_args[] = "`$k` = NULL";
+            }
 //            TODO elseif(preg_match('/[a-zA-Z]+\(.*\)/', $data[$k])) {
 //                $query_args[] = "`$k` = {$data[$k]}";
 //            }
-            elseif($data[$k] === NULL || $data[$k] == 'NULL') {
-                $query_args[] = "`$k` = NULL";
-            }
             else {
                 $query_args[] = "`$k` = ?";
                 $bind_params[0] .= 's';
