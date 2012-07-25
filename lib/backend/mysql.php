@@ -484,11 +484,14 @@ class Table {
 
         foreach ($data as $k => $v) {
 
-            if (is_array($v)) { // TODO or is_class/is_object ?
-                $data[$k] = json_encode($v);
+            if (is_array($data[$k])) { // TODO or is_class/is_object ?
+                $data[$k] = json_encode($data[$k]);
+            }
+            else if(is_bool($data[$k])) {
+                $data[$k] = $data[$k] ? '1' : '0';
             }
 
-            if($v == NULL || $v == 'NULL') {
+            if($data[$k] === NULL || $data[$k] == 'NULL') {
                 $query_args[] = "`$k` = NULL";
             }
             else {
