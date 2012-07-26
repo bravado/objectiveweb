@@ -285,16 +285,15 @@ class Table {
         $conditions = array();
         foreach ($params as $k => $v) {
 
-            if ($v[0] == '!') {
-                $v = substr($v, 1);
-                $_not = true;
-            }
-            else {
-                $_not = false;
-            }
-
             if ($k[0] != '_') {
 
+                if ($v[0] == '!') {
+                    $v = substr($v, 1);
+                    $_not = true;
+                }
+                else {
+                    $_not = false;
+                }
 
                 $key = $this->_cleanup_field($k);
 
