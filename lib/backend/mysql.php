@@ -307,10 +307,11 @@ class Table {
                         $mysqli->escape_string(str_replace('%', '%%',$v)));
                 }
                 else {
+                    $_gt = false;
+                    $_lt = false;
+                    $_equal = false;
                     do {
-                        $_gt = false;
-                        $_lt = false;
-                        $_equal = false;
+
                         switch($v[0]) {
                             case '>':
                                 $_gt = true;
