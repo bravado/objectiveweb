@@ -28,10 +28,10 @@ window.log = function () {
 })());
 
 // JSON implementation for browsers that do not support it
-//Modernizr.load({
-//    test:window.JSON,
-//    nope:'json2.js'
-//});
+Modernizr.load({
+    test:window.JSON,
+    nope:'json2.js'
+});
 
 // Initialize metaproject
 (function (window, $) {
