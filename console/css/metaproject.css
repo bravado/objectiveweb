@@ -5,8 +5,6 @@ span.ui-icon { margin: 0 4px; }
 .icon span.ui-icon { float: left; }
 .icon-right span.ui-icon { float: right; }
 
-.loading { background:  url('../img/loading.gif') no-repeat center center; height: 24px;}
-
 .main-content { position: absolute; overflow: auto; width: 100%; top:0; bottom: 0; left: 0; }
 body { overflow: auto;}
 body.with-header { padding-top: 40px; }
@@ -50,9 +48,9 @@ body.with-header { padding-top: 40px; }
 }
 
 /* Overlays and Shadows */
-.overlay { position: absolute; top: 0; left: 0; width: 100%; max-height: 100%;
+.overlay { position: absolute; top: 0; left: 0; width: 100%;
     min-height: 100%;
-    overflow: auto;background: #262b33; background: rgba(0, 0, 0, 0.6);
+    overflow: visible;background: #262b33; background: rgba(0, 0, 0, 0.6);
 filter:progid:DXImageTransform.Microsoft.gradient(startColorstr=#99000000, endColorstr=#99000000);
 -ms-filter: "progid:DXImageTransform.Microsoft.gradient(startColorstr=#99000000, endColorstr=#99000000)";
 }
