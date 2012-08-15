@@ -33,6 +33,261 @@ Modernizr.load({
     nope:'json2.js'
 });
 
+(function(window, $, ko) {
+    var metaproject = window.metaproject = {};
+    metaproject.Model = function(defaults, mapping) {
+
+        return function(data) {
+
+            data = $.extend(defaults, data);
+
+            ko.mapping.fromJS(data, mapping || {}, this);
+        }
+
+    };
+
+    metaproject.DataSource = function(base_url, options) {
+        var self = this;
+
+        options = $.extend({
+            key: 'id',
+            model: function(data) { return data; },
+            filter: {}
+        }, options);
+
+        // get(path || {model}, params);
+        // get(path || {model}, params, callback);
+        // get(path || {model}, callback);
+        self.get = function (path, params, callback) {
+
+            // get({model})
+            if(typeof(path) != 'string') {
+                // TODO existe path[key] ?
+                path = '/' + ko.utils.unwrapObservable(path[options.key]);
+            }
+
+            if(typeof(params) == 'function') {
+                callback = params;
+                params = {}
+            }
+
+            jQuery.ajax({
+                    url:base_url + path,
+                    data:params || {},
+                    dataType:'json',
+                    type:'GET',
+                    error: self.errorHandler,
+                    success: function(data) {
+                        if(typeof(callback) == 'function') {
+                            if(data instanceof Array) {
+                                callback(jQuery.map(data, function(e, i) {
+                                    return new options.model(e);
+                                }));
+                            }
+                            else {
+                                callback(new options.model(data));
+                            }
+                        }
+                    }
+                }
+            );
+        };
+
+        self.post = function (data) {
+            return jQuery.ajax({
+                url:base_url,
+                dataType:'json',
+                type:'POST',
+                data:data,
+                error: self.errorHandler
+            });
+        };
+
+        self.put = function (id, data) {
+            return jQuery.ajax({
+                url:base_url + '/' + id,
+                dataType:'json',
+                type:'PUT',
+                data:data,
+                error: self.errorHandler
+            });
+        };
+
+        self.del = function (id) {
+            return jQuery.ajax({
+                url:base_url + '/' + id,
+                dataType:'json',
+                type:'DELETE',
+                data:data,
+                error: self.errorHandler
+            });
+        };
+
+        // an observable that retrieves its value when first bound
+        // From http://www.knockmeout.net/2011/06/lazy-loading-observable-in-knockoutjs.html
+        self.data = (function (datasource) {
+
+            var _value = ko.observable(),
+                _hash = null;
+
+            var result = ko.computed({
+                read:function () {
+                    var newhash = ko.toJSON(result.filter()) + result.page();
+                    if (_hash != newhash) {
+                        datasource.get('/', result.filter(), function (newData) {
+                            _hash = newhash;
+                            _value(newData);
+                        });
+                    }
+
+                    //always return the current value
+                    return _value();
+                },
+//            write: function(newValue) {
+//                _value(newValue);
+//
+//            },
+                deferEvaluation:true  //do not evaluate immediately when created
+            });
+
+            result.page = ko.observable(0);
+            result.page.total = ko.observable(0);
+            result.page.next = function() {
+                if(result.page.total() > result.page()) {
+                    result.page(result.page() + 1);
+                }
+            };
+            result.page.prev = function() {
+                if(result.page() > 1) {
+                    result.page(result.page() - 1);
+                }
+            };
+
+            result.filter = ko.observable(options.filter);
+            result.filter.set = function (param, value) {
+                result.filter()[param] = value;
+                result.filter.valueHasMutated();
+            };
+
+            result.reload = function() {
+                _hash(null);
+            };
+
+            return result;
+        })(self);
+
+
+    };
+
+
+    metaproject.Application = function (params) {
+        var self = this;
+
+        self.debug = 0;
+
+        self.init = function () {
+
+        };
+
+        $.extend(this, params);
+
+        self.run = function () {
+            ko.applyBindings(self);
+            self.init.call(self);
+        };
+
+    };
+
+    metaproject.Loader = function (routes, params) {
+        var options = {
+            default:'/',
+            error:function (e) {
+                alert(e.responseText);
+            }
+        };
+
+        $.extend(options, params);
+
+        var _content = ko.observable(null);
+
+        _content.id = ko.observable(null);
+
+        _content.load = function (id, callback) {
+
+            // default = /
+            if (undefined == id || id == '') {
+                id = '/';
+            }
+
+            if (id == _content.id()) {
+                return;
+            }
+
+            var path = routes[id];
+
+            if (undefined == routes[id]) {
+                _content.id(null);
+                _content('Route ' + id + ' not found');
+                return;
+            }
+
+            if (typeof(path) == 'string') {
+
+                if (path[0] == '#') {
+                    var src = jQuery(path);
+
+                    if (src.length > 0) {
+                        // If its an element, get the relative DOM node
+                        _content.id(id);
+                        _content(src.html());
+                        if (typeof(callback) == 'function') {
+                            callback();
+                        }
+
+                    }
+                    else {
+                        _content.id(null);
+                        _content('Element ' + path + ' not found');
+                    }
+                }
+                else {
+                    var params = {};
+
+                    if (metaproject.debug) {
+                        params.ts = new Date().getTime();
+                    }
+
+                    $.ajax({
+                        url:path,
+                        type:'GET',
+                        data:params,
+                        dataType:'html',
+                        success:function (data) {
+                            _content.id(id);
+                            _content(data);
+
+                            if (typeof(callback) == 'function') {
+                                callback();
+                            }
+
+                        },
+                        error:function (e) {
+                            _content.id(null);
+                            _content(null);
+                            options.error(e);
+                        }
+                    });
+                }
+            }
+        };
+
+        _content.load(options.default);
+        return _content;
+    };
+
+
+})(window, jQuery, ko);
+
 // Initialize metaproject
 (function (window, $) {
 
@@ -160,9 +415,6 @@ ko.bindingHandlers.autocomplete = {
         }
     }
 };
-
-
-
 
 ko.bindingHandlers.dialog = {
     init:function (element, valueAccessor, allBindingsAccessor, viewModel) {

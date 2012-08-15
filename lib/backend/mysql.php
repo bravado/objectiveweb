@@ -287,55 +287,15 @@ class Table {
 
             if ($k[0] != '_') {
 
-                if ($v[0] == '!') {
-                    $v = substr($v, 1);
-                    $_not = true;
+                if(is_array($v)) {
+                    foreach($v as $k1 => $v1) {
+                        $key = $this->_cleanup_field("$k.$k1");
+                        $conditions[] = $this->_parse_condition("$key", $v1);
+                    }
                 }
                 else {
-                    $_not = false;
-                }
-
-                $key = $this->_cleanup_field($k);
-
-                if ($v === NULL || $v == 'NULL') {
-                    $conditions[] = sprintf("%s %s null", $key, $_not ? "is not" : "is");
-                }
-                else if (strpos($v, '%') !== FALSE) {
-                    $conditions[] = sprintf("%s %s '%s'", $key,
-                        $_not ? "not like" : "like",
-                        $mysqli->escape_string(str_replace('%', '%%',$v)));
-                }
-                else {
-                    $_gt = false;
-                    $_lt = false;
-                    $_equal = false;
-                    do {
-
-                        switch($v[0]) {
-                            case '>':
-                                $_gt = true;
-                                $v = substr($v, 1);
-                                break;
-                            case '<':
-                                $_lt = true;
-                                $v = substr($v, 1);
-                                break;
-                            case '=':
-                                $v = substr($v, 1);
-                                $_equal = true;
-                            default:
-                                break;
-                        }
-                    } while(strpos('><=', $v[0]) !== FALSE);
-
-                    $_op = $_gt ? ($_equal ? '>=' : '>') : ($_lt ? ($_equal ? '<=' : '<') : ($_not ? "!=" : "=") );
-
-
-                    // TODO tratar >, <, >=, <=, <>
-                    $conditions[] = sprintf("%s %s %s", $key,
-                        $_op,
-                        is_numeric($v) ? $v : "'" . $mysqli->escape_string($v) . "'");
-
+                    $key = $this->_cleanup_field($k);
+                    $conditions[] = $this->_parse_condition($key, $v);
                 }
 
             }
@@ -365,6 +325,59 @@ class Table {
 
         return query($query);
 
+    }
+
+    function _parse_condition($key, $v) {
+        global $mysqli;
+
+        if ($v[0] == '!') {
+            $v = substr($v, 1);
+            $_not = true;
+        }
+        else {
+            $_not = false;
+        }
+
+        if ($v === NULL || $v == 'NULL') {
+            return sprintf("%s %s null", $key, $_not ? "is not" : "is");
+        }
+        else if (strpos($v, '%') !== FALSE) {
+            return sprintf("%s %s '%s'", $key,
+                $_not ? "not like" : "like",
+                $mysqli->escape_string(str_replace('%', '%%',$v)));
+        }
+        else {
+            $_gt = false;
+            $_lt = false;
+            $_equal = false;
+            do {
+
+                switch($v[0]) {
+                    case '>':
+                        $_gt = true;
+                        $v = substr($v, 1);
+                        break;
+                    case '<':
+                        $_lt = true;
+                        $v = substr($v, 1);
+                        break;
+                    case '=':
+                        $v = substr($v, 1);
+                        $_equal = true;
+                    default:
+                        break;
+                }
+            } while(strpos('><=', $v[0]) !== FALSE);
+
+            $_op = $_gt ? ($_equal ? '>=' : '>') : ($_lt ? ($_equal ? '<=' : '<') : ($_not ? "!=" : "=") );
+
+
+            // TODO tratar >, <, >=, <=, <>
+            return sprintf("%s %s %s", $key,
+                $_op,
+                is_numeric($v) ? $v : "'" . $mysqli->escape_string($v) . "'");
+
+        }
     }
 
     function _cleanup_field($field) {
