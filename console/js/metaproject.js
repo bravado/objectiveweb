@@ -33,27 +33,39 @@ Modernizr.load({
     nope:'json2.js'
 });
 
-(function(window, $, ko) {
+(function (window, $, ko) {
     var metaproject = window.metaproject = {};
-    metaproject.Model = function(defaults, mapping) {
+    metaproject.Model = function (defaults, mapping) {
 
-        return function(data) {
+        return function (data) {
 
-            data = $.extend(defaults, data);
+            data = $.extend({}, defaults, data);
 
             ko.mapping.fromJS(data, mapping || {}, this);
         }
 
     };
 
-    metaproject.DataSource = function(base_url, options) {
+    metaproject.DataSource = function (base_url, options) {
         var self = this;
 
         options = $.extend({
-            key: 'id',
-            model: function(data) { return data; },
-            filter: {}
+            key:'id',
+            model:function (data) {
+                return data;
+            },
+            filter:{}
         }, options);
+
+        self.save = function (model, callback) {
+            var id = ko.utils.unwrapObservable(model[options.key]);
+            if(id) {
+                self.put(id, ko.mapping.toJSON(model), callback);
+            }
+            else {
+                self.post(ko.mapping.toJSON(model), callback);
+            }
+        };
 
         // get(path || {model}, params);
         // get(path || {model}, params, callback);
@@ -61,26 +73,26 @@ Modernizr.load({
         self.get = function (path, params, callback) {
 
             // get({model})
-            if(typeof(path) != 'string') {
+            if (typeof(path) != 'string') {
                 // TODO existe path[key] ?
                 path = '/' + ko.utils.unwrapObservable(path[options.key]);
             }
 
-            if(typeof(params) == 'function') {
+            if (typeof(params) == 'function') {
                 callback = params;
                 params = {}
             }
 
-            jQuery.ajax({
+            return jQuery.ajax({
                     url:base_url + path,
                     data:params || {},
                     dataType:'json',
                     type:'GET',
-                    error: self.errorHandler,
-                    success: function(data) {
-                        if(typeof(callback) == 'function') {
-                            if(data instanceof Array) {
-                                callback(jQuery.map(data, function(e, i) {
+                    error:self.errorHandler,
+                    success:function (data) {
+                        if (typeof(callback) == 'function') {
+                            if (data instanceof Array) {
+                                callback(jQuery.map(data, function (e, i) {
                                     return new options.model(e);
                                 }));
                             }
@@ -93,23 +105,25 @@ Modernizr.load({
             );
         };
 
-        self.post = function (data) {
+        self.post = function (data, callback) {
             return jQuery.ajax({
                 url:base_url,
                 dataType:'json',
                 type:'POST',
                 data:data,
-                error: self.errorHandler
+                success: callback,
+                error:self.errorHandler
             });
         };
 
-        self.put = function (id, data) {
+        self.put = function (id, data, callback) {
             return jQuery.ajax({
                 url:base_url + '/' + id,
                 dataType:'json',
                 type:'PUT',
                 data:data,
-                error: self.errorHandler
+                success: callback,
+                error:self.errorHandler
             });
         };
 
@@ -119,7 +133,7 @@ Modernizr.load({
                 dataType:'json',
                 type:'DELETE',
                 data:data,
-                error: self.errorHandler
+                error:self.errorHandler
             });
         };
 
@@ -128,14 +142,14 @@ Modernizr.load({
         self.data = (function (datasource) {
 
             var _value = ko.observable(),
-                _hash = null;
+                _hash = ko.observable(null);
 
             var result = ko.computed({
                 read:function () {
                     var newhash = ko.toJSON(result.filter()) + result.page();
-                    if (_hash != newhash) {
+                    if (_hash() != newhash) {
                         datasource.get('/', result.filter(), function (newData) {
-                            _hash = newhash;
+                            _hash(newhash);
                             _value(newData);
                         });
                     }
@@ -152,13 +166,13 @@ Modernizr.load({
 
             result.page = ko.observable(0);
             result.page.total = ko.observable(0);
-            result.page.next = function() {
-                if(result.page.total() > result.page()) {
+            result.page.next = function () {
+                if (result.page.total() > result.page()) {
                     result.page(result.page() + 1);
                 }
             };
-            result.page.prev = function() {
-                if(result.page() > 1) {
+            result.page.prev = function () {
+                if (result.page() > 1) {
                     result.page(result.page() - 1);
                 }
             };
@@ -169,7 +183,7 @@ Modernizr.load({
                 result.filter.valueHasMutated();
             };
 
-            result.reload = function() {
+            result.reload = function () {
                 _hash(null);
             };
 
@@ -236,8 +250,8 @@ Modernizr.load({
                 if (path[0] == '#') {
                     var src = jQuery(path);
 
-                    if (src.length > 0) {
-                        // If its an element, get the relative DOM node
+                    if (src.length > 0) { // If its an element, get the relative DOM node
+                        _content(null);
                         _content.id(id);
                         _content(src.html());
                         if (typeof(callback) == 'function') {
@@ -263,6 +277,7 @@ Modernizr.load({
                         data:params,
                         dataType:'html',
                         success:function (data) {
+                            _content(null);
                             _content.id(id);
                             _content(data);
 
@@ -299,7 +314,7 @@ Modernizr.load({
     /* Includes and initializes another file on the element */
     $.fn.include = function (url, callback) {
         var self = this;
-        if(self.data('loaded') == url) {
+        if (self.data('loaded') == url) {
             return this;
         }
         else {
@@ -357,7 +372,7 @@ Modernizr.load({
     };
 
     $.fn.applyBindings = function (viewModel) {
-        this.data('viewModel', viewModel).each(function(idx, element) {
+        this.data('viewModel', viewModel).each(function (idx, element) {
             ko.applyBindings(viewModel, element);
         });
     };
