@@ -305,7 +305,7 @@ window.log = function () {
             }
         };
 
-        _content.load(options.default);
+        _content.load(options['default']);
         return _content;
     };
 
