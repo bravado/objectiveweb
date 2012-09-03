@@ -27,21 +27,30 @@ window.log = function () {
     }
 })());
 
-// JSON implementation for browsers that do not support it
-Modernizr.load({
-    test:window.JSON,
-    nope:'json2.js'
-});
-
 (function (window, $, ko) {
     var metaproject = window.metaproject = {};
     metaproject.Model = function (defaults, mapping) {
 
         return function (data) {
+            var instance = this;
 
-            data = $.extend({}, defaults, data);
+            data = data || {};
 
-            ko.mapping.fromJS(data, mapping || {}, this);
+            $.each(defaults, function(i, e) {
+                if(typeof(e) == 'function') {
+                    instance[i] = ko.computed({ read: e, deferEvaluation:true }, instance);
+                }
+                else {
+                    if(undefined == data[i]) {
+                        data[i] = defaults[i];
+                    }
+                }
+            });
+
+            // data = $.extend({}, defaults, data);
+
+            ko.mapping.fromJS(data, mapping || {}, instance);
+
         }
 
     };
@@ -60,10 +69,10 @@ Modernizr.load({
         self.save = function (model, callback) {
             var id = ko.utils.unwrapObservable(model[options.key]);
             if(id) {
-                self.put(id, ko.mapping.toJSON(model), callback);
+                return self.put(id, ko.mapping.toJSON(model), callback);
             }
             else {
-                self.post(ko.mapping.toJSON(model), callback);
+                return self.post(ko.mapping.toJSON(model), callback);
             }
         };
 
