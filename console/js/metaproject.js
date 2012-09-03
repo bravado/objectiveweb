@@ -223,7 +223,7 @@ window.log = function () {
 
     metaproject.Loader = function (routes, params) {
         var options = {
-            default:'/',
+            'default':'/',
             error:function (e) {
                 alert(e.responseText);
             }
