@@ -61,10 +61,14 @@ window.log = function () {
         options = $.extend({
             key:'id',
             model:function (data) {
-                return data;
+                $.extend(this, data);
             },
             filter:{}
         }, options);
+
+        self.create = function(data) {
+            return new options.model(data);
+        };
 
         self.save = function (model, callback) {
             var id = ko.utils.unwrapObservable(model[options.key]);
@@ -199,9 +203,34 @@ window.log = function () {
             return result;
         })(self);
 
+        self.editor = function () {
+            var ds = self,
+                editor = this;
+
+            editor.current = ko.observable(null);
+
+            editor.create = function () {
+                editor.current(ds.create());
+            };
+
+            editor.load = function (model) {
+                ds.get(model, editor.current);
+            };
+
+            editor.close = function () {
+                editor.current(null);
+                // TODO maybe options to trigger reload or not
+                ds.data.reload();
+            };
+
+            editor.save = function (model) {
+                return ds.save(model, function (data) {
+                    editor.close();
+                });
+            };
+        };
 
     };
-
 
     metaproject.Application = function (params) {
         var self = this;

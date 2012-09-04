@@ -1,14 +1,17 @@
 (function(window, $, ko) {
-    metaproject.ui = {};
 
-    metaproject.ui.Grid = function(data) {
+
+    metaproject.ui = metaproject.ui || {};
+    metaproject.ui.Grid = function(datasource, params) {
         var self = this;
 
-        if(data instanceof Array) {
-            self.data = ko.observableArray(data);
-        }
-        else {
-            self.data = ko.computed // TODO
-        }
+        params = $.extend({}, { columns: [], actions: []}, params);
+        // TODO if datasource instanceof Array ...
+        self.datasource = datasource;
+        self.columns = params.columns;
+        self.actions = params.actions;
+
+
     };
+
 })(window, jQuery, ko);
