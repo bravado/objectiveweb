@@ -86,7 +86,7 @@ window.log = function () {
         self.get = function (path, params, callback) {
 
             // get({model})
-            if (typeof(path) != 'string') {
+            if (typeof(path) == 'object') {
                 // TODO existe path[key] ?
                 path = '/' + ko.utils.unwrapObservable(path[options.key]);
             }

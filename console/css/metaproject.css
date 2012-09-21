@@ -1,4 +1,4 @@
-@import url('bootstrap.css');
+@import url('bootstrap.min.css');
 @import url('jquery-ui-1.8.16.custom.css');
 
 span.ui-icon { margin: 0 4px; }
