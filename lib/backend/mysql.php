@@ -289,7 +289,15 @@ class Table {
 
                 if(is_array($v)) {
                     foreach($v as $k1 => $v1) {
-                        $key = $this->_cleanup_field("$k.$k1");
+
+                        // TODO verify, group same fields on ( ), consider _op for a single field
+                        if(is_numeric($k1)) {
+                            $key = $this->_cleanup_field($k);
+                        }
+                        else {
+                            $key = $this->_cleanup_field("$k.$k1");
+                        }
+
                         $conditions[] = $this->_parse_condition("$key", $v1);
                     }
                 }
