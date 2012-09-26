@@ -15,6 +15,13 @@
 // Filesystem paths
 defined('OW_CONTENT') or define('OW_CONTENT', ROOT . '/ow-content');
 
+/**
+ * ATTACHMENT_HASHDEPTH enables hashed directoried for attachment storage
+ * Recommended for performance and to avoid filesystem limitations
+ * Set to 0 to disable
+ */
+defined('ATTACHMENT_HASHDEPTH') or define('ATTACHMENT_HASHDEPTH', 2);
+
 // Constants
 define('ATTACHMENT_UNLINK', 1);
 define('ATTACHMENT_OVERWRITE', 2);
@@ -104,7 +111,14 @@ function attachment_delete($domain, $id, $attachment) {
  * @throws Exception If the attachment's parent already exists and is not a directory
  */
 function attachment_filename($domain, $id, $attachment = null) {
-    $directory = sprintf("%s/%s/%s", OW_CONTENT, $domain, $id);
+
+    $idhash = strrev(substr($id, 0, ATTACHMENT_HASHDEPTH));
+    $hashed = '';
+    for($i = 0; $i < ATTACHMENT_HASHDEPTH; $i++) {
+        $hashed = '/'.(isset($idhash[$i]) ? $idhash[$i] : '0').$hashed;
+    }
+
+    $directory = sprintf("%s/%s%s/%s", OW_CONTENT, $domain, $hashed, $id);
 
     if (!is_dir($directory)) {
         if (file_exists($directory)) {

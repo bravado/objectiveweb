@@ -103,12 +103,16 @@ function get($domain_id, $id = null, $params = array()) {
     if ($id) {
 
         if (isset($handler->params['get'])) {
-            return call_user_func_array($handler->params['get'], array($handler, $id, $params));
+            $rsrc = call_user_func_array($handler->params['get'], array($handler, $id, $params));
         }
         else {
-            return $handler->get($id, $params);
+            $rsrc = $handler->get($id, $params);
+
         }
 
+        // Attachments list
+        $rsrc['_attachments'] = attachment_list($domain_id, $id);
+        return $rsrc;
     }
     else {
         return $handler;

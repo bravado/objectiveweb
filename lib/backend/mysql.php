@@ -690,8 +690,7 @@ class TableStore extends OWHandler {
 
                 }
 
-                // Attachments list
-                $result['_attachments'] = attachment_list($this->id, $result[$this->table->pk]);
+
             }
 
             return $result;
@@ -1129,8 +1128,6 @@ class ObjectStore extends TableStore {
 
         $object = $this->get($oid);
 
-        // TODO please review this =)
-        unset($object['_attachments']);
         $content = array();
         foreach (array_keys($object) as $k) {
             if (isset($data[$k])) {
