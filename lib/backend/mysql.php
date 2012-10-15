@@ -264,7 +264,7 @@ class Table {
         }
 
         $_fields = $this->apply_filter('fields', $_fields);
-        $query = "select {$_fields} from {$this->name}";
+        $query = "select {$_fields} from `{$this->name}`";
 
         // TODO sanitize _op (must be AND or OR)
 
@@ -375,7 +375,7 @@ class Table {
                     default:
                         break;
                 }
-            } while(strpos('><=', $v[0]) !== FALSE);
+            } while($v[0] && strpos('><=', $v[0]) !== FALSE);
 
             $_op = $_gt ? ($_equal ? '>=' : '>') : ($_lt ? ($_equal ? '<=' : '<') : ($_not ? "!=" : "=") );
 
@@ -745,6 +745,7 @@ class TableStore extends OWHandler {
             // ex: post _eager=comments,votes
 
             foreach ($this->belongsTo as $k => $v) {
+
                 $belongsTo_table = new Table($v['table']);
 
                 $belongsTo_fields = isset($v['fields']) ? $v['fields'] : $belongsTo_table->fields();
@@ -753,9 +754,36 @@ class TableStore extends OWHandler {
                     $_fields[] = "$k.$f";
                 }
 
+                $belongsTo_join = null;
+                if(is_array($v['key'])) {
+                    $cond = array();
+                    foreach($v['key'] as $field => $value) {
+
+                        if(in_array($value, $this->table->fields())) {
+                            // $value is a field on the main table
+                            $cond[] = sprintf("`%s`.`%s` = `%s`.`%s`",
+                                $k, $field,
+                                $this->table->name, $value);
+                        }
+                        else {
+                            $cond[] = sprintf("`%s`.`%s` = %s",
+                                $k, $field,
+                                $value === NULL ? 'NULL' : "'$value'"
+                            );
+                        }
+
+                    }
+
+                    $belongsTo_join = implode(" AND ", $cond);
+                }
+                else {
+                    $belongsTo_join = sprintf("`%s`.`%s` = `%s`.`%s`", $k, $belongsTo_table->pk, isset($v['from']) ? $v['from'] : $this->table->name, $v['key']);
+                }
+
                 $params['_inner'][$k] = array(
                     'table' => $v['table'],
-                    'on' => sprintf("`%s`.`%s` = `%s`.`%s`", $k, $belongsTo_table->pk, isset($v['from']) ? $v['from'] : $this->table->name, $v['key'])
+                    'on' => $belongsTo_join
+
                 );
             }
 

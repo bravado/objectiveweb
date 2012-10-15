@@ -11,6 +11,7 @@
 // Default directory table
 defined('OW_DIRECTORY') or define('OW_DIRECTORY', 'ow_directory');
 
+// Register the "directory" domain
 register_domain('directory', array(
     'handler' => 'ObjectStore',
     'table' => OW_DIRECTORY,
@@ -18,6 +19,7 @@ register_domain('directory', array(
     'put' => 'directory_put'
 ));
 
+// Register the "auth" domain
 register_domain('auth', array(
     'handler' => 'AuthenticationHandler'));
 
@@ -30,13 +32,13 @@ function directory_get($self, $id) {
         if (count($entries)) {
             $result = array('oid' => $id);
             foreach ($entries as $entry) {
-                if (empty($entry['schema'])) {
+                if (empty($entry['namespace'])) {
                     foreach ($entry as $k => $v) {
                         $result[$k] = $v;
                     }
                 }
                 else {
-                    $result[$entry['schema']] = $entry;
+                    $result[$entry['namespace']] = $entry;
                 }
             }
         }
@@ -121,14 +123,14 @@ class AuthenticationHandler extends OWHandler {
                 if ($this->hybridauth->isConnectedWith($provider)) {
                     $adapter = $this->hybridauth->getAdapter($provider);
                     $user_profile = (Array)$adapter->getUserProfile();
-                    $schema = 'HA::' . $provider;
-                    $local_profile = get('directory', array(
-                            'schema' => $schema,
+                    $namespace = 'HA::' . $provider;
+                    $local_profile = get('directory')->get(array(
+                            'namespace' => $namespace,
                             'identifier' => $user_profile['identifier'])
                     );
 
                     if (!$local_profile) {
-                        $user_profile['schema'] = $schema;
+                        $user_profile['namespace'] = $namespace;
                         $user_profile['oid'] = current_user('oid');
 
                         // TODO post deve retornar OID também (objectstore SE tiver field oid)
@@ -158,11 +160,11 @@ class AuthenticationHandler extends OWHandler {
     function post($data) {
 
         $account = get('directory', array(
-            'schema' => '',
+            'namespace' => '',
             'identifier' => $data['identifier']));
 
         if (!$account) {
-            throw new Exception('User not found');
+            throw new Exception('User not found', 404);
         }
         else {
             $userPassword = null;

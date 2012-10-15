@@ -111,7 +111,9 @@ function get($domain_id, $id = null, $params = array()) {
         }
 
         // Attachments list
-        $rsrc['_attachments'] = attachment_list($domain_id, $id);
+        if($rsrc) {
+            $rsrc['_attachments'] = attachment_list($domain_id, $id);
+        }
         return $rsrc;
     }
     else {
@@ -147,16 +149,6 @@ function put($domain, $id, $data) {
     else {
         return $handler->put($id, $data);
     }
-}
-
-function parse_path($path) {
-
-    $pattern = '/\/([^/]+)\/?(.*)/';
-
-    preg_match($pattern, $path, $matches);
-
-    return $matches;
-
 }
 
 // Bootstrap/initialization functions (register_*)

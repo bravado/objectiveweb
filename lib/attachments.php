@@ -112,23 +112,38 @@ function attachment_delete($domain, $id, $attachment) {
  */
 function attachment_filename($domain, $id, $attachment = null) {
 
-    $idhash = strrev(substr($id, 0, ATTACHMENT_HASHDEPTH));
     $hashed = '';
-    for($i = 0; $i < ATTACHMENT_HASHDEPTH; $i++) {
-        $hashed = '/'.(isset($idhash[$i]) ? $idhash[$i] : '0').$hashed;
+    if(is_array($id)) {
+        $id = md5(implode("", $id));
+        for($i = 0; $i < ATTACHMENT_HASHDEPTH; $i++) {
+            $hashed = $hashed."/{$id[$i]}";
+        }
+    }
+    else if (is_numeric($id)) {
+        $idhash = strrev(substr($id, 0, ATTACHMENT_HASHDEPTH));
+
+        for($i = 0; $i < ATTACHMENT_HASHDEPTH; $i++) {
+            $hashed = '/'.(isset($idhash[$i]) ? $idhash[$i] : '0').$hashed;
+        }
+    }
+    else {
+        for($i = 0; $i < ATTACHMENT_HASHDEPTH; $i++) {
+            $hashed = $hashed."/{$id[$i]}";
+        }
     }
 
     $directory = sprintf("%s/%s%s/%s", OW_CONTENT, $domain, $hashed, $id);
 
-    if (!is_dir($directory)) {
-        if (file_exists($directory)) {
-            throw new Exception("Cannot write to $directory", 500);
-        }
-
-        mkdirs($directory);
-    }
 
     if($attachment) {
+        if (!is_dir($directory)) {
+            if (file_exists($directory)) {
+                throw new Exception("Cannot write to $directory", 500);
+            }
+
+            mkdirs($directory);
+        }
+
         return sprintf("%s/%s", $directory, is_array($attachment) ? $attachment['name'] : $attachment);
     }
     else {
@@ -142,15 +157,18 @@ function attachment_filename($domain, $id, $attachment = null) {
  * @param $id
  */
 function attachment_list($domain, $id) {
-    $dir = opendir(attachment_filename($domain, $id));
+    $dir = @opendir(attachment_filename($domain, $id));
 
     $files = array();
-    while (($file = readdir($dir)) != null) {
+
+    if($dir !== FALSE) {
+        while (($file = readdir($dir)) != null) {
 
 
-        if (!is_dir($file)) {
-            $files[] = attachment_meta($domain, $id, $file);
+            if (!is_dir($file)) {
+                $files[] = attachment_meta($domain, $id, $file);
 
+            }
         }
     }
 

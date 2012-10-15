@@ -51,6 +51,7 @@ require_once OW_LIB.'/directory.php';
 require_once OW_LIB.'/request.php';
 require_once OW_LIB.'/template.php';
 
+
 // Initialize applications
 foreach($_apps as $_app) {
     require_once $_app;
