@@ -51,8 +51,22 @@ function handle_attachment_delete($domain, $id, $attachment) {
 }
 
 function handle_attachment_get($domain, $id, $attachment) {
-    // TODO set header
-    $fp = attachment_open($domain, $id, $attachment);
+
+    $metadata = attachment_meta($domain, $id, $attachment);
+
+    $filename = attachment_filename($domain, $id, $attachment);
+
+    if(!file_exists($filename)) {
+        respond(sprintf("Attachment %s does not exist", $filename), 404);
+    }
+
+    header('Content-Type:'.$metadata['mime']);
+    if(isset($_GET['download'])) {
+        header('Content-Disposition: attachment; filename="'.$attachment.'"');
+    }
+    header('Content-Length: '.$metadata['size']);
+
+    $fp = fopen($filename, "rb");
     fpassthru($fp);
     fclose($fp);
     exit;

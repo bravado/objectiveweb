@@ -10,6 +10,7 @@ function ObjectiveWeb(url) {
     var self = this;
 
     self.url = function(object) {
+        object = object || '';
         if(object[0] != '/') {
             object = '/' + object;
         }
