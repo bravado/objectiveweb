@@ -207,15 +207,7 @@ function attachment_meta($domain, $id, $attachment) {
 }
 
 
-function attachment_open($domain, $id, $attachment) {
-    $filename = attachment_filename($domain, $id, $attachment);
 
-    if(!file_exists($filename)) {
-        throw new Exception(sprintf("Attachment %s does not exist", $filename), 404);
-    }
-
-    return fopen($filename, "rb");
-}
 /**
  * The default FSAttachmentHandler stores files on the OW_CONTENT directory
  * Those files could also be served directly through the OW_CONTENT_URL address
