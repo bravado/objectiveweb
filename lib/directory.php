@@ -58,7 +58,7 @@ function directory_put($self, $id, $data) {
     return $self->put($id, $data);
 }
 
-function set_current_user($user) {
+function ow_set_current_user($user) {
     if (is_array($user)) {
         $_SESSION['current_user'] = $user;
     }
@@ -177,7 +177,7 @@ class AuthenticationHandler extends OWHandler {
 
             if ($account['userPassword'] == $userPassword) {
                 $user = get('directory', $account['oid']);
-                set_current_user($user);
+                ow_set_current_user($user);
                 return $user;
             }
             else {
