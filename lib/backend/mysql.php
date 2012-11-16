@@ -670,6 +670,7 @@ class TableStore extends OWHandler {
             $result = $result[0];
 
             // If eager and pk is set, fetch relations
+            // (pk can be excluded from the _fields parameter)
             if ($params['_eager'] && isset($result[$this->table->pk])) {
                 foreach ($this->hasMany as $hasMany_id => $hasMany_params) {
                     $hasMany_defaults = array(
@@ -1181,7 +1182,3 @@ class ObjectStore extends TableStore {
         return parent::put($oid, $content);
     }
 }
-
-
-
-
