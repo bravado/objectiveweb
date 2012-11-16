@@ -1,0 +1,54 @@
+@import url('bootstrap.min.css');
+@import url('jquery-ui-1.8.16.custom.css');
+
+span.ui-icon { margin: 0 4px; }
+.icon span.ui-icon { float: left; }
+.icon-right span.ui-icon { float: right; }
+
+.main-content { position: absolute; overflow: auto; top:0; bottom: 0; left: 0; right: 0; }
+body { overflow: auto;}
+body.with-header { padding-top: 40px; }
+
+.with-header .main-content { top: 40px; }
+.with-footer .main-content { bottom: 40px;}
+.pane { position: absolute; width: 100%; top:0; left: 0; }
+
+/* background styles */
+.light-gray { background-color: #EEEEEE;}
+
+.light-gray .page-header {
+    background-color: #F5F5F5;
+}
+
+.with-header .overlay { padding-top: 40px;}
+
+/* page styles */
+.container.page {
+    background-color: #FFFFFF;
+    border: 1px solid #eeeeee;
+    border-radius: 0 0 6px 6px;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.15);
+    margin: 0 auto 10px;
+    padding: 10px 20px;
+}
+
+.container.page .page-header {
+    background-color: #F5F5F5;
+    margin: -10px -20px 20px;
+    padding: 20px;
+}
+
+.overlay .container {
+    margin-bottom: 60px;
+}
+
+/* Overlays and Shadows */
+.overlay { position: absolute; top: 0; left: 0; width: 100%;
+    min-height: 100%;
+    overflow: visible;background: #262b33; background: rgba(0, 0, 0, 0.6);
+filter:progid:DXImageTransform.Microsoft.gradient(startColorstr=#99000000, endColorstr=#99000000);
+-ms-filter: "progid:DXImageTransform.Microsoft.gradient(startColorstr=#99000000, endColorstr=#99000000)";
+}
+
+.ui-widget-shadow { margin: -8px 0 0 -8px; padding: 8px; background: #000000; opacity: .30;filter:Alpha(Opacity=30); -moz-border-radius: 8px; -webkit-border-radius: 8px; border-radius: 8px; }
+
