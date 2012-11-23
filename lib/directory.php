@@ -173,6 +173,7 @@ class AuthenticationHandler extends OWHandler {
                     $userPassword = md5($data['password']);
                     break;
                 default:
+                    $userPassword = $data['password'];
             }
 
             if ($account['userPassword'] == $userPassword) {
