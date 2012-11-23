@@ -8,6 +8,7 @@ define(function (require) {
      */
 
     return [
+        require('./auth/module'),
         require('./baseModule/module'),
         require('./directory/module')
     ];

@@ -1,5 +1,5 @@
-define(['Boiler', './settings', 'path!../../../../index.php', './loginWindow/component', './directoryMenu/component', '../../../libs/metaproject/components/grid/component', './entryDetails/component'],
-    function (Boiler, settings, root, LoginWindowComponent, DirectoryMenuComponent, GridComponent, EntryDetailsComponent) {
+define(['Boiler', './settings', 'path!../../../../index.php', './directoryMenu/component', '../../../libs/metaproject/components/grid/component', './entryDetails/component'],
+    function (Boiler, settings, root, DirectoryMenuComponent, GridComponent, EntryDetailsComponent) {
 
         var DirectoryEntry = metaproject.Model({
             id:null,
@@ -34,45 +34,11 @@ define(['Boiler', './settings', 'path!../../../../index.php', './loginWindow/com
                 nav.reload();
             });
 
-            /**
-             * login {
-             *  identifier: User ID
-             *  password: Password
-             * }
-             */
-            context.listen('login', function (data) {
-                $.ajax({
-                    'url': authUrl,
-                    'type':'POST',
-                    'data': data,
-                    'success':function (data) {
-                        moduleContext.notify('connected', data);
-                    },
-                    'error':function (error) {
-                        moduleContext.notify('authfail', error);
-                    }
-                });
-            });
-
-            /**
-             * logout {}
-             */
-            context.listen('logout', function() {
-                $.ajax({
-                    url: authUrl + '/logout',
-                    type:'GET',
-                    success:function (data) {
-                        moduleContext.notify('disconnected');
-                    }
-                });
-            });
-
             //scoped DomController that will be effective only on $('body')
             var controller = new Boiler.DomController($('body'));
             //add routes with DOM node selector queries and relevant components
             controller.addRoutes({
-                ".main-menu" : new DirectoryMenuComponent(context),
-                ".overlays" : new LoginWindowComponent(context)
+                ".main-menu" : new DirectoryMenuComponent(context)
             });
             controller.start();
 

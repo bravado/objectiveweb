@@ -4,6 +4,14 @@ define(["Boiler"], function(Boiler) {
 
         var self = this;
 
+
+        self.current_user = ko.observable({});
+
+        self.logout = function() {
+            moduleContext.notify('logout');
+        };
+
+
         moduleContext.listen('disconnected', function() {
             self.current_user({});
         });
@@ -12,11 +20,6 @@ define(["Boiler"], function(Boiler) {
             self.current_user(data);
         });
 
-        self.current_user = ko.observable({});
-
-        self.logout = function() {
-            moduleContext.notify('logout');
-        }
     };
 
     return ViewModel;

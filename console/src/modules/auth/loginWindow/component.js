@@ -1,4 +1,4 @@
-define(['require', 'Boiler', 'text!./view.html', 'path!../../../../../index.php' + '/auth'], function (require, Boiler, template, authUrl) {
+define(['Boiler', 'text!./view.html'], function (Boiler, template) {
 
     var Component = function (moduleContext) {
         var panel = null;
@@ -18,7 +18,6 @@ define(['require', 'Boiler', 'text!./view.html', 'path!../../../../../index.php'
             $('#login-window .authfail').text((error || {}).responseText).show();
             $('#login-form .password').select().focus();
             $("#login-window").effect( "shake", {}, "fast" );
-
         });
 
         return {
@@ -26,6 +25,7 @@ define(['require', 'Boiler', 'text!./view.html', 'path!../../../../../index.php'
                 if (!panel) {
                     // Create the view
                     panel = new Boiler.ViewTemplate(parent, template);
+
 
                     // Set the form submit action
                     $('#login-window form').on('submit', function () {
@@ -41,18 +41,8 @@ define(['require', 'Boiler', 'text!./view.html', 'path!../../../../../index.php'
                         return false;
                     });
 
-                    // Check if someone's logged on
-                    $.ajax({
-                        'url': authUrl,
-                        'type':'GET',
-                        'success':function (data) {
-                            moduleContext.notify('connected', data);
-                        },
-                        'error': function() {
-                            // Show the login window
-                            $('#login-window').modal('show');
-                        }
-                    });
+
+                    moduleContext.notify('auth');
 
                 }
                 panel.show();
