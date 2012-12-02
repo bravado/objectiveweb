@@ -718,6 +718,7 @@ class TableStore extends OWHandler {
 
         $params = array_merge($defaults, $params);
 
+        $_fields = array();
         // Table Inheritance
         if(!empty($this->joins)) {
             foreach($this->table->fields() as $_field) {
@@ -741,9 +742,30 @@ class TableStore extends OWHandler {
             $_fields = $this->table->fields();
         }
 
+
+
         if ($params['_eager']) {
-            // TODO _eager pode ser a lista de relações que pode pegar
-            // ex: post _eager=comments,votes
+            // TODO _eager may be a list of relations to fetch
+            // ex:  _eager=comments,votes
+
+            /**
+             * If directory is enabled and we have a _owner field with a foreign key set to ow_directory, join that table
+             * We won't overwrite a user-defined owner though
+             */
+            if(OW_DIRECTORY && in_array('_owner', $_fields) && !in_array('owner', $_fields) && !isset($this->belongsTo['owner'])) {
+
+                // TODO verify if there's a foreign key pointing to OW_DIRECTORY
+                $this->belongsTo['owner'] =  array(
+                    'table' => 'ow_directory',
+                    // 'fields' => array('oid', 'displayName', 'identifier', 'photoURL', 'created'),
+                    'key' => array(
+                        'oid' => '_owner',
+                        'namespace' => ''
+                    )
+                );
+            }
+
+
 
             foreach ($this->belongsTo as $k => $v) {
 

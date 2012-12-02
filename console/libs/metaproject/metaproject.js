@@ -1,5 +1,7 @@
 (function (window, $, ko) {
-    var metaproject = window.metaproject = {};
+    var metaproject = window.metaproject = {},
+        Signal = signals.Signal;
+
     metaproject.Model = function (defaults, mapping) {
 
         return function (data) {
@@ -27,7 +29,8 @@
     };
 
     metaproject.DataSource = function (base_url, options) {
-        var self = this;
+        var self = this,
+            _navs = [];
 
         options = $.extend({
             key:'id',
@@ -35,6 +38,8 @@
                 $.extend(this, data);
             }
         }, options);
+
+        self.changed = new Signal();
 
         self._id = function (model_or_id) {
             if (typeof(model_or_id) == 'object') {
@@ -69,7 +74,7 @@
                 // TODO existe path[key] ?
                 path = '/' + ko.utils.unwrapObservable(path[options.key]);
             }
-            else if(path[0] != '/') {
+            else if (path[0] != '/') {
                 path = '/' + path;
             }
 
@@ -106,7 +111,13 @@
                 dataType:'json',
                 type:'POST',
                 data:data,
-                success:callback,
+                success:function (data) {
+                    self.changed.dispatch('post', data);
+
+                    if (typeof(callback) === 'function') {
+                        callback(data);
+                    }
+                },
                 error:self.errorHandler
             });
         };
@@ -117,7 +128,12 @@
                 dataType:'json',
                 type:'PUT',
                 data:data,
-                success:callback,
+                success:function (data) {
+                    self.changed.dispatch('put', data);
+                    if (typeof(callback) === 'function') {
+                        callback(data);
+                    }
+                },
                 error:self.errorHandler
             });
         };
@@ -127,7 +143,12 @@
                 url:base_url + '/' + self._id(model),
                 dataType:'json',
                 type:'DELETE',
-                success:callback,
+                success:function (data) {
+                    self.changed.dispatch('delete', data);
+                    if (typeof(callback) === 'function') {
+                        callback(data);
+                    }
+                },
                 error:self.errorHandler
             });
         };
@@ -137,16 +158,17 @@
             var ds = self,
                 editor = this;
 
+            // TODO listen for changes, check if current() = changed, notify ui
             callbacks = $.extend({
-                save: function () {
+                save:function () {
                     //ds.data.reload();
                 }
             }, callbacks);
 
             editor.current = ko.observable(null);
 
-            editor.create = function () {
-                editor.current(ds.create());
+            editor.create = function (values) {
+                editor.current(ds.create(values));
             };
 
             editor.load = function (model) {
@@ -156,7 +178,6 @@
             editor.close = function () {
                 editor.current(null);
 
-                console.log(callbacks);
                 if (typeof(callbacks.close) == 'function') {
                     callbacks.close();
                 }
@@ -188,10 +209,7 @@
                     //always return the current value
                     return _value();
                 },
-//            write: function(newValue) {
-//                _value(newValue);
-//
-//            },
+                write: _value,
                 deferEvaluation:true  //do not evaluate immediately when created
             });
 
@@ -208,7 +226,7 @@
                 }
             };
 
-            result.filter = ko.observable(filter);
+            result.filter = ko.observable(filter || {});
             result.filter.set = function (param, value) {
                 result.filter()[param] = value;
                 result.filter.valueHasMutated();
@@ -218,6 +236,8 @@
                 _hash(null);
             };
 
+            // Reload when datasource is updated
+            self.changed.add(result.reload);
             return result;
         };
 
