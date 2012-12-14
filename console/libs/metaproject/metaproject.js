@@ -43,7 +43,7 @@
 
         self._id = function (model_or_id) {
             if (typeof(model_or_id) == 'object') {
-                return ko.utils.unwrapObservable(model[options.key]);
+                return ko.utils.unwrapObservable(model_or_id[options.key]);
             }
             else {
                 return model_or_id;
@@ -138,7 +138,7 @@
             });
         };
 
-        self.del = function (model, callback) {
+        self.delete = function (model, callback) {
             return jQuery.ajax({
                 url:base_url + '/' + self._id(model),
                 dataType:'json',
@@ -169,6 +169,15 @@
 
             editor.create = function (values) {
                 editor.current(ds.create(values));
+            };
+
+            editor.delete = function() {
+
+                ds.delete(editor.current());
+
+                if (typeof(callbacks.delete) == 'function') {
+                    callbacks.delete();
+                }
             };
 
             editor.load = function (model) {

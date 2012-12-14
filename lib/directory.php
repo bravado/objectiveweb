@@ -16,7 +16,10 @@ register_domain('directory', array(
     'handler' => 'ObjectStore',
     'table' => OW_DIRECTORY,
     'get' => 'directory_get',
-    'put' => 'directory_put'
+    'put' => 'directory_put',
+    'filter' => array(
+        ''
+    )
 ));
 
 // Register the "auth" domain
