@@ -465,7 +465,7 @@ ko.bindingHandlers.autocomplete = {
         var $element = jQuery(element),
             params = valueAccessor();
 
-        //handle disposal (if KO removes by the template binding)
+        //handle disposal
         ko.utils.domNodeDisposal.addDisposeCallback(element, function () {
             $element.autocomplete("destroy");
         });
