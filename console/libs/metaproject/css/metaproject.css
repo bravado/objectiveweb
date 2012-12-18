@@ -23,7 +23,7 @@ body.with-header { padding-top: 40px; }
 .with-header .overlay { padding-top: 40px;}
 
 /* page styles */
-.container.page {
+.container.page, .container-fluid.page {
     background-color: #FFFFFF;
     border: 1px solid #eeeeee;
     border-radius: 0 0 6px 6px;
