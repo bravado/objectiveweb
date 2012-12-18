@@ -17,7 +17,7 @@
             <td data-bind="html: typeof text == 'function' ? text($parent) : $parent[text]"></td>
             <!-- /ko -->
             <td data-bind="foreach: $parent.actions">
-                <button class="btn" data-bind="click: function() { fn($parent); }, text: label, css: $data.css || {}"></button>
+                <button class="btn" data-bind="click: function() { fn($parent); }, html: label, css: $data.css || {}"></button>
             </td>
         </tr>
         </tbody>
