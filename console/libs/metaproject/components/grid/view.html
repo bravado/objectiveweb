@@ -1,6 +1,6 @@
 <section data-bind="html: header"></section>
-<section data-bind="with: grid">
-    <table class="table table-bordered table-striped table-condensed">
+<section style="padding-bottom: 60px;">
+    <table class="table table-bordered table-striped table-condensed" data-bind="with: grid">
         <thead>
         <tr>
             <!-- ko foreach: columns -->
@@ -22,4 +22,26 @@
         </tr>
         </tbody>
     </table>
+
+
 </section>
+<footer class="navbar navbar-fixed-bottom">
+
+    <div class="navbar-inner" data-bind="with: paginator">
+        <div class="container" style="width: auto; padding: 0 20px;">
+            <form class="navbar-search pull-left">
+                <input type="text" data-bind="value: query, valueUpdate: 'afterkeydown'" class="search-query span4" placeholder="Filter">
+            </form>
+            <ul class="nav pull-right">
+                <!-- ko if: page() > 1 -->
+                <li><a href="#" title="Previous Page" data-bind="click: prev"><i class="icon-caret-left"></i></a></li>
+                <!-- /ko -->
+                <li><a data-bind="text: offset() + '-' + last() + '/' + count()"></a></li>
+                <!-- ko if: page() < pages() -->
+                <li><a href="#" title="Next Page" data-bind="click: next"><i class="icon-caret-right"></i></a></li>
+                <!-- /ko -->
+            </ul>
+        </div>
+    </div>
+
+</footer>

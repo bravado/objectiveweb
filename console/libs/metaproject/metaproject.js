@@ -11,7 +11,7 @@
 
             $.each(defaults, function (i, e) {
                 if (typeof(e) == 'function') {
-                    instance[i] = ko.computed({ read:e, deferEvaluation:true }, instance);
+                    instance[i] = ko.computed({ read: e, deferEvaluation: true }, instance);
                 }
                 else {
                     if (undefined == data[i]) {
@@ -33,8 +33,8 @@
             _navs = [];
 
         options = $.extend({
-            key:'id',
-            model:function (data) {
+            key: 'id',
+            model: function (data) {
                 $.extend(this, data);
             }
         }, options);
@@ -84,12 +84,12 @@
             }
 
             return jQuery.ajax({
-                    url:base_url + path,
-                    data:params || {},
-                    dataType:'json',
-                    type:'GET',
-                    error:self.errorHandler,
-                    success:function (data) {
+                    url: base_url + path,
+                    data: params || {},
+                    dataType: 'json',
+                    type: 'GET',
+                    error: self.errorHandler,
+                    success: function (data) {
                         if (typeof(callback) == 'function') {
                             if (data instanceof Array) {
                                 callback(jQuery.map(data, function (e, i) {
@@ -107,49 +107,49 @@
 
         self.post = function (data, callback) {
             return jQuery.ajax({
-                url:base_url,
-                dataType:'json',
-                type:'POST',
-                data:data,
-                success:function (data) {
+                url: base_url,
+                dataType: 'json',
+                type: 'POST',
+                data: data,
+                success: function (data) {
                     self.changed.dispatch('post', data);
 
                     if (typeof(callback) === 'function') {
                         callback(data);
                     }
                 },
-                error:self.errorHandler
+                error: self.errorHandler
             });
         };
 
         self.put = function (id, data, callback) {
             return jQuery.ajax({
-                url:base_url + '/' + id,
-                dataType:'json',
-                type:'PUT',
-                data:data,
-                success:function (data) {
+                url: base_url + '/' + id,
+                dataType: 'json',
+                type: 'PUT',
+                data: data,
+                success: function (data) {
                     self.changed.dispatch('put', data);
                     if (typeof(callback) === 'function') {
                         callback(data);
                     }
                 },
-                error:self.errorHandler
+                error: self.errorHandler
             });
         };
 
         self.delete = function (model, callback) {
             return jQuery.ajax({
-                url:base_url + '/' + self._id(model),
-                dataType:'json',
-                type:'DELETE',
-                success:function (data) {
+                url: base_url + '/' + self._id(model),
+                dataType: 'json',
+                type: 'DELETE',
+                success: function (data) {
                     self.changed.dispatch('delete', data);
                     if (typeof(callback) === 'function') {
                         callback(data);
                     }
                 },
-                error:self.errorHandler
+                error: self.errorHandler
             });
         };
 
@@ -160,7 +160,7 @@
 
             // TODO listen for changes, check if current() = changed, notify ui
             callbacks = $.extend({
-                save:function () {
+                save: function () {
                     //ds.data.reload();
                 }
             }, callbacks);
@@ -171,7 +171,7 @@
                 editor.current(ds.create(values));
             };
 
-            editor.delete = function() {
+            editor.delete = function () {
 
                 ds.delete(editor.current());
 
@@ -203,15 +203,23 @@
         self.Nav = function (filter) {
 
             var _value = ko.observable(),
+                _observables = [], // list of instantiated observables
                 _hash = ko.observable(null);
 
             var result = ko.computed({
-                read:function () {
-                    var newhash = ko.toJSON(result.filter()) + result.page();
+                read: function () {
+                    var newhash = ko.toJSON(result.filter());
                     if (_hash() != newhash) {
+                        result.loading(true);
                         self.get('/', result.filter(), function (newData) {
                             _hash(newhash);
                             _value(newData);
+
+                            // TODO generic trigger/on for objects
+                            _.each(_observables, function(o) {
+                                o.reload();
+                            });
+                            result.loading(false);
                         });
                     }
 
@@ -219,26 +227,65 @@
                     return _value();
                 },
                 write: _value,
-                deferEvaluation:true  //do not evaluate immediately when created
+                deferEvaluation: true  //do not evaluate immediately when created
             });
-
-            result.page = ko.observable(0);
-            result.page.total = ko.observable(0);
-            result.page.next = function () {
-                if (result.page.total() > result.page()) {
-                    result.page(result.page() + 1);
-                }
-            };
-            result.page.prev = function () {
-                if (result.page() > 1) {
-                    result.page(result.page() - 1);
-                }
-            };
+            result.loading = ko.observable(false);
 
             result.filter = ko.observable(filter || {});
             result.filter.set = function (param, value) {
                 result.filter()[param] = value;
                 result.filter.valueHasMutated();
+            };
+
+            /**
+             * Resets filter, leaving _* parameters unchanged
+             * @param data
+             */
+            result.filter.reset = function (data, notify) {
+                data = data || {};
+
+                data._offset = 0;
+                var filter = result.filter();
+
+                _.keys(filter).forEach(function(key) {
+                    if(key[0] != '_') {
+                        delete filter[key];
+                    }
+                });
+
+                _.extend(filter, data);
+
+                if(notify) {
+                    result.filter.valueHasMutated();
+                }
+            };
+
+            result.observable = function (params, transform) {
+                var me = ko.observable(null);
+                me.loading = ko.observable(false);
+                me.reload = function () {
+                    me.loading(true);
+                    var x = _.filter(_.keys(result.filter()), function(value, index, list) {
+                        return value[0] != '_';
+                    });
+                    var local_params = _.extend(_.pick(result.filter(), x), params);
+
+                    console.log(local_params);
+                    self.get('/', local_params, function (newData) {
+                        if (typeof(transform) == 'function') {
+                            me(transform(newData));
+                        }
+                        else {
+                            me(newData);
+                        }
+                        me.loading(false);
+                    });
+                };
+
+
+                _observables.push(me);
+
+                return me;
             };
 
             result.reload = function () {
@@ -247,6 +294,7 @@
 
             // Reload when datasource is updated
             self.changed.add(result.reload);
+
             return result;
         };
 
@@ -272,8 +320,8 @@
 
     metaproject.Loader = function (routes, params) {
         var options = {
-            'default':'/',
-            error:function (e) {
+            'default': '/',
+            error: function (e) {
                 alert(e.responseText);
             }
         };
@@ -330,11 +378,11 @@
                     }
 
                     $.ajax({
-                        url:path,
-                        type:'GET',
-                        data:params,
-                        dataType:'html',
-                        success:function (data) {
+                        url: path,
+                        type: 'GET',
+                        data: params,
+                        dataType: 'html',
+                        success: function (data) {
                             _content(null);
                             _content.id(id);
                             _content(data);
@@ -344,7 +392,7 @@
                             }
 
                         },
-                        error:function (e) {
+                        error: function (e) {
                             _content.id(null);
                             _content(null);
                             options.error(e);
@@ -392,9 +440,9 @@
     /* UI Alerts */
     $.fn.alert = function (kind, message) {
         var options = {
-            level:kind,
-            block:false,
-            delay:250
+            level: kind,
+            block: false,
+            delay: 250
         };
 
         $('<div class="alert-message ' + options.level + (options.block ? ' block-message' : '') + '" style="display: none;"><a class="close" href="#">×</a>' + message + '</div>')
@@ -439,7 +487,7 @@
 
 
 ko.bindingHandlers.icon = {
-    init:function (element, valueAccessor) {
+    init: function (element, valueAccessor) {
 
         var icon = '<span class="ui-icon ui-icon-' + valueAccessor() + '"></span>';
 
@@ -448,7 +496,7 @@ ko.bindingHandlers.icon = {
 };
 
 ko.bindingHandlers.include = {
-    init:function (element, valueAccessor) {
+    init: function (element, valueAccessor) {
         var params = valueAccessor();
         if (params instanceof Array) {
             jQuery(element).include(params[0], params[1]);
@@ -460,7 +508,7 @@ ko.bindingHandlers.include = {
 };
 
 ko.bindingHandlers.autocomplete = {
-    init:function (element, valueAccessor, allBindingsAccessor, viewModel) {
+    init: function (element, valueAccessor, allBindingsAccessor, viewModel) {
 
         var $element = jQuery(element),
             params = valueAccessor();
@@ -472,7 +520,7 @@ ko.bindingHandlers.autocomplete = {
 
         // treat String, callback or Array as source
         if (typeof(params) == 'string' || typeof(params) == 'function' || params instanceof Array) {
-            params = { source:params };
+            params = { source: params };
         }
 
         var $autocomplete = $element.autocomplete(params).data('autocomplete');
@@ -490,7 +538,7 @@ ko.bindingHandlers.autocomplete = {
 };
 
 ko.bindingHandlers.dialog = {
-    init:function (element, valueAccessor, allBindingsAccessor, viewModel) {
+    init: function (element, valueAccessor, allBindingsAccessor, viewModel) {
         var $element = jQuery(element),
             params = valueAccessor();
 
@@ -499,7 +547,7 @@ ko.bindingHandlers.dialog = {
             $element.dialog("destroy");
         });
 
-        jQuery.extend(params, { autoOpen:false });
+        jQuery.extend(params, { autoOpen: false });
 
         $element.dialog(params);
     }

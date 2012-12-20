@@ -841,7 +841,7 @@ class TableStore extends OWHandler {
                 foreach ($data[$hasMany] as $hasMany_data) {
                     $table = new Table($hasMany_params['table']);
 
-                    $_delete = @$hasMany_data['_delete'];
+                    $_delete = @$hasMany_data['_destroy'];
 
                     // Only store relevant fields
                     $hasMany_data = array_intersect_key($hasMany_data, $table->fields);
@@ -859,8 +859,9 @@ class TableStore extends OWHandler {
                     }
                     else {
                         // Insert new relation
-                        // TODO should we really verify if _delete was set on an INSERT operation ?
-                        if (!isset($hasMany_data['_delete'])) {
+                        // TODO should we really verify if _destroy was set on an INSERT operation ?
+                        if (!isset($hasMany_data['_destroy'])) {
+                            //
                             $hasMany_data[$hasMany_params['key']] = $data[$this->table->pk];
                             $table->insert($hasMany_data);
                         }
