@@ -8,6 +8,10 @@
  * Date: 03/04/12
  * Time: 10:14
  */
+include_once dirname(__FILE__).'/elFinder/elFinderConnector.class.php';
+include_once dirname(__FILE__).'/elFinder/elFinder.class.php';
+include_once dirname(__FILE__).'/elFinder/elFinderVolumeDriver.class.php';
+include_once dirname(__FILE__).'/elFinder/elFinderVolumeLocalFileSystem.class.php';
 
 // thinking about the future...
 // defined('ATTACHMENT_HANDLER') or define('ATTACHMENT_HANDLER', 'FSAttachmentHandler');
@@ -25,6 +29,23 @@ defined('ATTACHMENT_HASHDEPTH') or define('ATTACHMENT_HASHDEPTH', 2);
 // Constants
 define('ATTACHMENT_UNLINK', 1);
 define('ATTACHMENT_OVERWRITE', 2);
+
+
+function attachments($domain, $id) {
+    $opts = array(
+        // 'debug' => true, TODO set debug
+        'roots' => array(
+            array(
+                'driver'        => 'LocalFileSystem',   // driver for accessing file system (REQUIRED)
+                'path'          => attachment_filename($domain, $id),         // path to files (REQUIRED)
+                'URL'           => OW_URL."/$domain/$id" // URL to files (REQUIRED)
+                //,'accessControl' => 'access'             // disable and hide dot starting files (OPTIONAL)
+            )
+        )
+    );
+
+    return new elFinderConnector(new elFinder($opts));
+}
 
 /**
  * Creates/updates an attachment
@@ -206,54 +227,3 @@ function attachment_meta($domain, $id, $attachment) {
     );
 }
 
-
-
-/**
- * The default FSAttachmentHandler stores files on the OW_CONTENT directory
- * Those files could also be served directly through the OW_CONTENT_URL address
- */
-class FSAttachmentHandler extends OWHandler {
-
-    /**
-     * Delete an attachment
-     * @param $file
-     */
-    function delete($file) {
-
-    }
-
-    /**
-     * Lists all attachments for this url
-     */
-    function fetch() {
-
-    }
-
-    /**
-     * Retrieves an attachment from disk
-     * @param $file
-     */
-    function get($file, $params) {
-        // TODO maybe could return just a pointer to a file
-    }
-
-    /**
-     * Attaches files to the url
-     * @param null $files
-     * @return string|The|void
-     */
-    function post($files) {
-
-    }
-
-    /**
-     * Adds/updates an attachment directly
-     * @param $file
-     * @param Array $data
-     * @return array|void
-     */
-    function put($file, $data) {
-
-    }
-
-}

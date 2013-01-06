@@ -106,7 +106,8 @@ function handle_attachment_post($domain, $id, $attachment_id = null) {
 
 function handle_plugin($domain, $id, $plugin) {
     if($plugin == 'attachments') {
-        respond(attachment_list($domain, $id));
+        $connector = attachments($domain, $id);
+        $connector->run();
     }
     else {
         respond('Invalid plugin', 404);
