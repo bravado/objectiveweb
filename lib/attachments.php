@@ -8,10 +8,10 @@
  * Date: 03/04/12
  * Time: 10:14
  */
-include_once dirname(__FILE__).'/elFinder/elFinderConnector.class.php';
-include_once dirname(__FILE__).'/elFinder/elFinder.class.php';
-include_once dirname(__FILE__).'/elFinder/elFinderVolumeDriver.class.php';
-include_once dirname(__FILE__).'/elFinder/elFinderVolumeLocalFileSystem.class.php';
+include_once dirname(__FILE__).'/elfinder/elFinderConnector.class.php';
+include_once dirname(__FILE__).'/elfinder/elFinder.class.php';
+include_once dirname(__FILE__).'/elfinder/elFinderVolumeDriver.class.php';
+include_once dirname(__FILE__).'/elfinder/elFinderVolumeLocalFileSystem.class.php';
 
 // thinking about the future...
 // defined('ATTACHMENT_HANDLER') or define('ATTACHMENT_HANDLER', 'FSAttachmentHandler');
