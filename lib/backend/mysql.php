@@ -34,10 +34,13 @@ if ($mysqli === FALSE) {
 $mysqli->set_charset(OW_CHARSET);
 
 // Generic query function
-function query() {
+function query($query)
+{
     global $mysqli;
 
-    $query = call_user_func_array('sprintf', func_get_args());
+    if(func_num_args() > 1) {
+        $query = call_user_func_array('sprintf', func_get_args());
+    }
 
     debug($query);
 
@@ -63,14 +66,12 @@ function query() {
 
                     if (!isset($r[$_e])) {
                         $r[$_e] = array($_f => $data[$i]);
-                    }
-                    else {
+                    } else {
                         if (!isset($r[$_e][$_f])) {
                             $r[$_e][$_f] = $data[$i];
                         }
                     }
-                }
-                else {
+                } else {
                     // Never overwrite a field
                     // This way we use the first table's field
                     if (!isset($r[$finfo[$i]->name])) {
@@ -87,7 +88,8 @@ function query() {
 
 }
 
-function tablestore_page($args, $params = array()) {
+function tablestore_page($args, $params = array())
+{
     if ($args) {
         // Page
         isset($params["_limit"]) || $params["_limit"] = 20;
@@ -96,8 +98,7 @@ function tablestore_page($args, $params = array()) {
         $params['_offset'] = ($page ? $page - 1 : 0) * $params['_limit'];
 
         return $params;
-    }
-    else {
+    } else {
         $params['_fields'] = array(
             'total' => 'COUNT(*)'
         );
@@ -106,7 +107,8 @@ function tablestore_page($args, $params = array()) {
     }
 }
 
-class Table {
+class Table
+{
 
     var $name = null;
     var $pk = null;
@@ -160,7 +162,8 @@ class Table {
      */
     var $fields = array();
 
-    function Table($name) {
+    function Table($name)
+    {
         global $mysqli;
 
         $this->name = $mysqli->escape_string($name);
@@ -170,19 +173,16 @@ class Table {
 
         if ($result === FALSE || $result->num_rows == 0) {
             throw new Exception($mysqli->error, 500);
-        }
-        else {
+        } else {
             while ($data = $result->fetch_assoc()) {
                 if ($data['Key'] == 'PRI') {
                     if ($this->pk != null) {
                         if (is_array($this->pk)) {
                             $this->pk[] = $data['Field'];
-                        }
-                        else {
+                        } else {
                             $this->pk = array($this->pk, $data['Field']);
                         }
-                    }
-                    else {
+                    } else {
                         $this->pk = $data['Field'];
                     }
                 }
@@ -199,20 +199,22 @@ class Table {
      * Lists this table's fields
      * @return array with all the table field names
      */
-    function fields() {
+    function fields()
+    {
         return array_keys($this->fields);
     }
 
-    function filter($key, $callback) {
+    function filter($key, $callback)
+    {
         if (!isset($this->filters[$key])) {
             $this->filters[$key] = array($callback);
-        }
-        else {
+        } else {
             $this->filters[$key][] = $callback;
         }
     }
 
-    function apply_filter($key, $content) {
+    function apply_filter($key, $content)
+    {
         if (isset($this->filters[$key])) {
             foreach ($this->filters[$key] as $callback) {
                 $content = call_user_func($callback, $content);
@@ -229,7 +231,8 @@ class Table {
      * @param array $params
      * @return Array
      */
-    function select($params = array()) {
+    function select($params = array())
+    {
         global $mysqli;
 
         $defaults = array(
@@ -253,11 +256,11 @@ class Table {
         }
 
         $i = 0;
-        foreach($params['_fields'] as $alias => $_field) {
+        foreach ($params['_fields'] as $alias => $_field) {
             $_fields .= ($i++ > 0 ? ',' : '');
 
-            if($_field != '*') {
-                $_field = $this->_cleanup_field($_field)." as `".(is_numeric($alias) ? $_field : $alias)."`";
+            if ($_field != '*') {
+                $_field = $this->_cleanup_field($_field) . " as `" . (is_numeric($alias) ? $_field : $alias) . "`";
             }
 
             $_fields .= $_field;
@@ -275,8 +278,7 @@ class Table {
 
                 if (is_array($on)) {
                     $query .= " $i join `{$on['table']}` as `$join` on {$on['on']}";
-                }
-                else {
+                } else {
                     $query .= " $i join `$join` on $on";
                 }
             }
@@ -287,21 +289,19 @@ class Table {
 
             if ($k[0] != '_') {
 
-                if(is_array($v)) {
-                    foreach($v as $k1 => $v1) {
+                if (is_array($v)) {
+                    foreach ($v as $k1 => $v1) {
 
                         // TODO verify, group same fields on ( ), consider _op for a single field
-                        if(is_numeric($k1)) {
+                        if (is_numeric($k1)) {
                             $key = $this->_cleanup_field($k);
-                        }
-                        else {
+                        } else {
                             $key = $this->_cleanup_field("$k.$k1");
                         }
 
                         $conditions[] = $this->_parse_condition("$key", $v1);
                     }
-                }
-                else {
+                } else {
                     $key = $this->_cleanup_field($k);
                     $conditions[] = $this->_parse_condition($key, $v);
                 }
@@ -335,32 +335,30 @@ class Table {
 
     }
 
-    function _parse_condition($key, $v) {
+    function _parse_condition($key, $v)
+    {
         global $mysqli;
 
         if ($v[0] == '!') {
             $v = substr($v, 1);
             $_not = true;
-        }
-        else {
+        } else {
             $_not = false;
         }
 
         if ($v === NULL || $v == 'NULL') {
             return sprintf("%s %s null", $key, $_not ? "is not" : "is");
-        }
-        else if (strpos($v, '%') !== FALSE) {
+        } else if (strpos($v, '%') !== FALSE) {
             return sprintf("%s %s '%s'", $key,
                 $_not ? "not like" : "like",
-                $mysqli->escape_string(str_replace('%', '%%',$v)));
-        }
-        else {
+                $mysqli->escape_string(str_replace('%', '%%', $v)));
+        } else {
             $_gt = false;
             $_lt = false;
             $_equal = false;
             do {
 
-                switch($v[0]) {
+                switch ($v[0]) {
                     case '>':
                         $_gt = true;
                         $v = substr($v, 1);
@@ -375,9 +373,9 @@ class Table {
                     default:
                         break;
                 }
-            } while($v[0] && strpos('><=', $v[0]) !== FALSE);
+            } while ($v[0] && strpos('><=', $v[0]) !== FALSE);
 
-            $_op = $_gt ? ($_equal ? '>=' : '>') : ($_lt ? ($_equal ? '<=' : '<') : ($_not ? "!=" : "=") );
+            $_op = $_gt ? ($_equal ? '>=' : '>') : ($_lt ? ($_equal ? '<=' : '<') : ($_not ? "!=" : "="));
 
 
             // TODO tratar >, <, >=, <=, <>
@@ -388,13 +386,13 @@ class Table {
         }
     }
 
-    function _cleanup_field($field) {
+    function _cleanup_field($field)
+    {
         global $mysqli;
         // verifica se $field não é uma function - a-zA-Z\(.*\)
-        if(preg_match('/[a-zA-Z]+\(.*\)/', $field)) {
+        if (preg_match('/[a-zA-Z]+\(.*\)/', $field)) {
             return $field;
-        }
-        elseif (strpos($field, '.')) {
+        } elseif (strpos($field, '.')) {
             $f = explode('.', $field);
 
             $key = null;
@@ -406,8 +404,7 @@ class Table {
             }
 
             return $key;
-        }
-        else {
+        } else {
             return sprintf("`{$this->name}`.`%s`", $mysqli->escape_string($field));
         }
     }
@@ -419,7 +416,8 @@ class Table {
      * @param  $data
      * @return string
      */
-    function insert($data) {
+    function insert($data)
+    {
         global $mysqli;
 
         if (empty($data)) throw new Exception('Trying to write nothing', 405);
@@ -449,7 +447,7 @@ class Table {
             //            }
 
             $bind_params[0] .= 's';
-            $bind_params[] = &$data[$k];
+            $bind_params[] = & $data[$k];
         }
 
         $values = '?';
@@ -481,8 +479,7 @@ class Table {
         if (empty($data[$this->pk])) {
             // TODO só retornar insert_id se for auto_increment
             return $mysqli->insert_id;
-        }
-        else {
+        } else {
             return $data[$this->pk];
         }
 
@@ -497,7 +494,8 @@ class Table {
      * @param  $data - Associative Array of updated data
      * @return The object's oid
      */
-    function update($key, $data) {
+    function update($key, $data)
+    {
 
         global $mysqli;
 
@@ -512,34 +510,31 @@ class Table {
 
             if (is_array($data[$k])) { // TODO or is_class/is_object ?
                 $data[$k] = json_encode($data[$k]);
-            }
-            elseif(is_bool($data[$k])) {
+            } elseif (is_bool($data[$k])) {
                 $data[$k] = $data[$k] ? '1' : '0';
             }
 
-            if($data[$k] === NULL || $data[$k] == 'NULL') {
+            if ($data[$k] === NULL || $data[$k] == 'NULL') {
                 $query_args[] = "`$k` = NULL";
-            }
-//            TODO elseif(preg_match('/[a-zA-Z]+\(.*\)/', $data[$k])) {
+            } //            TODO elseif(preg_match('/[a-zA-Z]+\(.*\)/', $data[$k])) {
 //                $query_args[] = "`$k` = {$data[$k]}";
 //            }
             else {
                 $query_args[] = "`$k` = ?";
                 $bind_params[0] .= 's';
-                $bind_params[] = &$data[$k];
+                $bind_params[] = & $data[$k];
             }
         }
 
         $key_args = array();
         foreach ($key as $k => $v) {
-            if($v == NULL || $v == 'NULL') {
+            if ($v == NULL || $v == 'NULL') {
                 $key_args[] = "`$k` is NULL";
-            }
-            else {
+            } else {
                 $key_args[] = "`$k` = ?";
                 // TODO tratar null ?
                 $bind_params[0] .= 's';
-                $bind_params[] = &$key[$k];
+                $bind_params[] = & $key[$k];
             }
         }
 
@@ -562,7 +557,8 @@ class Table {
     }
 
 
-    function delete($conditions) {
+    function delete($conditions)
+    {
         global $mysqli;
 
         if (!is_array($conditions)) {
@@ -575,7 +571,7 @@ class Table {
         foreach ($conditions as $k => $v) {
             $query_args[] = "`$k` = ?";
             $bind_params[0] .= 's';
-            $bind_params[] = &$conditions[$k];
+            $bind_params[] = & $conditions[$k];
         }
 
         $query = sprintf("delete from $this->name where %s", implode(' and ', $query_args));
@@ -597,7 +593,8 @@ class Table {
     }
 }
 
-class TableStore extends OWHandler {
+class TableStore extends OWHandler
+{
 
     // Initialization parameters
     var $params = array();
@@ -611,7 +608,8 @@ class TableStore extends OWHandler {
     var $hasMany = array();
     var $belongsTo = array();
 
-    function init($params) {
+    function init($params)
+    {
         $defaults = array(
             'table' => $this->id,
             'extends' => null,
@@ -633,15 +631,15 @@ class TableStore extends OWHandler {
             $this->table = new Table($this->params['extends']);
             // Joined tables have the same primary key as their parent (mandatory)
             $this->joins[$this->params['table']] = sprintf("%s.%s = %s.%s", $this->params['extends'], $this->table->pk, $this->params['table'], $this->table->pk);
-        }
-        else {
+        } else {
             $this->table = new Table($this->params['table']);
         }
 
 
     }
 
-    function get($oid, $params = array()) {
+    function get($oid, $params = array())
+    {
 
         // Accept params in querystring form
         if (!is_array($params)) {
@@ -654,8 +652,7 @@ class TableStore extends OWHandler {
             foreach ($oid as $k => $v) {
                 $params[$k] = $v;
             }
-        }
-        else {
+        } else {
             $params["{$this->table->name}.{$this->table->pk}"] = $oid;
         }
 
@@ -669,39 +666,45 @@ class TableStore extends OWHandler {
             // Grab first result
             $result = $result[0];
 
-            // If eager and pk is set, fetch relations
-            // (pk can be excluded from the _fields parameter)
-            if ($params['_eager'] && isset($result[$this->table->pk])) {
-                foreach ($this->hasMany as $hasMany_id => $hasMany_params) {
-                    $hasMany_defaults = array(
-                        'table' => $hasMany_id,
-                        'key' => $this->table->name . "_id",
-                        'join' => array()
-                    );
+            if (isset($result[$this->table->pk])) {
 
-                    $hasMany_params = array_merge($hasMany_defaults, $hasMany_params);
+                // Initialize HAL Links
+                $result['_links'] = array('self' => sprintf("/%s/%s",$this->id, $result[$this->table->pk]));
 
-                    $table = new TableStore();
-                    $table->init($hasMany_params);
-                    $select_params = array(
-                        "{$hasMany_params['key']}" => $result[$this->table->pk]
-                    );
+                // If eager, fetch relations
+                // (pk can be excluded from the _fields parameter)
+                if ($params['_eager']) {
+                    foreach ($this->hasMany as $hasMany_id => $hasMany_params) {
+                        $hasMany_defaults = array(
+                            'table' => $hasMany_id,
+                            'key' => $this->table->name . "_id",
+                            'join' => array()
+                        );
 
-                    $result[$hasMany_id] = $table->fetch($select_params);
+                        $hasMany_params = array_merge($hasMany_defaults, $hasMany_params);
+
+                        $table = new TableStore();
+                        $table->init($hasMany_params);
+                        $select_params = array(
+                            "{$hasMany_params['key']}" => $result[$this->table->pk]
+                        );
+
+                        $result[$hasMany_id] = $table->fetch($select_params);
+
+                    }
+
 
                 }
 
-
             }
-
             return $result;
-        }
-        else {
+        } else {
             return null;
         }
     }
 
-    function fetch($params = array()) {
+    function fetch($params = array())
+    {
 
         // Accept params in querystring form
         if (!is_array($params)) {
@@ -720,15 +723,15 @@ class TableStore extends OWHandler {
 
         $_fields = array();
         // Table Inheritance
-        if(!empty($this->joins)) {
-            foreach($this->table->fields() as $_field) {
-                $_fields[$_field] = $this->table->name.'.'.$_field;
+        if (!empty($this->joins)) {
+            foreach ($this->table->fields() as $_field) {
+                $_fields[$_field] = $this->table->name . '.' . $_field;
             }
             foreach ($this->joins as $join => $on) {
 
                 $join_table = new Table($join);
                 // Keep fields from the first table
-                foreach($join_table->fields() as $_field) {
+                foreach ($join_table->fields() as $_field) {
                     $_fields[$_field] = "$join.$_field";
                 }
 
@@ -737,11 +740,9 @@ class TableStore extends OWHandler {
 
             }
 
-        }
-        else {
+        } else {
             $_fields = $this->table->fields();
         }
-
 
 
         if ($params['_eager']) {
@@ -752,10 +753,10 @@ class TableStore extends OWHandler {
              * If directory is enabled and we have a _owner field with a foreign key set to ow_directory, join that table
              * We won't overwrite a user-defined owner though
              */
-            if(OW_DIRECTORY && in_array('_owner', $_fields) && !in_array('owner', $_fields) && !isset($this->belongsTo['owner'])) {
+            if (OW_DIRECTORY && in_array('_owner', $_fields) && !in_array('owner', $_fields) && !isset($this->belongsTo['owner'])) {
 
                 // TODO verify if there's a foreign key pointing to OW_DIRECTORY
-                $this->belongsTo['owner'] =  array(
+                $this->belongsTo['owner'] = array(
                     'table' => 'ow_directory',
                     // 'fields' => array('oid', 'displayName', 'identifier', 'photoURL', 'created'),
                     'key' => array(
@@ -764,7 +765,6 @@ class TableStore extends OWHandler {
                     )
                 );
             }
-
 
 
             foreach ($this->belongsTo as $k => $v) {
@@ -778,17 +778,16 @@ class TableStore extends OWHandler {
                 }
 
                 $belongsTo_join = null;
-                if(is_array($v['key'])) {
+                if (is_array($v['key'])) {
                     $cond = array();
-                    foreach($v['key'] as $field => $value) {
+                    foreach ($v['key'] as $field => $value) {
 
-                        if(in_array($value, $this->table->fields())) {
+                        if (in_array($value, $this->table->fields())) {
                             // $value is a field on the main table
                             $cond[] = sprintf("`%s`.`%s` = `%s`.`%s`",
                                 $k, $field,
                                 $this->table->name, $value);
-                        }
-                        else {
+                        } else {
                             $cond[] = sprintf("`%s`.`%s` = %s",
                                 $k, $field,
                                 $value === NULL ? 'NULL' : "'$value'"
@@ -798,8 +797,7 @@ class TableStore extends OWHandler {
                     }
 
                     $belongsTo_join = implode(" AND ", $cond);
-                }
-                else {
+                } else {
                     $belongsTo_join = sprintf("`%s`.`%s` = `%s`.`%s`", $k, $belongsTo_table->pk, isset($v['from']) ? $v['from'] : $this->table->name, $v['key']);
                 }
 
@@ -810,7 +808,7 @@ class TableStore extends OWHandler {
                 );
             }
 
-            foreach($this->hasOne as $k => $v) {
+            foreach ($this->hasOne as $k => $v) {
 
                 $hasOne_table = new Table($v['table']);
 
@@ -835,7 +833,8 @@ class TableStore extends OWHandler {
         return $this->table->select($params);
     }
 
-    function _insert_or_update_hasmany($data) {
+    function _insert_or_update_hasmany($data)
+    {
         foreach ($this->hasMany as $hasMany => $hasMany_params) {
             if (!empty($data[$hasMany])) {
                 foreach ($data[$hasMany] as $hasMany_data) {
@@ -850,14 +849,12 @@ class TableStore extends OWHandler {
                     if (isset($hasMany_data[$table->pk])) {
                         if ($_delete) {
                             $table->delete($hasMany_data[$table->pk]);
-                        }
-                        else {
+                        } else {
                             $update_cond = array("{$table->pk}" => $hasMany_data[$table->pk]);
                             $table->update($update_cond, $hasMany_data);
                         }
 
-                    }
-                    else {
+                    } else {
                         // Insert new relation
                         // TODO should we really verify if _destroy was set on an INSERT operation ?
                         if (!isset($hasMany_data['_destroy'])) {
@@ -873,7 +870,8 @@ class TableStore extends OWHandler {
         }
     }
 
-    function post($data = null) {
+    function post($data = null)
+    {
         global $mysqli;
 
         // Use transactions by default
@@ -963,14 +961,14 @@ class TableStore extends OWHandler {
         return array($this->table->pk => $data[$this->table->pk]);
     }
 
-    function put($oid, $data) {
+    function put($oid, $data)
+    {
         global $mysqli;
 
         if (isset($data[$this->table->pk])) {
             if ($data[$this->table->pk] != $oid) {
                 throw new Exception(_('Cannot update the primary key, use rename instead'), 405);
-            }
-            else {
+            } else {
                 unset($data[$this->table->pk]);
             }
         }
@@ -1058,7 +1056,8 @@ class TableStore extends OWHandler {
         return array($this->table->pk => $oid);
     }
 
-    function delete($id) {
+    function delete($id)
+    {
         global $mysqli;
 
         // Use transactions by default
@@ -1100,7 +1099,8 @@ class TableStore extends OWHandler {
         return array('delete' => $affected_rows);
     }
 
-    function has_field($field) {
+    function has_field($field)
+    {
         return isset($this->table->fields[$field]);
     }
 }
@@ -1110,15 +1110,18 @@ class TableStore extends OWHandler {
  * ObjectStore
  *
  */
-class ObjectStore extends TableStore {
+class ObjectStore extends TableStore
+{
 
-    function init($params) {
+    function init($params)
+    {
         parent::init($params);
 
         // TODO check if all necessary tables exist (meta, versioning, etc)
     }
 
-    function get($oid) {
+    function get($oid)
+    {
         $object = parent::get($oid);
         return $object;
 
@@ -1126,7 +1129,8 @@ class ObjectStore extends TableStore {
 
     }
 
-    function fetch($params) {
+    function fetch($params)
+    {
         // TODO só preciso trazer o _content nos fields!
         $results = parent::fetch($params);
 
@@ -1141,7 +1145,8 @@ class ObjectStore extends TableStore {
         return $results;
     }
 
-    function post($params) {
+    function post($params)
+    {
         $return = array();
 
         // TODO apenas se o field OID for VARCHAR 36
@@ -1176,7 +1181,8 @@ class ObjectStore extends TableStore {
 
     }
 
-    function put($oid, $data) {
+    function put($oid, $data)
+    {
 
         $object = $this->get($oid);
 

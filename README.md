@@ -1,5 +1,38 @@
-# Objectiveweb
-Data dominates. If you've chosen the right data structures and organized things well, the algorithms will almost always be self-evident. Data structures, not algorithms, are central to programming. (Rob Pike, 1989)
+Objectiveweb
+============
+
+Data dominates. If you've chosen the right data structures and
+organized things well, the algorithms will almost always be
+self-evident. Data structures, not algorithms, are central to
+programming. (Rob Pike, 1989)
+
+## This is a work in progress
+
+This current version **does not** enforce any kind of authorization
+on the resources exported via `objectiveweb/index.php`.
+
+This won't affect custom controllers, which may implement their own
+authorization schema.
+
+### Workarounds
+
+ * Use plain http authentication (.htaccess) for the /objectiveweb
+directory
+ * Enforce permissions on the ow-config.php file
+
+    if(!current_user()) { respond('Not authenticated', 403); }
+
+
+### TODO
+
+ * 0.6 release
+	* Finish implementing elfinder-based attachments
+	* Integrate phpgacl
+
+ * Post-0.6 release
+	* Use PDO instead of mysqli (bravado/db) for the backend
+	* Package the lib properly (to be used with composer)
+		* Use some OO stuff (ie namespaces)
 
 # Usage
 
@@ -45,3 +78,10 @@ Add your application to the core adding the following directive to ow-config.php
 This registers an application stored on the "application" directory.
 
 A sample app named "skeleton" is available at [https://github.com/bravado/skeleton](https://github.com/bravado/skeleton)
+
+License
+-------
+
+Copyright 2011 (c) Bravado
+
+Licensed under the MIT License, other components licenses are listed on the LICENSES file.

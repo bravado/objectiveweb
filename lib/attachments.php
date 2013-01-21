@@ -30,7 +30,27 @@ defined('ATTACHMENT_HASHDEPTH') or define('ATTACHMENT_HASHDEPTH', 2);
 define('ATTACHMENT_UNLINK', 1);
 define('ATTACHMENT_OVERWRITE', 2);
 
+/**
+ * Simple function to demonstrate how to control file access using "accessControl" callback.
+ * This method will disable accessing files/folders starting from '.' (dot)
+ *
+ * @param  string  $attr  attribute name (read|write|locked|hidden)
+ * @param  string  $path  file path relative to volume root directory started with directory separator
+ * @return bool|null
+ **/
+function hide_dot_files($attr, $path, $data, $volume) {
+    return strpos(basename($path), '.') === 0       // if file/folder begins with '.' (dot)
+        ? !($attr == 'read' || $attr == 'write')    // set read+write to false, other (locked+hidden) set to true
+        :  null;                                    // else elFinder decide it itself
+}
 
+
+/**
+ * Instantiates an elFinder instance for the domain/id resource attachments
+ * @param $domain
+ * @param $id
+ * @return elFinder
+ */
 function attachments($domain, $id) {
     $opts = array(
         // 'debug' => true, TODO set debug
@@ -38,14 +58,27 @@ function attachments($domain, $id) {
             array(
                 'driver'        => 'LocalFileSystem',   // driver for accessing file system (REQUIRED)
                 'path'          => attachment_filename($domain, $id),         // path to files (REQUIRED)
-                'URL'           => OW_URL."/$domain/$id" // URL to files (REQUIRED)
-                //,'accessControl' => 'access'             // disable and hide dot starting files (OPTIONAL)
+                'URL'           => OW_URL."index.php/$domain/$id", // URL to files (REQUIRED)
+                'accessControl' => 'hide_dot_files'             // disable and hide dot starting files (OPTIONAL)
             )
         )
     );
 
-    return new elFinderConnector(new elFinder($opts));
+    return new OWAttachmentManager($opts);
 }
+
+function attachments_handler($domain, $id) {
+    $connector = new elFinderConnector(attachments($domain, $id));
+    $connector->run();
+}
+
+
+function attachment_get($domain, $id, $filename) {
+    $attachments = attachments($domain, $id);
+
+    $attachments->download($filename);
+}
+
 
 /**
  * Creates/updates an attachment
@@ -227,3 +260,38 @@ function attachment_meta($domain, $id, $attachment) {
     );
 }
 
+
+class OWAttachmentManager extends elFinder {
+    public function __construct($opts) {
+        parent::__construct($opts);
+    }
+
+    public function download($filename) {
+
+        // Get the first volume
+        // http://stackoverflow.com/questions/1028668/get-first-key-in-a-possibly-associative-array
+        $volume = reset($this->volumes);
+
+        $hash = strtr(base64_encode($filename), '+/=', '-_.');
+        // remove dots '.' at the end, before it was '=' in base64
+        $hash = rtrim($hash, '.');
+        // append volume id to make hash unique
+        $target = $volume->id().$hash;
+
+        $file = $this->file(array('target' => $target));
+
+        if(!$file) {
+            throw new Exception(_('Attachment not found'), 404);
+        }
+
+        foreach($file['header'] as $header){
+            header($header);
+        }
+
+        fpassthru($file['pointer']);
+        fclose($file['pointer']);
+        exit;
+    }
+
+
+}

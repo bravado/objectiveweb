@@ -1,3 +1,4 @@
+/*global alert: true, jQuery: true, ko: true */
 (function (window, $, ko) {
     "use strict";
 
@@ -20,7 +21,7 @@
         };
 
     };
-
+    
     metaproject.DataSource = function (base_url, options) {
         var self = this,
             $self = $(this),
@@ -34,10 +35,12 @@
         }, options);
 
         // Events
-        self.on = $self.on;
+        self.on = function() {
+            $self.on.apply($self, arguments);
+        };
 
         self._id = function (model_or_id) {
-            if (typeof(model_or_id) == 'object') {
+            if (typeof(model_or_id) === 'object') {
                 return ko.utils.unwrapObservable(model_or_id[options.key]);
             }
             else {
@@ -85,7 +88,7 @@
                     type: 'GET',
                     error: self.errorHandler,
                     success: function (data) {
-                        if (typeof(callback) == 'function') {
+                        if (typeof(callback) === 'function') {
                             if (data instanceof Array) {
                                 callback($.map(data, function (e, i) {
                                     return new options.model(e);
@@ -107,7 +110,6 @@
                 type: 'POST',
                 data: data,
                 success: function (data) {
-                    $self.trigger('post', data);
                     $self.trigger('changed', { action: 'post', data: data});
                     if (typeof(callback) === 'function') {
                         callback(data);
@@ -124,7 +126,6 @@
                 type: 'PUT',
                 data: data,
                 success: function (data) {
-                    $self.trigger('put', data);
                     $self.trigger('changed', { action: 'put', data: data});
                     if (typeof(callback) === 'function') {
                         callback(data);
@@ -134,14 +135,13 @@
             });
         };
 
-        self.delete = function (model, callback) {
+        self.destroy = function (model, callback) {
             return $.ajax({
                 url: base_url + '/' + self._id(model),
                 dataType: 'json',
                 type: 'DELETE',
                 success: function (data) {
-                    $self.trigger('delete', data);
-                    $self.trigger('changed', { action: 'delete', data: data});
+                    $self.trigger('changed', { action: 'destroy', data: data});
                     if (typeof(callback) === 'function') {
                         callback(data);
                     }
@@ -167,12 +167,12 @@
                 editor.current(ds.create(values));
             };
 
-            editor.delete = function () {
+            editor.destroy = function () {
 
-                self.delete(editor.current());
+                self.destroy(editor.current());
 
-                if (typeof(callbacks.delete) === 'function') {
-                    callbacks.delete();
+                if (typeof(callbacks.destroy) === 'function') {
+                    callbacks.destroy();
                 }
             };
 
@@ -205,7 +205,7 @@
             var result = ko.computed({
                 read: function () {
                     var newhash = ko.toJSON(result.filter());
-                    if (_hash() != newhash) {
+                    if (_hash() !== newhash) {
                         result.loading(true);
                         self.get('/', result.filter(), function (newData) {
                             _hash(newhash);
@@ -245,7 +245,7 @@
                 var filter = result.filter();
 
                 _.keys(filter).forEach(function(key) {
-                    if(key[0] != '_') {
+                    if(key[0] !== '_') {
                         delete filter[key];
                     }
                 });
@@ -263,12 +263,12 @@
                 me.reload = function () {
                     me.loading(true);
                     var x = _.filter(_.keys(result.filter()), function(value, index, list) {
-                        return value[0] != '_';
+                        return value[0] !== '_';
                     });
                     var local_params = _.extend(_.pick(result.filter(), x), params);
 
                     self.get('/', local_params, function (newData) {
-                        if (typeof(transform) == 'function') {
+                        if (typeof(transform) === 'function') {
                             me(transform(newData));
                         }
                         else {
@@ -327,7 +327,7 @@
 
             var path = routes[id];
 
-            if (undefined == routes[id]) {
+            if (undefined === routes[id]) {
                 _content.id(null);
                 _content('Route ' + id + ' not found');
                 return;
@@ -369,7 +369,7 @@
                             _content.id(id);
                             _content(data);
 
-                            if (typeof(callback) == 'function') {
+                            if (typeof(callback) === 'function') {
                                 callback();
                             }
 
@@ -410,7 +410,7 @@
 
             ko.mapping.fromJS(data, mapping || {}, instance);
 
-        }
+        };
 
     };
 
@@ -2321,7 +2321,7 @@ var TimePeriod = function (years, months, days, hours, minutes, seconds, millise
 // - end of Datepicker
 /*global jQuery:true, ko:true, elRTE:true */
 // ElRTE / ElFinder
-(function ($, ko, elRTE) {
+(undefined !== window.elRTE) &&(function ($, ko, elRTE) {
     "use strict";
 
     // From underscore, will debounce elrte updates on window.focus
@@ -2333,8 +2333,8 @@ var TimePeriod = function (years, months, days, hours, minutes, seconds, millise
                 timeout = null;
                 func.apply(context, args);
             };
-            if (debounce) clearTimeout(timeout);
-            if (debounce || !timeout) timeout = setTimeout(throttler, wait);
+            if (debounce) { clearTimeout(timeout); }
+            if (debounce || !timeout) { timeout = setTimeout(throttler, wait); }
         };
     };
 
@@ -2344,12 +2344,28 @@ var TimePeriod = function (years, months, days, hours, minutes, seconds, millise
                 elrte = ko.utils.unwrapObservable(valueAccessor()),
                 value = allBindingsAccessor().value;
 
+            if(value && value.subscribe) {
+                $element.val(ko.utils.unwrapObservable(value));
+
+                value.subscribe(function(newValue) {
+                    if(!element._updating) {
+                        $element.elrte('val', $element.val());
+                    }
+                });
+            }
+
             $element.elrte(elrte);
 
             // limit the update rate to every 200ms
             var updater = limit(function () {
-                $element.val($element.elrte('val')).change();
+                element._updating = true;
+                //$element.val($element.elrte('val')).change();
+                $element.elrte('updateSource').change();
+                element._updating = false;
             }, 200, true);
+
+            if(value) {
+            }
 
             // elrte calls window.focus() when the ui is updated
             var _focus = element.elrte.iframe.contentWindow.window.focus;
@@ -4192,10 +4208,13 @@ var TimePeriod = function (years, months, days, hours, minutes, seconds, millise
         }
     };
 })(jQuery, ko);
-// - end of mask/money input// Rich Text Editor
+// - end of mask/money input/*global $: true, ko: true, tinymce: true */
+// Rich Text Editor
 // Depends on tinymce, options are passed via the tinymceOptions binding
 // Binding structure taken from http://jsfiddle.net/rniemeyer/BwQ4k/
 (undefined !== window.tinymce) && (function ($, ko, tinymce) {
+    "use strict";
+
     ko.bindingHandlers.tinymce = {
         init:function (element, valueAccessor, allBindingsAccessor, context) {
             var options = allBindingsAccessor().tinymceOptions || {};
@@ -4212,7 +4231,7 @@ var TimePeriod = function (years, months, days, hours, minutes, seconds, millise
             }
 
             if (!element.id) {
-                element.id = 'mp_rte_' + new Date().getTime();
+                element.id = 'mp_tinymce_' + new Date().getTime();
             }
 
             options = $.extend({
@@ -4245,18 +4264,19 @@ var TimePeriod = function (years, months, days, hours, minutes, seconds, millise
 })(jQuery, ko, tinymce);
 // - end of tinymce
 
-
+/*global jQuery: true, metaproject: true, ko: true */
 
 // metaproject ui components
-(function(window, $, ko) {
+(function(window, $, metaproject, ko) {
+    "use strict";
 
-    var metaproject = window.metaproject.ui = window.metaproject.ui || {};
+    metaproject.ui = metaproject.ui || {};
 
     metaproject.ui.Grid = function(data, params) {
         var self = this;
 
         params = $.extend({}, { columns: [], actions: []}, params);
-        // TODO if datasource instanceof Array ...
+        // data is an array
         self.data = data;
         self.columns = params.columns;
         self.actions = params.actions;
@@ -4319,7 +4339,7 @@ var TimePeriod = function (years, months, days, hours, minutes, seconds, millise
             });
 
             // treat String, callback or Array as source
-            if (typeof(params) == 'string' || typeof(params) == 'function' || params instanceof Array) {
+            if (typeof(params) === 'string' || typeof(params) === 'function' || params instanceof Array) {
                 params = { source: params };
             }
 
@@ -4327,11 +4347,11 @@ var TimePeriod = function (years, months, days, hours, minutes, seconds, millise
 
             // Custom render callback http://jqueryui.com/demos/autocomplete/#custom-data
             // TODO render as string => ko templates ?
-            if (undefined != params.renderItem) {
+            if (undefined !== params.renderItem) {
                 $autocomplete._renderItem = params.renderItem;
             }
 
-            if (undefined != params.renderMenu) {
+            if (undefined !== params.renderMenu) {
                 $autocomplete._renderMenu = params.renderMenu;
             }
         }
@@ -4362,4 +4382,4 @@ var TimePeriod = function (years, months, days, hours, minutes, seconds, millise
             jQuery(element).prepend(icon);
         }
     };
-})(window, jQuery, ko);
+})(window, jQuery, metaproject, ko);

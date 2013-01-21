@@ -17,22 +17,26 @@ route('GET /?', 'ow_version');
 
 // Views before attachments
 // /domain/_view
-route('GET /(\w*/_\w*/?.*)', 'fetch', $_GET);
+route('GET /(\w+/_\w+/?.*)', 'fetch', $_GET);
 //route('POST /(\w*)/_(\w*)/?', 'handle_view');
 //route('PUT /(\w*)/_(\w*)/?', 'handle_view');
+
+// Plugins before attachments
+// /domain/id/_plugin
+route('[A-Z]+ /(\w+)/([\w-]+)/_(\w+)', 'handle_plugin');
 
 // Attachments before, because they may use php://stdin
 route('POST /(\w+)/([\w-]+)?', 'handle_attachment_post');
 route('POST /(\w+)/([\w-]+)/([\w-.\ ]+)', 'handle_attachment_post');
 route('PUT /(\w+)/([\w-]+)/([\w-.\ ]+)', 'handle_attachment_post');
-route('DELETE /(\w+)/([\w-]+)/([\w-.\ ]+)', 'handle_attachment_delete');
-route('GET /(\w+)/([\w-]+)/([\w-.\ ]+)', 'handle_attachment_get');
+route('DELETE /(\w+)/([\w-]+)/([\w-.\ ]+)', 'attachment_delete');
+route('GET /(\w+)/([\w-]+)/([\w-.\ ]+)', 'attachment_get');
 
 $body = parse_post_body();
 
 // /domain
 route('GET /(\w+)/?', 'fetch', $_GET);
-route('POST /(\w*)/?', 'post', $body);
+route('POST /(\w+)/?', 'post', $body);
 
 
 // /domain/id
@@ -40,37 +44,10 @@ route('GET /(\w+)/([\w-]+)/?', 'get', $_GET);
 route('PUT /(\w+)/([\w-]+)/?', 'put', $body);
 route('DELETE /(\w+)/([\w-]+)/?', 'delete');
 
-route('GET /(\w+)/([\w-]+)/_(\w+)', 'handle_plugin');
 //route('POST /(\w*)/(\w*)/_(\w*)', 'handle_plugin');
 //route('PUT /(\w*)/(\w*)/_(\w*)', 'handle_plugin');
 //route('DELETE /(\w*)/(\w*)/_(\w*)', 'handle_plugin');
 
-
-function handle_attachment_delete($domain, $id, $attachment) {
-    attachment_delete($domain, $id, $attachment);
-}
-
-function handle_attachment_get($domain, $id, $attachment) {
-
-    $metadata = attachment_meta($domain, $id, $attachment);
-
-    $filename = attachment_filename($domain, $id, $attachment);
-
-    if(!file_exists($filename)) {
-        respond(sprintf("Attachment %s does not exist", $filename), 404);
-    }
-
-    header('Content-Type:'.$metadata['mime']);
-    if(isset($_GET['download'])) {
-        header('Content-Disposition: attachment; filename="'.$attachment.'"');
-    }
-    header('Content-Length: '.$metadata['size']);
-
-    $fp = fopen($filename, "rb");
-    fpassthru($fp);
-    fclose($fp);
-    exit;
-}
 
 function handle_attachment_post($domain, $id, $attachment_id = null) {
     $files = array();
@@ -106,8 +83,8 @@ function handle_attachment_post($domain, $id, $attachment_id = null) {
 
 function handle_plugin($domain, $id, $plugin) {
     if($plugin == 'attachments') {
-        $connector = attachments($domain, $id);
-        $connector->run();
+        attachments_handler($domain, $id);
+        exit;
     }
     else {
         respond('Invalid plugin', 404);

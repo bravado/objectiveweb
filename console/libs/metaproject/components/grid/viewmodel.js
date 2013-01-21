@@ -1,20 +1,21 @@
+/*global define: true, jQuery: true, ko: true, metaproject: true */
 define(['Boiler'], function (Boiler) {
-
+    "use strict";
     var ViewModel = function (nav, params) {
         var self = this;
 
-        // TODO suportar templates como em http://jsfiddle.net/rniemeyer/VZmsy/
+        // TODO support templates like http://jsfiddle.net/rniemeyer/VZmsy/
         self.header = params.header;
 
         if (undefined === nav.filter()._limit) {
-            nav.filter.set('_limit', 50);
+            nav.filter.set('_limit', 10);
         }
 
         var columns = [];
 
         // TODO if empty cols, montar grid a partir do model
-        $.each(params.cols, function (i, e) {
-            columns.push({ label: i, text: e })
+        jQuery.each(params.cols, function (i, e) {
+            columns.push({ label: i, text: e });
         });
 
         this.grid = new metaproject.ui.Grid(nav, {
@@ -56,7 +57,7 @@ define(['Boiler'], function (Boiler) {
 
             nav.filter.reset(query);
 
-            if (page != 1) {
+            if (page !== 1) {
                 self.paginator.page(1);
             }
             else {
