@@ -189,10 +189,15 @@ class Table
 
                 $this->fields[$data['Field']] = $data;
             }
-
         }
+    }
 
-
+    function _foreign_keys() {
+        global $mysqli;
+        $query = sprintf("SELECT * FROM information_schema.TABLE_CONSTRAINTS i
+            INNER JOIN information_schema.KEY_COLUMN_USAGE k ON i.CONSTRAINT_NAME = k.CONSTRAINT_NAME
+            where i.TABLE_SCHEMA = DATABASE() and i.CONSTRAINT_TYPE = 'FOREIGN KEY'
+            and k.TABLE_NAME = '%s' and k.TABLE_SCHEMA= DATABASE()", $this->name);
     }
 
     /**

@@ -21,7 +21,7 @@
         };
 
     };
-    
+
     metaproject.DataSource = function (base_url, options) {
         var self = this,
             $self = $(this),
@@ -2234,6 +2234,9 @@ var TimePeriod = function (years, months, days, hours, minutes, seconds, millise
 
 
 (function ($, ko) {
+
+    var _updating = false;
+
     ko.bindingHandlers.datepicker = {
         init:function (element, valueAccessor, allBindingsAccessor) {
 
@@ -2241,17 +2244,32 @@ var TimePeriod = function (years, months, days, hours, minutes, seconds, millise
 
             var rangePicker = allBindingsAccessor().rangePicker || false;
 
+            var observable = valueAccessor(),
+                value = ko.utils.unwrapObservable(observable),
+                date;
+            // set the default date
+
+            if (typeof(value) == 'string') {
+                date = value.split('-');
+                date = new Date(date[0], date[1] - 1, date[2]);
+            }
+            else if(value instanceof Date) {
+                date = value;
+            }
+            else {
+                date = new Date();
+                date.setHours(date.getHours() - date.getTimezoneOffset() / 60);
+                observable(date);
+            }
+
             //initialize datepicker with some optional options
             var options = allBindingsAccessor().datepickerOptions || {};
 
-
-
-            var observable = valueAccessor();
+            options.defaultDate = date;
 
             if (rangePicker) {
 
-                options = $.extend(options, {
-                    onChange:function () {
+                options.onChange = function () {
                         //$element.change();
                         var value = $element.val();
 
@@ -2260,8 +2278,7 @@ var TimePeriod = function (years, months, days, hours, minutes, seconds, millise
                         }
 
                         //console.log($element.data);
-                    }
-                });
+                    };
 
                 $element.daterangepicker(options);
             }
@@ -2273,7 +2290,6 @@ var TimePeriod = function (years, months, days, hours, minutes, seconds, millise
                 ko.utils.registerEventHandler(element, "change", function () {
 
                     if (typeof(observable) == 'function') {
-
                         if(observable() instanceof Date) {
                             observable($(element).datepicker("getDate"));
                         }
@@ -2293,6 +2309,8 @@ var TimePeriod = function (years, months, days, hours, minutes, seconds, millise
 
         },
         update:function (element, valueAccessor) {
+            if(_updating) return;
+
             var value = ko.utils.unwrapObservable(valueAccessor());
             // TODO verificar se value é Date ou String e configurar de acordo
 
@@ -2321,94 +2339,97 @@ var TimePeriod = function (years, months, days, hours, minutes, seconds, millise
 // - end of Datepicker
 /*global jQuery:true, ko:true, elRTE:true */
 // ElRTE / ElFinder
-(undefined !== window.elRTE) &&(function ($, ko, elRTE) {
-    "use strict";
+if (undefined !== window.elRTE) {
+    (function ($, ko, elRTE) {
+        "use strict";
 
-    // From underscore, will debounce elrte updates on window.focus
-    var limit = function (func, wait, debounce) {
-        var timeout;
-        return function () {
-            var context = this, args = arguments;
-            var throttler = function () {
-                timeout = null;
-                func.apply(context, args);
+        // From underscore, will debounce elrte updates on window.focus
+        var limit = function (func, wait, debounce) {
+            var timeout;
+            return function () {
+                var context = this, args = arguments;
+                var throttler = function () {
+                    timeout = null;
+                    func.apply(context, args);
+                };
+                if (debounce) {
+                    clearTimeout(timeout);
+                }
+                if (debounce || !timeout) {
+                    timeout = setTimeout(throttler, wait);
+                }
             };
-            if (debounce) { clearTimeout(timeout); }
-            if (debounce || !timeout) { timeout = setTimeout(throttler, wait); }
         };
-    };
 
-    ko.bindingHandlers.elrte = {
-        init: function (element, valueAccessor, allBindingsAccessor) {
-            var $element = $(element),
-                elrte = ko.utils.unwrapObservable(valueAccessor()),
-                value = allBindingsAccessor().value;
+        ko.bindingHandlers.elrte = {
+            init: function (element, valueAccessor, allBindingsAccessor) {
+                var $element = $(element),
+                    elrte = ko.utils.unwrapObservable(valueAccessor()),
+                    value = allBindingsAccessor().value;
 
-            if(value && value.subscribe) {
-                $element.val(ko.utils.unwrapObservable(value));
+                if (value && value.subscribe) {
+                    $element.val(ko.utils.unwrapObservable(value));
 
-                value.subscribe(function(newValue) {
-                    if(!element._updating) {
-                        $element.elrte('val', $element.val());
-                    }
+                    value.subscribe(function (newValue) {
+                        if (!element._updating) {
+                            $element.elrte('val', $element.val());
+                        }
+                    });
+                }
+
+                $element.elrte(elrte);
+
+                // limit the update rate to every 200ms
+                var updater = limit(function () {
+                    element._updating = true;
+                    //$element.val($element.elrte('val')).change();
+                    $element.elrte('updateSource').change();
+                    element._updating = false;
+                }, 200, true);
+
+                // elrte calls window.focus() when the ui is updated
+                var _focus = element.elrte.iframe.contentWindow.window.focus;
+                element.elrte.iframe.contentWindow.window.focus = function () {
+                    updater();
+                    _focus.apply(this, arguments);
+                };
+
+                // also update on editor keyups
+                element.elrte.$doc.on('keyup', updater);
+
+
+                ko.utils.domNodeDisposal.addDisposeCallback(element, function () {
+                    $element.elrte('destroy');
                 });
-            }
-
-            $element.elrte(elrte);
-
-            // limit the update rate to every 200ms
-            var updater = limit(function () {
-                element._updating = true;
-                //$element.val($element.elrte('val')).change();
-                $element.elrte('updateSource').change();
-                element._updating = false;
-            }, 200, true);
-
-            if(value) {
-            }
-
-            // elrte calls window.focus() when the ui is updated
-            var _focus = element.elrte.iframe.contentWindow.window.focus;
-            element.elrte.iframe.contentWindow.window.focus = function () {
-                updater();
-                _focus.apply(this, arguments);
-            };
-
-            // also update on editor keyups
-            element.elrte.$doc.on('keyup', updater);
-
-
-            ko.utils.domNodeDisposal.addDisposeCallback(element, function () {
-                $element.elrte('destroy');
-            });
-        },
-        update: function (element, valueAccessor, allBindingsAccessor, context) {
-            //handle programmatic updates to the observable
+            },
+            update: function (element, valueAccessor, allBindingsAccessor, context) {
+                //handle programmatic updates to the observable
 //            var options = ko.utils.unwrapObservable(valueAccessor());
-            //$(element).fileupload('option', options);
+                //$(element).fileupload('option', options);
 
-        }
-    };
+            }
+        };
 
-    ko.bindingHandlers.elfinder = {
-        init: function (element, valueAccessor) {
-            var $element = $(element),
-                options = ko.utils.unwrapObservable(valueAccessor());
+        ko.bindingHandlers.elfinder = {
+            init: function (element, valueAccessor) {
+                var $element = $(element),
+                    options = ko.utils.unwrapObservable(valueAccessor());
 
-            $element.elfinder(options);
+                $element.elfinder(options);
 
-            ko.utils.domNodeDisposal.addDisposeCallback(element, function () {
-                $element.elfinder('destroy');
-            });
-        },
-        update: function (element, valueAccessor, allBindingsAccessor, context) {
-            //handle programmatic updates to the observable
+                ko.utils.domNodeDisposal.addDisposeCallback(element, function () {
+                    $element.elfinder('destroy');
+                });
+            },
+            update: function (element, valueAccessor, allBindingsAccessor, context) {
+                //handle programmatic updates to the observable
 //            var options = ko.utils.unwrapObservable(valueAccessor());
-            //$(element).fileupload('option', options);
+                //$(element).fileupload('option', options);
 
-        }
-    };
-})(jQuery, ko, elRTE);
+            }
+        };
+    })(jQuery, ko, elRTE);
+}
 // - end of ElRTE/ElFinder
 
 // start fileupload

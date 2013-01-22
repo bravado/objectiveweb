@@ -4,7 +4,6 @@
  *
  * Template Engine
  *
- * Depends on functions.shortcodes.php
  *
  * User: guigouz
  * Date: 14/04/11
