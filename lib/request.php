@@ -168,6 +168,7 @@ function url($str = null, $return = false) {
     }
 
 
+    $out = str_replace(' ', '%20', $out);
     if ($return) {
         return $out;
     }

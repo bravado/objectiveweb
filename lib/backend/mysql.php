@@ -289,6 +289,7 @@ class Table
             }
         }
 
+
         $conditions = array();
         foreach ($params as $k => $v) {
 
@@ -343,6 +344,10 @@ class Table
     function _parse_condition($key, $v)
     {
         global $mysqli;
+
+        if(strlen($v) == 0) {
+            return sprintf("%s = ''", $key);
+        }
 
         if ($v[0] == '!') {
             $v = substr($v, 1);
@@ -726,6 +731,7 @@ class TableStore extends OWHandler
 
         $params = array_merge($defaults, $params);
 
+
         $_fields = array();
         // Table Inheritance
         if (!empty($this->joins)) {
@@ -770,7 +776,6 @@ class TableStore extends OWHandler
                     )
                 );
             }
-
 
             foreach ($this->belongsTo as $k => $v) {
 
@@ -1141,7 +1146,7 @@ class ObjectStore extends TableStore
 
         $entries = array();
         for ($i = 0; $i < count($results); $i++) {
-            if ($results[$i]['_content']) {
+            if (isset($results[$i]['_content'])) {
                 $results[$i] = array_merge($results[$i], json_decode($results[$i]['_content'], true));
             }
             unset($results[$i]['_content']);
