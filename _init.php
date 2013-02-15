@@ -48,7 +48,7 @@ require_once OW_BACKEND;
 require_once OW_LIB.'/session.php';
 require_once OW_LIB.'/attachments.php';
 require_once OW_LIB.'/directory.php';
-require_once OW_LIB.'/request.php';
+require_once OW_LIB.'/router.php';
 require_once OW_LIB.'/template.php';
 
 
