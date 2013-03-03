@@ -1,5 +1,7 @@
+/*global define: true, $: true */
 define(['Boiler', './settings', './loginWindow/component'],
     function (Boiler, settings, LoginWindowComponent) {
+        "use strict";
 
         var Module = function (globalContext) {
 
@@ -23,7 +25,6 @@ define(['Boiler', './settings', './loginWindow/component'],
                     }
                 });
             });
-
 
             /**
              * login {
