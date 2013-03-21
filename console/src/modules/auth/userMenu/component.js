@@ -1,4 +1,6 @@
+/*global define: true, ko: true */
 define(['require', 'Boiler', 'text!./view.html', './viewmodel'], function (require, Boiler, template, ViewModel) {
+    "use strict";
 
     var Component = function (moduleContext) {
         var panel = null;
@@ -17,7 +19,7 @@ define(['require', 'Boiler', 'text!./view.html', './viewmodel'], function (requi
                     //panel.hide();
                 }
             }
-        }
+        };
     };
 
     return Component;

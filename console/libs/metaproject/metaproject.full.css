@@ -1312,13 +1312,14 @@ body.with-header { padding-top: 40px; }
   padding: 20px;
 }
 
-.overlay .container {
-  margin-bottom: 60px;
-}
 
 /* Overlays and Shadows */
-.overlay { position: fixed; top: 0; left: 0; bottom: 0; right: 0;
+.ui-overlay { position: fixed; top: 0; left: 0; bottom: 0; right: 0;
   overflow: auto;background: #262b33; background: rgba(0, 0, 0, 0.6);
+}
+
+.ui-overlay .container {
+    margin-bottom: 60px;
 }
 
 /* Top affix breadcrumb */

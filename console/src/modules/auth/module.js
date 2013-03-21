@@ -1,6 +1,6 @@
 /*global define: true, $: true */
-define(['Boiler', './settings', './loginWindow/component'],
-    function (Boiler, settings, LoginWindowComponent) {
+define(['Boiler', './settings', './loginWindow/component', './userMenu/component'],
+    function (Boiler, settings, LoginWindowComponent, UserMenuComponent) {
         "use strict";
 
         var Module = function (globalContext) {
@@ -14,6 +14,7 @@ define(['Boiler', './settings', './loginWindow/component'],
              * auth {}
              */
             moduleContext.listen('auth', function() {
+                moduleContext.notify('connecting');
                 $.ajax({
                     'url': authUrl,
                     'type':'GET',
@@ -33,6 +34,8 @@ define(['Boiler', './settings', './loginWindow/component'],
              * }
              */
             moduleContext.listen('login', function (data) {
+
+                moduleContext.notify('connecting');
 
                 $.ajax({
                     'url': authUrl,
@@ -64,7 +67,8 @@ define(['Boiler', './settings', './loginWindow/component'],
             var controller = new Boiler.DomController($('body'));
             //add routes with DOM node selector queries and relevant components
             controller.addRoutes({
-                ".overlays" : new LoginWindowComponent(moduleContext)
+                ".overlays" : new LoginWindowComponent(moduleContext),
+                ".user-menu": new UserMenuComponent(moduleContext)
             });
             controller.start();
 

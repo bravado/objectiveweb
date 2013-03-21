@@ -9,18 +9,170 @@
 
         self.debug = 0;
 
-        self.init = function () {
+        if (typeof(params) === 'function') {
+            self.init = params;
+        }
+        else {
+            self.init = function () {
+            };
+            $.extend(this, params);
+        }
 
-        };
-
-        $.extend(this, params);
-
-        self.run = function () {
-            ko.applyBindings(self);
+        self.run = function (element) {
+            ko.applyBindings(self, element);
             self.init.call(self);
+            $(window).trigger('hashchange');
         };
 
     };
+
+    /* jQuery plugs */
+
+    /**
+     * Shortcut to ko.applyBindings, save the viewModel on data-viewModel
+     * @param viewModel
+     */
+    $.fn.applyBindings = function (viewModel) {
+        this.data('viewModel', viewModel).each(function (idx, element) {
+            ko.applyBindings(viewModel, element);
+        });
+    };
+
+    /**
+     * Includes and initializes another file on the element
+     * @param url
+     * @param callback optional, runs after the url is loaded
+     * @return {*}
+     */
+    $.fn.include = function (url, callback) {
+        var self = this,
+            params = metaproject.debug ? '?ts=' + new Date().getTime() : '';
+
+        if (self.data('loaded') === url) {
+            return this;
+        }
+        else {
+            return this.addClass('loading').load(url + params, function () {
+
+                self.data('loaded', url).removeClass('loading');
+                //metaproject.init(self.removeClass('loading'));
+
+                if (undefined !== callback) {
+                    callback();
+                }
+            });
+        }
+
+    };
+
+    /* Custom Binding handlers */
+
+    // Includes an external file on the DOM element
+    ko.bindingHandlers.include = {
+        init: function (element, valueAccessor, allBindingsAccessor) {
+            var $element = $(element),
+                params = valueAccessor(),
+                url = allBindingsAccessor().url;
+
+            if (params instanceof Array) {
+                $element.include(params[0], params[1]);
+            }
+            else {
+                $element.include(params);
+            }
+
+            // If there's no url assigned to this node, activate it
+            // (Otherwise it will be activated according to the hash)
+            if (!url) {
+                $element.children().trigger('activate', $element);
+            }
+        }
+    };
+
+    // Attach an url controller to this node
+    // The node will receive activate and deactivate events when the url changes
+    ko.bindingHandlers.url = {
+        init: function (element, valueAccessor, allBindingsAccessor) {
+            var $element = $(element),
+                url = valueAccessor();
+
+            $element.css({ visibility: 'hidden', position: 'absolute', height: 0, overflow: 'hidden' });
+
+            $(window).on('hashchange', function (e) {
+                var hash = window.location.hash.substr(1) || '/';
+
+                if (hash === url) {
+                    if ($element.css('visibility') !== 'visible') {
+                        $element.css({ visibility: 'visible', position: 'inherit', height: 'auto', overflow: 'inherit' }).children().trigger('activate', [ element, hash ]);
+                    }
+                }
+                else {
+                    if ($element.css('visibility') === 'visible') {
+                        $element.css({ visibility: 'hidden', position: 'absolute', height: 0, overflow: 'hidden' }).children().trigger('deactivate', [$element, hash]);
+                    }
+                }
+            });
+
+
+            // TODO dispose callback
+        }
+    };
+
+})(window, jQuery, ko);
+/*global jQuery: true, ko: true, Chart: true */
+(function($, ko, Chart) {
+    "use strict";
+
+    // TODO queue rendering, limit to 1 chart at a time ?
+
+    ko.bindingHandlers.chart = {
+        init:function (element, valueAccessor, allBindingsAccessor) {
+            var
+                ctx = element.getContext('2d'),
+                chart = new Chart(ctx);
+
+            chart._type = element.dataset.chart || 'line';
+
+            $(element).data('chart', chart);
+
+            ko.bindingHandlers.chart.update(element, valueAccessor, allBindingsAccessor);
+        },
+        update:function (element, valueAccessor, allBindingsAccessor) {
+            var data = ko.utils.unwrapObservable(valueAccessor()),
+                options = allBindingsAccessor().chartOptions,
+                chart = $(element).data('chart');
+
+            switch(chart._type) {
+                case 'line':
+                    chart.Line(data,options);
+                    break;
+                case 'bar':
+                    chart.Bar(data,options);
+                    break;
+                case 'radar':
+                    chart.Radar(data, options);
+                    break;
+                case 'polar':
+                    chart.PolarArea(data,options);
+                    break;
+                case 'pie':
+                    chart.Pie(data, options);
+                    break;
+                case 'doughnut':
+                    chart.Doughnut(data, options);
+                    break;
+                default:
+                    throw 'invalid chart type';
+
+            }
+        }
+    };
+
+}(jQuery, ko, Chart));/*global alert: true, jQuery: true, ko: true */
+(function (window, $, ko) {
+    "use strict";
+
+    var metaproject = window.metaproject || {};
 
     metaproject.DataSource = function (base_url, options) {
         var self = this,
@@ -35,7 +187,7 @@
         }, options);
 
         // Events
-        self.on = function() {
+        self.on = function () {
             $self.on.apply($self, arguments);
         };
 
@@ -104,6 +256,7 @@
         };
 
         self.post = function (data, callback) {
+            // TODO datasource.post(path, data, callback)
             return $.ajax({
                 url: base_url,
                 dataType: 'json',
@@ -120,6 +273,7 @@
         };
 
         self.put = function (id, data, callback) {
+            // TODO datasource.put(model, callback)
             return $.ajax({
                 url: base_url + '/' + id,
                 dataType: 'json',
@@ -169,11 +323,11 @@
 
             editor.destroy = function () {
 
-                self.destroy(editor.current());
-
-                if (typeof(callbacks.destroy) === 'function') {
-                    callbacks.destroy();
-                }
+                self.destroy(editor.current(), function() {
+                    if (typeof(callbacks.destroy) === 'function') {
+                        callbacks.destroy();
+                    }
+                });
             };
 
             editor.load = function (model) {
@@ -198,21 +352,22 @@
         // From http://www.knockmeout.net/2011/06/lazy-loading-observable-in-knockoutjs.html
         self.Nav = function (filter) {
 
-            var _value = ko.observable(),
+            var _value = ko.observable(), // current value
+                _filter = ko.observable(filter || {}), // the filter
                 _observables = [], // list of instantiated observables
                 _hash = ko.observable(null);
 
             var result = ko.computed({
                 read: function () {
-                    var newhash = ko.toJSON(result.filter());
+                    var newhash = ko.toJSON(_filter());
                     if (_hash() !== newhash) {
                         result.loading(true);
-                        self.get('/', result.filter(), function (newData) {
+                        self.get('/', _filter(), function (newData) {
                             _hash(newhash);
                             _value(newData);
 
                             // TODO generic trigger/on for objects
-                            $.each(_observables, function(i, o) {
+                            $.each(_observables, function (i, o) {
                                 o.reload();
                             });
                             result.loading(false);
@@ -226,9 +381,9 @@
                 deferEvaluation: true  //do not evaluate immediately when created
             });
             result.loading = ko.observable(false);
-            result._live = true;
+            result._live = true; // update this navigato
 
-            result.filter = ko.observable(filter || {});
+            result.filter = _filter;
             result.filter.set = function (param, value) {
                 result.filter()[param] = value;
                 result.filter.valueHasMutated();
@@ -244,15 +399,15 @@
                 data._offset = 0;
                 var filter = result.filter();
 
-                _.keys(filter).forEach(function(key) {
-                    if(key[0] !== '_') {
+                _.keys(filter).forEach(function (key) {
+                    if (key[0] !== '_') {
                         delete filter[key];
                     }
                 });
 
                 _.extend(filter, data);
 
-                if(notify) {
+                if (notify) {
                     result.filter.valueHasMutated();
                 }
             };
@@ -262,7 +417,7 @@
                 me.loading = ko.observable(false);
                 me.reload = function () {
                     me.loading(true);
-                    var x = _.filter(_.keys(result.filter()), function(value, index, list) {
+                    var x = _.filter(_.keys(result.filter()), function (value, index, list) {
                         return value[0] !== '_';
                     });
                     var local_params = _.extend(_.pick(result.filter(), x), params);
@@ -289,8 +444,8 @@
             };
 
             // Reload when datasource is updated
-            self.on('changed', function() {
-                if(result._live) {
+            self.on('changed', function () {
+                if (result._live) {
                     result.reload();
                 }
             });
@@ -298,94 +453,6 @@
             return result;
         };
 
-    };
-
-    metaproject.Loader = function (routes, params) {
-        var options = {
-            'default': '/',
-            error: function (e) {
-                alert(e.responseText);
-            }
-        };
-
-        $.extend(options, params);
-
-        var _content = ko.observable(null);
-
-        _content.id = ko.observable(null);
-
-        _content.load = function (id, callback) {
-
-            // default = /
-            if (undefined === id || id === '') {
-                id = '/';
-            }
-
-            if (id === _content.id()) {
-                return;
-            }
-
-            var path = routes[id];
-
-            if (undefined === routes[id]) {
-                _content.id(null);
-                _content('Route ' + id + ' not found');
-                return;
-            }
-
-            if (typeof(path) === 'string') {
-
-                if (path[0] === '#') {
-                    var src = $(path);
-
-                    if (src.length > 0) { // If its an element, get the relative DOM node
-                        _content(null);
-                        _content.id(id);
-                        _content(src.html());
-                        if (typeof(callback) === 'function') {
-                            callback();
-                        }
-
-                    }
-                    else {
-                        _content.id(null);
-                        _content('Element ' + path + ' not found');
-                    }
-                }
-                else {
-                    var params = {};
-
-                    if (metaproject.debug) {
-                        params.ts = new Date().getTime();
-                    }
-
-                    $.ajax({
-                        url: path,
-                        type: 'GET',
-                        data: params,
-                        dataType: 'html',
-                        success: function (data) {
-                            _content(null);
-                            _content.id(id);
-                            _content(data);
-
-                            if (typeof(callback) === 'function') {
-                                callback();
-                            }
-
-                        },
-                        error: function (e) {
-                            _content.id(null);
-                            _content(null);
-                            options.error(e);
-                        }
-                    });
-                }
-            }
-        };
-
-        _content.load(options['default']);
-        return _content;
     };
 
     metaproject.Model = function (defaults, mapping) {
@@ -414,52 +481,7 @@
 
     };
 
-    /* jQuery plugs */
-
-    $.fn.applyBindings = function (viewModel) {
-        this.data('viewModel', viewModel).each(function (idx, element) {
-            ko.applyBindings(viewModel, element);
-        });
-    };
-
-    /* Includes and initializes another file on the element */
-    $.fn.include = function (url, callback) {
-        var self = this;
-        if (self.data('loaded') === url) {
-            return this;
-        }
-        else {
-            return this.addClass('loading').load(url, function () {
-
-                self.data('loaded', url).removeClass('loading');
-                //metaproject.init(self.removeClass('loading'));
-
-                if (undefined !== callback) {
-                    callback();
-                }
-            });
-        }
-
-    };
-
-    /* Custom Binding handlers */
-
-    ko.bindingHandlers.include = {
-        init: function (element, valueAccessor) {
-            var params = valueAccessor();
-            if (params instanceof Array) {
-                $(element).include(params[0], params[1]);
-            }
-            else {
-                $(element).include(params);
-            }
-        }
-    };
-
-})(window, jQuery, ko);
-
-
-/*global jQuery:true, ko:true */
+})(window, jQuery, ko);/*global jQuery:true, ko:true */
 // Datepicker input
 // Depends on jquery-ui
 
