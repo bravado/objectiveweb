@@ -120,7 +120,7 @@
 
 })(window, jQuery, ko);
 /*global jQuery: true, ko: true, Chart: true */
-(function($, ko, Chart) {
+(undefined !== window.Chart) && (function($, ko, Chart) {
     "use strict";
 
     // TODO queue rendering, limit to 1 chart at a time ?
@@ -168,7 +168,8 @@
         }
     };
 
-}(jQuery, ko, Chart));/*global alert: true, jQuery: true, ko: true */
+}(jQuery, ko, Chart));
+/*global alert: true, jQuery: true, ko: true */
 (function (window, $, ko) {
     "use strict";
 

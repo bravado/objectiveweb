@@ -1,12 +1,13 @@
-define([], function() {
+//if user has saved the language preference before, lets use that to configure requirejs i18n
+var userLang = localStorage.getItem("user-language");
+if (userLang) {
+    //hack: we do this outside the define block below to avoid requirejs error
+    require.config({
+        locale : userLang
+    });
+}
 
-    //if user has saved the language preference before, lets use that to configure requirejs i18n
-    var userLang;
-    if (userLang = localStorage.getItem("user-language")) {
-        require.config({
-            locale : userLang
-        });
-    }
+define(function(require) {
 
     /**
      Localizer is used to handle the localization aspects by providing the functions
@@ -18,7 +19,6 @@ define([], function() {
      **/
     var Localizer = function() {
     };
-
 
     /**
      Helper function to keep the global value of _.templateSettings, applies the settings that parses
@@ -39,7 +39,6 @@ define([], function() {
         return compiled;
     }
 
-
     /**
      Apply localization to the given text. The text should contain tags such as {{nls.your_tag_name}} that will be
      replaced by the 'your_tag_name' property in the nlsObject.
@@ -50,7 +49,7 @@ define([], function() {
      @return {String} localized text
      **/
     Localizer.localize = function(text, nlsObject) {
-        if(!nlsObject) {
+        if (!nlsObject) {
             return text;
         }
 
@@ -59,7 +58,6 @@ define([], function() {
             nls : nlsObject
         });
     };
-
 
     /**
      Sets the language to the provided locale. This will store the locale information in LocalStore
@@ -72,7 +70,6 @@ define([], function() {
         localStorage.setItem("user-language", locale);
         location.reload();
     };
-
 
     /**
      Reset the locally stored language settings. This will let to pich browser
