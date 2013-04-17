@@ -34,11 +34,10 @@ if ($mysqli === FALSE) {
 $mysqli->set_charset(OW_CHARSET);
 
 // Generic query function
-function query($query)
-{
+function query($query) {
     global $mysqli;
 
-    if(func_num_args() > 1) {
+    if (func_num_args() > 1) {
         $query = call_user_func_array('sprintf', func_get_args());
     }
 
@@ -88,8 +87,7 @@ function query($query)
 
 }
 
-function tablestore_page($args, $params = array())
-{
+function tablestore_page($args, $params = array()) {
     if ($args) {
         // Page
         isset($params["_limit"]) || $params["_limit"] = 20;
@@ -107,8 +105,7 @@ function tablestore_page($args, $params = array())
     }
 }
 
-class Table
-{
+class Table {
 
     var $name = null;
     var $pk = null;
@@ -162,8 +159,7 @@ class Table
      */
     var $fields = array();
 
-    function Table($name)
-    {
+    function Table($name) {
         global $mysqli;
 
         $this->name = $mysqli->escape_string($name);
@@ -204,13 +200,11 @@ class Table
      * Lists this table's fields
      * @return array with all the table field names
      */
-    function fields()
-    {
+    function fields() {
         return array_keys($this->fields);
     }
 
-    function filter($key, $callback)
-    {
+    function filter($key, $callback) {
         if (!isset($this->filters[$key])) {
             $this->filters[$key] = array($callback);
         } else {
@@ -218,8 +212,7 @@ class Table
         }
     }
 
-    function apply_filter($key, $content)
-    {
+    function apply_filter($key, $content) {
         if (isset($this->filters[$key])) {
             foreach ($this->filters[$key] as $callback) {
                 $content = call_user_func($callback, $content);
@@ -236,8 +229,7 @@ class Table
      * @param array $params
      * @return Array
      */
-    function select($params = array())
-    {
+    function select($params = array()) {
         global $mysqli;
 
         $defaults = array(
@@ -341,11 +333,10 @@ class Table
 
     }
 
-    function _parse_condition($key, $v)
-    {
+    function _parse_condition($key, $v) {
         global $mysqli;
 
-        if(strlen($v) == 0) {
+        if (strlen($v) == 0) {
             return sprintf("%s = ''", $key);
         }
 
@@ -396,8 +387,7 @@ class Table
         }
     }
 
-    function _cleanup_field($field)
-    {
+    function _cleanup_field($field) {
         global $mysqli;
         // verifica se $field não é uma function - a-zA-Z\(.*\)
         if (preg_match('/[a-zA-Z]+\(.*\)/', $field)) {
@@ -426,8 +416,7 @@ class Table
      * @param  $data
      * @return string
      */
-    function insert($data)
-    {
+    function insert($data) {
         global $mysqli;
 
         if (empty($data)) throw new Exception('Trying to write nothing', 405);
@@ -504,8 +493,7 @@ class Table
      * @param  $data - Associative Array of updated data
      * @return The object's oid
      */
-    function update($key, $data)
-    {
+    function update($key, $data) {
 
         global $mysqli;
 
@@ -567,8 +555,7 @@ class Table
     }
 
 
-    function delete($conditions)
-    {
+    function delete($conditions) {
         global $mysqli;
 
         if (!is_array($conditions)) {
@@ -603,8 +590,7 @@ class Table
     }
 }
 
-class TableStore extends OWHandler
-{
+class TableStore extends OWHandler {
 
     // Initialization parameters
     var $params = array();
@@ -618,8 +604,7 @@ class TableStore extends OWHandler
     var $hasMany = array();
     var $belongsTo = array();
 
-    function init($params)
-    {
+    function init($params) {
         $defaults = array(
             'table' => $this->id,
             'extends' => null,
@@ -648,8 +633,34 @@ class TableStore extends OWHandler
 
     }
 
-    function get($oid, $params = array())
-    {
+    function options() {
+        $_fields = array();
+        // Table Inheritance
+        if (!empty($this->joins)) {
+            foreach ($this->table->fields() as $_field) {
+                $_fields[$_field] = $this->table->name . '.' . $_field;
+            }
+            foreach ($this->joins as $join => $on) {
+
+                $join_table = new Table($join);
+                // Keep fields from the first table
+                foreach ($join_table->fields() as $_field) {
+                    $_fields[$_field] = "$join.$_field";
+                }
+
+                //$_fields = array_merge($join_table->fields(), $_fields);
+                $params['_inner'][$join] = array('table' => $join, 'on' => $on);
+
+            }
+
+        } else {
+            $_fields = $this->table->fields();
+        }
+
+        return $_fields;
+    }
+
+    function get($oid, $params = array()) {
 
         // Accept params in querystring form
         if (!is_array($params)) {
@@ -679,7 +690,7 @@ class TableStore extends OWHandler
             if (isset($result[$this->table->pk])) {
 
                 // Initialize HAL Links
-                $result['_links'] = array('self' => sprintf("/%s/%s",$this->id, $result[$this->table->pk]));
+                $result['_links'] = array('self' => sprintf("/%s/%s", $this->id, $result[$this->table->pk]));
 
                 // If eager, fetch relations
                 // (pk can be excluded from the _fields parameter)
@@ -713,8 +724,7 @@ class TableStore extends OWHandler
         }
     }
 
-    function fetch($params = array())
-    {
+    function fetch($params = array()) {
 
         // Accept params in querystring form
         if (!is_array($params)) {
@@ -843,8 +853,7 @@ class TableStore extends OWHandler
         return $this->table->select($params);
     }
 
-    function _insert_or_update_hasmany($data)
-    {
+    function _insert_or_update_hasmany($data) {
         foreach ($this->hasMany as $hasMany => $hasMany_params) {
             if (!empty($data[$hasMany])) {
                 foreach ($data[$hasMany] as $hasMany_data) {
@@ -880,8 +889,7 @@ class TableStore extends OWHandler
         }
     }
 
-    function post($data = null)
-    {
+    function post($data = null) {
         global $mysqli;
 
         // Use transactions by default
@@ -971,8 +979,7 @@ class TableStore extends OWHandler
         return array($this->table->pk => $data[$this->table->pk]);
     }
 
-    function put($oid, $data)
-    {
+    function put($oid, $data) {
         global $mysqli;
 
         if (isset($data[$this->table->pk])) {
@@ -1066,8 +1073,7 @@ class TableStore extends OWHandler
         return array($this->table->pk => $oid);
     }
 
-    function delete($id)
-    {
+    function delete($id) {
         global $mysqli;
 
         // Use transactions by default
@@ -1109,8 +1115,7 @@ class TableStore extends OWHandler
         return array('delete' => $affected_rows);
     }
 
-    function has_field($field)
-    {
+    function has_field($field) {
         return isset($this->table->fields[$field]);
     }
 }
@@ -1120,18 +1125,15 @@ class TableStore extends OWHandler
  * ObjectStore
  *
  */
-class ObjectStore extends TableStore
-{
+class ObjectStore extends TableStore {
 
-    function init($params)
-    {
+    function init($params) {
         parent::init($params);
 
         // TODO check if all necessary tables exist (meta, versioning, etc)
     }
 
-    function get($oid)
-    {
+    function get($oid) {
         $object = parent::get($oid);
         return $object;
 
@@ -1139,8 +1141,7 @@ class ObjectStore extends TableStore
 
     }
 
-    function fetch($params)
-    {
+    function fetch($params) {
         // TODO só preciso trazer o _content nos fields!
         $results = parent::fetch($params);
 
@@ -1155,8 +1156,7 @@ class ObjectStore extends TableStore
         return $results;
     }
 
-    function post($params)
-    {
+    function post($params) {
         $return = array();
 
         // TODO apenas se o field OID for VARCHAR 36
@@ -1191,8 +1191,7 @@ class ObjectStore extends TableStore
 
     }
 
-    function put($oid, $data)
-    {
+    function put($oid, $data) {
 
         $object = $this->get($oid);
 

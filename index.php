@@ -15,6 +15,8 @@ require_once "_init.php";
 // Mandatory aboutbox
 route('GET /?', 'ow_version');
 
+route('OPTIONS /?', 'ow_domains');
+
 // Views before attachments
 // /domain/_view
 route('GET /(\w+/_\w+/?.*)', 'fetch', $_GET);
@@ -37,7 +39,7 @@ $body = parse_post_body();
 // /domain
 route('GET /(\w+)/?', 'fetch', $_GET);
 route('POST /(\w+)/?', 'post', $body);
-
+route('OPTIONS /(\w+)/?', 'options');
 
 // /domain/id
 route('GET /(\w+)/([\w-]+)/?', 'get', $_GET);

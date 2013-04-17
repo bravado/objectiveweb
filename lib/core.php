@@ -123,6 +123,11 @@ function get($domain_id, $id = null, $params = array()) {
 
 }
 
+function options($domain) {
+    $handler = get($domain);
+
+    return $handler->options();
+}
 
 function post($domain, $data) {
     $handler = get($domain);
@@ -187,7 +192,6 @@ function register_domain($domain_id, $params = array()) {
     }
 
     $defaults = array(
-        'schema' => array(),
         'handler' => 'ObjectHandler'
     );
 
@@ -195,6 +199,17 @@ function register_domain($domain_id, $params = array()) {
 
 
     $_domains[$domain_id] = array_merge($defaults, $params);
+}
+
+/**
+ * List the registered domains
+ *
+ * @return array
+ */
+function ow_domains() {
+    global $_domains;
+
+    return array_keys($_domains);
 }
 
 
@@ -417,6 +432,10 @@ class OWHandler {
         throw new Exception('Not implemented', 500);
     }
 
+
+    function options() {
+        throw new Exception('Not implemented', 500);
+    }
 
     /**
      * Creates a new Object on a domain
