@@ -30,28 +30,27 @@ defined('ATTACHMENT_HASHDEPTH') or define('ATTACHMENT_HASHDEPTH', 2);
 define('ATTACHMENT_UNLINK', 1);
 define('ATTACHMENT_OVERWRITE', 2);
 
-/**
- * Simple function to demonstrate how to control file access using "accessControl" callback.
- * This method will disable accessing files/folders starting from '.' (dot)
- *
- * @param  string  $attr  attribute name (read|write|locked|hidden)
- * @param  string  $path  file path relative to volume root directory started with directory separator
- * @return bool|null
- **/
-function hide_dot_files($attr, $path, $data, $volume) {
-    return strpos(basename($path), '.') === 0       // if file/folder begins with '.' (dot)
-        ? !($attr == 'read' || $attr == 'write')    // set read+write to false, other (locked+hidden) set to true
-        :  null;                                    // else elFinder decide it itself
+
+class Attachments extends OWFilter {
+
+    // Service ID
+    var $id = 'attachments';
+
+    function get($id, $data) {
+        $data['_attachments'] = attachment_list($this->domain, $id);
+
+        return $data;
+    }
+
+    function service($id) {
+
+        $connector = new elFinderConnector(attachment_manager($this->domain, $id));
+        $connector->run();
+    }
+
 }
 
-
-/**
- * Instantiates an elFinder instance for the domain/id resource attachments
- * @param $domain
- * @param $id
- * @return elFinder
- */
-function attachments($domain, $id) {
+function attachment_manager($domain, $id) {
     $opts = array(
         // 'debug' => true, TODO set debug
         'roots' => array(
@@ -67,14 +66,27 @@ function attachments($domain, $id) {
     return new OWAttachmentManager($opts);
 }
 
-function attachments_handler($domain, $id) {
-    $connector = new elFinderConnector(attachments($domain, $id));
-    $connector->run();
+
+
+/**
+ * Simple function to demonstrate how to control file access using "accessControl" callback.
+ * This method will disable accessing files/folders starting from '.' (dot)
+ *
+ * @param  string  $attr  attribute name (read|write|locked|hidden)
+ * @param  string  $path  file path relative to volume root directory started with directory separator
+ * @return bool|null
+ **/
+function hide_dot_files($attr, $path, $data, $volume) {
+    return strpos(basename($path), '.') === 0       // if file/folder begins with '.' (dot)
+        ? !($attr == 'read' || $attr == 'write')    // set read+write to false, other (locked+hidden) set to true
+        :  null;                                    // else elFinder decide it itself
 }
 
 
+
+
 function attachment_get($domain, $id, $filename) {
-    $attachments = attachments($domain, $id);
+    $attachments = _attachments($domain, $id);
 
     $attachments->download($filename);
 }

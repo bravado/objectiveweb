@@ -84,13 +84,18 @@ function handle_attachment_post($domain, $id, $attachment_id = null) {
 }
 
 function handle_plugin($domain, $id, $plugin) {
-    if($plugin == 'attachments') {
-        attachments_handler($domain, $id);
-        exit;
+
+    $handler = get($domain);
+
+    foreach($handler->with as $filter) {
+        if($filter->id == $plugin) {
+            $filter->service($id);
+            exit;
+        }
     }
-    else {
-        respond('Invalid plugin', 404);
-    }
+
+    respond('Invalid plugin', 404);
+
 }
 
 function handle_view($path) {

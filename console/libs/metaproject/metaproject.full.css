@@ -1294,8 +1294,6 @@ body.with-header { padding-top: 40px; }
   background-color: #F5F5F5;
 }
 
-.with-header .overlay { padding-top: 40px;}
-
 /* page styles */
 .container.page {
   background-color: #FFFFFF;
@@ -1314,6 +1312,9 @@ body.with-header { padding-top: 40px; }
 
 
 /* Overlays and Shadows */
+
+.with-header .ui-overlay { padding-top: 40px;}
+
 .ui-overlay { position: fixed; top: 0; left: 0; bottom: 0; right: 0;
   overflow: auto;background: #262b33; background: rgba(0, 0, 0, 0.6);
 }

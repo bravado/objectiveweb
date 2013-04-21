@@ -11,7 +11,7 @@
 * are represented with camelCase variable names.
 */
 
-define(["Boiler", "./settings", "./modules/modules", "objectiveweb/console/src/modules/auth/module"], function(Boiler, settings, moduleContexts, AuthModule) {
+define(["Boiler", "./settings", "./modules/modules", "objectiveweb/console/app/modules/auth/module"], function(Boiler, settings, moduleContexts, AuthModule) {
 
 	/**
 	 * The Application class holds the global context that will act as the parent for module contexts.
@@ -26,7 +26,7 @@ define(["Boiler", "./settings", "./modules/modules", "objectiveweb/console/src/m
 		appContext.addSettings(settings);
 
 
-        new AuthModule(appContext);
+        AuthModule.initialize(appContext);
 
 		//here we load the sub modules of the global context
 		appContext.loadChildContexts(moduleContexts);

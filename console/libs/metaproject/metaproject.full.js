@@ -119,7 +119,56 @@
     };
 
 })(window, jQuery, ko);
-/*global jQuery: true, ko: true, Chart: true */
+/*global jQuery: true, ko: true */
+(undefined !== jQuery.fn.fullCalendar) && (function($, ko) {
+    "use strict";
+
+    ko.bindingHandlers.calendar = {
+        init:function (element, valueAccessor, allBindingsAccessor) {
+            var
+                ctx = element.getContext('2d'),
+                chart = new Chart(ctx);
+
+            chart._type = element.dataset.chart || 'line';
+
+            $(element).data('chart', chart);
+
+            ko.bindingHandlers.chart.update(element, valueAccessor, allBindingsAccessor);
+        },
+        update:function (element, valueAccessor, allBindingsAccessor) {
+            var data = ko.utils.unwrapObservable(valueAccessor()),
+                options = allBindingsAccessor().chartOptions,
+                chart = $(element).data('chart');
+
+            switch(chart._type) {
+                case 'line':
+                    chart.Line(data,options);
+                    break;
+                case 'bar':
+                    chart.Bar(data,options);
+                    break;
+                case 'radar':
+                    chart.Radar(data, options);
+                    break;
+                case 'polar':
+                    chart.PolarArea(data,options);
+                    break;
+                case 'pie':
+                    chart.Pie(data, options);
+                    break;
+                case 'doughnut':
+                    chart.Doughnut(data, options);
+                    break;
+                default:
+                    throw 'invalid chart type';
+
+            }
+        }
+    };
+
+
+
+}(jQuery, ko));/*global jQuery: true, ko: true, Chart: true */
 (undefined !== window.Chart) && (function($, ko, Chart) {
     "use strict";
 
@@ -177,7 +226,7 @@
 
     metaproject.DataSource = function (base_url, options) {
         var self = this,
-            $self = $(this),
+            $self = $('<div/>'),
             _navs = [];
 
         options = $.extend({
@@ -188,9 +237,8 @@
         }, options);
 
         // Events
-        self.on = function () {
-            $self.on.apply($self, arguments);
-        };
+        self.on = $self.on.bind($self);
+        self.trigger = $self.trigger.bind($self);
 
         self._id = function (model_or_id) {
             if (typeof(model_or_id) === 'object') {
@@ -456,9 +504,17 @@
 
     };
 
+    /**
+     * Model factory
+     * Returns a Model class with default values and computed observables
+     * @param defaults - default fields for a new model
+     * @param mapping - ko.mapping parameters
+     * @returns {Function}
+     * @constructor
+     */
     metaproject.Model = function (defaults, mapping) {
 
-        return function (data) {
+        var Model = function (data) {
             var instance = this;
 
             data = data || {};
@@ -479,6 +535,73 @@
             ko.mapping.fromJS(data, mapping || {}, instance);
 
         };
+
+
+        // Bind a single datasource to all instances
+        var datasource = null;
+
+        Model.getDatasource = function() {
+            if(datasource) {
+                return datasource;
+            }
+            else {
+                throw "Model not bound to any datasource";
+            }
+        }
+
+        /**
+         * Binds this model to a datasource on url
+         * @param base_url
+         * @param options
+         * @returns {Function}
+         */
+        Model.bind = function(base_url, options) {
+
+            // TODO accept custom datasource implementation
+            // { get: fn(..), post: fn(..), put: fn(..), delete: fn(..) }
+            if(typeof(base_url) === 'string') {
+                // When using the bind() method, always set the Model option
+                if(undefined === options) {
+                    options = { model: Model };
+                }
+                else {
+                    options.model = Model;
+                }
+
+                datasource = new metaproject.DataSource(base_url, options);
+            }
+
+            return Model;
+        }
+
+
+        /**
+         * Instantiates a DataSource Navigator which publishes to channel
+         * @param channel The channel string
+         * @param params Navigator params
+         * @see DataSource.Nav
+         */
+        Model.publish = function(channel, params) {
+            var instance = this;
+
+            return Model.getDatasource().Nav(params).publishOn(channel);
+        }
+
+
+        // For instantiated models
+        
+        Model.prototype.save = function(callback) {
+            var instance = this;
+            Model.getDatasource().save(instance, callback);
+        };
+
+        Model.prototype.load = function(id, callback) {
+            var instance = this;
+
+            Model.getDatasource().get(id, instance).success(callback);
+        }
+
+        return Model;
 
     };
 

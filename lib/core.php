@@ -9,7 +9,7 @@
  * Time: 01:09
  */
 
-define('OBJECTIVEWEB_VERSION', '0.5');
+define('OBJECTIVEWEB_VERSION', '0.6');
 
 // Global system variables
 $_domains = array();
@@ -19,12 +19,11 @@ $_apps = array();
 
 function ow_version() {
     // TODO incluir informações de plugin se DEBUG
-    global $_apps;
+    global $_apps, $_domains;
 
     if (DEBUG) {
-        return sprintf('{ "objectiveweb": "%s", "apps" : %s }', OBJECTIVEWEB_VERSION, json_encode($_apps));
-    }
-    else {
+        return sprintf('{ "objectiveweb": "%s", "apps" : %s, "domains": %s }', OBJECTIVEWEB_VERSION, json_encode($_apps), json_encode($_domains));
+    } else {
         return sprintf('{ "objectiveweb": "%s" }', OBJECTIVEWEB_VERSION);
     }
 }
@@ -32,10 +31,11 @@ function ow_version() {
 function delete($domain, $id) {
     $handler = get($domain);
 
+    $handler->apply_filters('delete', $id);
+
     if (isset($handler->params['delete'])) {
         return call_user_func_array($handler->params['delete'], array($handler, $id));
-    }
-    else {
+    } else {
         return $handler->delete($id);
     }
 }
@@ -46,24 +46,21 @@ function fetch($domain, $params = array()) {
 
     $handler = get($m[1]);
 
-    if($m[2]) {
+    if ($m[2]) {
         $view_handler = @$handler->params['views'][$m[2]];
 
-        if(is_array($view_handler)) {
+        if (is_array($view_handler)) {
             $params = array_merge($params, $view_handler);
-        }
-        elseif(is_callable($view_handler)){
+        } elseif (is_callable($view_handler)) {
             $params = call_user_func_array($view_handler, array($m[3], $params));
-        }
-        else {
+        } else {
             throw new Exception(_('View not found'), 404);
         }
     }
 
     if (isset($handler->params['fetch'])) {
         return call_user_func_array($handler->params['fetch'], array($handler, $params));
-    }
-    else {
+    } else {
         return $handler->fetch($params);
     }
 
@@ -99,24 +96,24 @@ function get($domain_id, $id = null, $params = array()) {
 
     $handler = $_domains[$domain_id]['instance'];
 
+    $handler->apply_filters('fetch', $id);
 
     if ($id) {
 
         if (isset($handler->params['get'])) {
             $rsrc = call_user_func_array($handler->params['get'], array($handler, $id, $params));
-        }
-        else {
+        } else {
             $rsrc = $handler->get($id, $params);
 
         }
 
-        // Attachments list
-        if($rsrc) {
-            $rsrc['_attachments'] = attachment_list($domain_id, $id);
+        // Filter result
+        if ($rsrc) {
+            $rsrc = $handler->apply_filters('get', $id, $rsrc);
         }
+
         return $rsrc;
-    }
-    else {
+    } else {
         return $handler;
     }
 
@@ -130,14 +127,14 @@ function options($domain) {
 }
 
 function post($domain, $data) {
+
     $handler = get($domain);
 
-    // TODO verificar permissão de criar
+    $data = $handler->apply_filters('post', $domain, $data);
 
     if (isset($handler->params['post'])) {
         return call_user_func_array($handler->params['post'], array($handler, $data));
-    }
-    else {
+    } else {
         return $handler->post($data);
     }
 
@@ -147,11 +144,11 @@ function put($domain, $id, $data) {
 
     $handler = get($domain);
 
-    // TODO verificar permissão do $domain/$id
+    $data = $handler->apply_filters('put', $id, $data);
+
     if (isset($handler->params['put'])) {
         return call_user_func_array($handler->params['put'], array($handler, $id, $data));
-    }
-    else {
+    } else {
         return $handler->put($id, $data);
     }
 }
@@ -169,8 +166,7 @@ function register_app($id, $root = ROOT) {
     if (!isset($_apps[$id])) {
         if (is_readable($_init)) {
             $_apps[$id] = $_init;
-        }
-        else {
+        } else {
             throw new Exception(sprintf(_('Impossible to register %s: %s not found'), $id, $_init));
         }
     }
@@ -273,8 +269,7 @@ function ow_subscribe($domain, $event, $callback) {
 
     if (empty($_subscriptions["$domain:$event"])) {
         $_subscriptions["$domain:$event"] = array($callback);
-    }
-    else {
+    } else {
         $_subscriptions["$domain:$event"][] = $callback;
     }
 
@@ -396,7 +391,7 @@ class UUID {
 
     public static function is_valid($uuid) {
         return preg_match('/^\{?[0-9a-f]{8}\-?[0-9a-f]{4}\-?[0-9a-f]{4}\-?' .
-            '[0-9a-f]{4}\-?[0-9a-f]{12}\}?$/i', $uuid) === 1;
+        '[0-9a-f]{4}\-?[0-9a-f]{12}\}?$/i', $uuid) === 1;
     }
 }
 
@@ -404,11 +399,32 @@ class UUID {
 class OWHandler {
 
     var $id;
+    var $with = array();
 
     function _init($id, $params = array()) {
         $this->id = $id;
 
+        $opts = array_merge(array('with' => array('attachments')), $params);
+
+        foreach ($opts['with'] as $service) {
+            $this->with[] = new $service($this);
+        }
+
         $this->init($params);
+    }
+
+    function apply_filters($method, $id, $data = null) {
+
+
+        foreach ($this->with as $filter) {
+
+            if (is_callable(array($filter, $method))) {
+                $data = $filter->$method($id, $data);
+            }
+
+        }
+
+        return $data;
     }
 
     function init() {
@@ -464,30 +480,71 @@ class OWHandler {
 }
 
 class OWFilter {
+    var $id = null;
+    var $domain;
     var $handler;
 
     function __construct($handler) {
         $this->handler = $handler;
+        $this->domain = $handler->id;
     }
 
-    function delete() {
-        call_user_func_array(array($this->handler, 'delete'), func_get_args());
+    /**
+     * Called before deleting a resource
+     * @param $id String the resource id
+     */
+    function delete($id) {
+
     }
 
-    function get() {
-        call_user_func_array(array($this->handler, 'get'), func_get_args());
+    /**
+     * Called before fetching data or domain (id may be null)
+     * @param $id
+     */
+    function fetch($id = null) {
+
     }
 
-    function init() {
-        call_user_func_array(array($this->handler, 'init'), func_get_args());
+    /**
+     * Called after fetching a resource
+     * @param $id Resource id
+     * @param $data Resource content
+     * @return mixed Modified resource content
+     */
+    function get($id, $data) {
+        return $data;
     }
 
-    function post() {
-        call_user_func_array(array($this->handler, 'post'), func_get_args());
+    /**
+     * Called before creating a new resource
+     * @param $data Array with the new resource contents
+     * @return Array Modified data which will be persisted
+     */
+    function post($domain, $data) {
+
+        return $data;
     }
 
-    function put() {
-        call_user_func_array(array($this->handler, 'put'), func_get_args());
+
+    /**
+     * Called before modifying a resource
+     * @param $id String The resource ID
+     * @param $data Array with new contents
+     * @return mixed Modified data which will be persisted
+     */
+    function put($id, $data) {
+        return $data;
+    }
+
+
+    /**
+     * Handle direct requests to this service (/domain/id/_service)
+     * @param $domain
+     * @param $id
+     * @throws Exception
+     */
+    function service($id) {
+        throw new Exception('Not implemented', 500);
     }
 }
 

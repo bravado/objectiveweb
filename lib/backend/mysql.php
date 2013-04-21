@@ -909,6 +909,7 @@ class TableStore extends OWHandler {
             $data['modified'] = now();
         }
 
+        //print_r($data); print_r($this->table); exit;
         // Filter relevant fields for this table
         $table_data = array_intersect_key($data, $this->table->fields);
 
