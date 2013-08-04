@@ -18,7 +18,7 @@ function parse_post_body($decoded = true) {
             };
         case 'PUT':
             $post_body = file_get_contents('php://input');
-            if($decoded) {
+            if(strlen($post_body) > 0 && $decoded) {
                 if($post_body[0] == '{' || $post_body[0] == '[') {
                     return json_decode($post_body, true);
                 }

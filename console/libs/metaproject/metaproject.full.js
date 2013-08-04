@@ -589,7 +589,7 @@
 
 
         // For instantiated models
-        
+
         Model.prototype.save = function(callback) {
             var instance = this;
             Model.getDatasource().save(instance, callback);

@@ -1,4 +1,4 @@
-﻿/*
+﻿/*global define: true
 * This file holds the function (or you may call it a 'class' if you are from .NET or Java world)
 * to create a root application context. 'Boiler.Context' can be nested to create a hierarchy of contexts
 * for complex implementations. Below we use requirejs to import following files
@@ -11,7 +11,9 @@
 * are represented with camelCase variable names.
 */
 
-define(["Boiler", "./settings", "./modules/modules", "objectiveweb/console/app/modules/auth/module"], function(Boiler, settings, moduleContexts, AuthModule) {
+define(["Boiler", "./settings", "./modules/modules"], function(Boiler, settings, moduleContexts) {
+
+    "use strict";
 
 	/**
 	 * The Application class holds the global context that will act as the parent for module contexts.
@@ -26,7 +28,6 @@ define(["Boiler", "./settings", "./modules/modules", "objectiveweb/console/app/m
 		appContext.addSettings(settings);
 
 
-        AuthModule.initialize(appContext);
 
 		//here we load the sub modules of the global context
 		appContext.loadChildContexts(moduleContexts);

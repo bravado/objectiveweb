@@ -1,4 +1,7 @@
+/*global define: true, $: true */
 define(['Boiler', 'text!./view.html'], function (Boiler, template) {
+
+    "use strict";
 
     var Component = function (moduleContext) {
         var panel = null;
@@ -49,11 +52,9 @@ define(['Boiler', 'text!./view.html'], function (Boiler, template) {
                 $('#login-form .identifier').focus();
             },
             deactivate:function () {
-                if (panel) {
-                    //panel.hide();
-                }
+
             }
-        }
+        };
     };
 
     return Component;

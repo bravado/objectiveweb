@@ -69,16 +69,15 @@ define(function (require) {
                     }
                 });
             });
-            //scoped DomController that will be effective only on $('body')
-            var controller = new Boiler.DomController($('body'));
+
+            var loginWindow = new LoginWindowComponent(moduleContext),
+                userMenu = new UserMenuComponent(moduleContext);
 
 
-            //add routes with DOM node selector queries and relevant components
-            controller.addRoutes({
-                ".overlays": new LoginWindowComponent(moduleContext),
-                ".user-menu": new UserMenuComponent(moduleContext)
-            });
-            controller.start();
+            loginWindow.activate($('body'));
+            userMenu.activate($('.user-menu'));
+
+
         }
     };
 
