@@ -547,7 +547,7 @@
             else {
                 throw "Model not bound to any datasource";
             }
-        }
+        };
 
         /**
          * Binds this model to a datasource on url
@@ -572,7 +572,7 @@
             }
 
             return Model;
-        }
+        };
 
 
         /**
@@ -584,8 +584,10 @@
         Model.publish = function(channel, params) {
             var instance = this;
 
-            return Model.getDatasource().Nav(params).publishOn(channel);
-        }
+            var nav = Model.getDatasource().Nav(params).publishOn(channel);
+
+            return nav;
+        };
 
 
         // For instantiated models
@@ -599,7 +601,7 @@
             var instance = this;
 
             Model.getDatasource().get(id, instance).success(callback);
-        }
+        };
 
         return Model;
 
