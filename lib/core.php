@@ -104,12 +104,14 @@ function get($domain_id, $id = null, $params = array()) {
             $rsrc = call_user_func_array($handler->params['get'], array($handler, $id, $params));
         } else {
             $rsrc = $handler->get($id, $params);
-
         }
 
         // Filter result
         if ($rsrc) {
             $rsrc = $handler->apply_filters('get', $id, $rsrc);
+        }
+        else {
+            throw new Exception(sprintf(_('%s %s not found'), $domain_id, $id), 404);
         }
 
         return $rsrc;
