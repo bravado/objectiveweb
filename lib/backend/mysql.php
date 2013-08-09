@@ -918,8 +918,46 @@ class TableStore extends OWHandler {
             $table_data['_type'] = $this->id;
         }
 
+        // Insert or update belongsTo relations
+        foreach($this->belongsTo as $belongsTo => $belongsTo_params) {
+
+
+            if(!empty($data[$belongsTo]) && @$belongsTo_params['cascade']) {
+                $table = new Table($belongsTo_params['table']);
+
+                $belongsTo_data = array_intersect_key($data[$belongsTo], $table->fields);
+                if(isset($belongsTo_data[$table->pk])) {
+                    $update_cond = array("{$table->pk}" => $belongsTo_data[$table->pk]);
+                    $table->update($update_cond, $belongsTo_data);
+                    $table_data[$belongsTo_params['key']] = $belongsTo_data[$table->pk];
+                }
+                else {
+                    $table_data[$belongsTo_params['key']] = $table->insert($belongsTo_data);
+                }
+            }
+        }
+
+        foreach($this->hasOne as $hasOne => $hasOne_params) {
+            if(!empty($data[$hasOne]) && @$hasOne_params['cascade']) {
+                $table = new Table($hasOne_params['table']);
+
+                $hasOne_data = array_intersect_key($data[$hasOne], $table->fields);
+                if(isset($hasOne_data[$table->pk])) {
+                    $update_cond = array("{$table->pk}" => $hasOne_data[$table->pk]);
+                    $table->update($update_cond, $hasOne_data);
+                    $table_data[$hasOne_params->key] = $hasOne_data[$table->pk];
+                }
+                else {
+                    $table_data[$hasOne_params->key] = $table->insert($hasOne_data);
+                }
+            }
+        }
+
+
         // Stores the inserted ID on the $data array
         $data[$this->table->pk] = $this->table->insert($table_data);
+
+
 
         // Store data on other tables
         foreach (array_keys($this->joins) as $joined) {
@@ -1002,6 +1040,41 @@ class TableStore extends OWHandler {
 
         // Filter relevant fields for this table
         $table_data = array_intersect_key($data, $this->table->fields);
+
+
+        // Insert or update belongsTo relations
+        foreach($this->belongsTo as $belongsTo => $belongsTo_params) {
+            if(!empty($data[$belongsTo]) && @$belongsTo_params['cascade']) {
+                $table = new Table($belongsTo_params['table']);
+
+                $belongsTo_data = array_intersect_key($data[$belongsTo], $table->fields);
+                if(isset($belongsTo_data[$table->pk])) {
+                    $update_cond = array("{$table->pk}" => $belongsTo_data[$table->pk]);
+                    $table->update($update_cond, $belongsTo_data);
+                    $table_data[$belongsTo_params['key']] = $belongsTo_data[$table->pk];
+                }
+                else {
+                    $table_data[$belongsTo_params->key] = $table->insert($belongsTo_data);
+                }
+            }
+        }
+
+        // Insert or update hasOne relations
+        foreach($this->hasOne as $hasOne => $hasOne_params) {
+            if(!empty($data[$hasOne]) && @$hasOne_params['cascade']) {
+                $table = new Table($hasOne_params['table']);
+
+                $hasOne_data = array_intersect_key($data[$hasOne], $table->fields);
+                if(isset($hasOne_data[$table->pk])) {
+                    $update_cond = array("{$table->pk}" => $hasOne_data[$table->pk]);
+                    $table->update($update_cond, $hasOne_data);
+                    $table_data[$hasOne_params->key] = $hasOne_data[$table->pk];
+                }
+                else {
+                    $table_data[$hasOne_params->key] = $table->insert($hasOne_data);
+                }
+            }
+        }
 
         if (!empty($table_data)) {
 
