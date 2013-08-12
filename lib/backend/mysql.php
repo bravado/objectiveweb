@@ -687,13 +687,13 @@ class TableStore extends OWHandler {
             // Grab first result
             $result = $result[0];
 
+            // (pk can be excluded with the _fields parameter)
             if (isset($result[$this->table->pk])) {
 
                 // Initialize HAL Links
                 $result['_links'] = array('self' => sprintf("/%s/%s", $this->id, $result[$this->table->pk]));
 
                 // If eager, fetch relations
-                // (pk can be excluded from the _fields parameter)
                 if ($params['_eager']) {
                     foreach ($this->hasMany as $hasMany_id => $hasMany_params) {
                         $hasMany_defaults = array(
