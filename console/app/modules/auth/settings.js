@@ -1,9 +1,9 @@
 /*global define: true */
-define(['path!objectiveweb/index.php'], function(root) {
+define(['path!objectiveweb/auth.php'], function(root) {
     "use strict";
 
     return {
-        authUrl: root + '/auth'
+        authUrl: root
     };
 
 });

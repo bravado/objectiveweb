@@ -9,10 +9,7 @@ define(function (require) {
         UserMenuComponent = require('./userMenu/component');
 
     return {
-        initialize: function (globalContext) {
-
-
-            var moduleContext = new Boiler.Context(globalContext);
+        initialize: function (moduleContext) {
 
             moduleContext.addSettings(settings);
 
