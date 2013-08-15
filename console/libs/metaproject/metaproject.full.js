@@ -397,10 +397,13 @@
         };
 
 
-        // an observable that retrieves its value when first bound
-        // From http://www.knockmeout.net/2011/06/lazy-loading-observable-in-knockoutjs.html
         self.Nav = function (filter) {
+            // TODO remove underscore dependency
+            // maybe accept (filter,params), params are observable but dont change on reset
 
+
+            // an observable that retrieves its value when first bound
+            // From http://www.knockmeout.net/2011/06/lazy-loading-observable-in-knockoutjs.html
             var _value = ko.observable(), // current value
                 _filter = ko.observable(filter || {}), // the filter
                 _observables = [], // list of instantiated observables
@@ -432,6 +435,7 @@
             result.loading = ko.observable(false);
             result._live = true; // update this navigato
 
+            // maybe make filter params observable ?
             result.filter = _filter;
             result.filter.set = function (param, value) {
                 result.filter()[param] = value;
@@ -536,16 +540,26 @@
 
         };
 
+        // Predefined mapper for this model
+        Model.mapper = {
+            create: function(options) {
+                return new Model(options.data);
+            }
+        };
+
+        Model.create = function(data) {
+            return new Model(data);
+        };
 
         // Bind a single datasource to all instances
         var datasource = null;
 
-        Model.getDatasource = function() {
+        Model.getDataSource = function() {
             if(datasource) {
                 return datasource;
             }
             else {
-                throw "Model not bound to any datasource";
+                throw "Model not bound to any DataSource";
             }
         };
 
@@ -584,7 +598,7 @@
         Model.publish = function(channel, params) {
             var instance = this;
 
-            var nav = Model.getDatasource().Nav(params).publishOn(channel);
+            var nav = Model.getDataSource().Nav(params).publishOn(channel);
 
             return nav;
         };
@@ -594,13 +608,13 @@
 
         Model.prototype.save = function(callback) {
             var instance = this;
-            Model.getDatasource().save(instance, callback);
+            return Model.getDataSource().save(instance, callback);
         };
 
         Model.prototype.load = function(id, callback) {
             var instance = this;
 
-            Model.getDatasource().get(id, instance).success(callback);
+            return Model.getDataSource().get(id, instance).success(callback);
         };
 
         return Model;
