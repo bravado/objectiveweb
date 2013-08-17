@@ -406,7 +406,7 @@ class OWHandler {
     function _init($id, $params = array()) {
         $this->id = $id;
 
-        $opts = array_merge(array('with' => array('attachments')), $params);
+        $opts = array_merge(array('with' => array('acl', 'attachments')), $params);
 
         foreach ($opts['with'] as $service) {
             $this->with[] = new $service($this);
@@ -429,7 +429,7 @@ class OWHandler {
         return $data;
     }
 
-    function init() {
+    function init($params) {
 
     }
 
@@ -587,7 +587,7 @@ class FileStore extends OWHandler {
         return $file_meta;
     }
 
-    function fetch($params) {
+    function fetch($params = array()) {
         $dir = opendir($this->root);
 
         $files = array();

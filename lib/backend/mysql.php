@@ -974,47 +974,6 @@ class TableStore extends OWHandler {
 
         $mysqli->commit();
 
-        // Indexes and additional tables
-
-        //if (!empty($metadata['acl'])) {
-        //    $this->acl($oid, $metadata['acl']);
-        //    unset($metadata['acl']);
-        //}
-
-        //if (!empty($metadata['links'])) {
-        // TODO processar links
-        //    unset($metadata['links']);
-        //}
-
-        //        foreach ($metadata as $meta_key => $meta_value) {
-        //
-        //            if (is_array($meta_value)) {
-        //                $meta_value = json_encode($meta_value);
-        //            }
-        //
-        //            $this->meta($oid, $meta_key, $meta_value);
-        //        }
-
-        //        if ($this->params['tables']) {
-        //
-        //            foreach ($this->params['tables'] as $table => $fields) {
-        //
-        //                $schema_data = array();
-        //
-        //                foreach ($fields as $field) {
-        //
-        //                    if (!empty($data[$field])) {
-        //                        $schema_data[$field] = $data[$field];
-        //                    }
-        //                }
-        //
-        //                if (!empty($schema_data)) {
-        //                    $schema_data['oid'] = $oid;
-        //                    ow_insert($table, $schema_data);
-        //                }
-        //            }
-        //        }
-
         return array($this->table->pk => $data[$this->table->pk]);
     }
 
@@ -1207,15 +1166,15 @@ class ObjectStore extends TableStore {
         // TODO check if all necessary tables exist (meta, versioning, etc)
     }
 
-    function get($oid) {
-        $object = parent::get($oid);
+    function get($oid, $params = array()) {
+        $object = parent::get($oid, $params);
         return $object;
 
         //return $decoded ? json_decode($object['_content'], true) : $object['_content'];
 
     }
 
-    function fetch($params) {
+    function fetch($params = array()) {
         // TODO só preciso trazer o _content nos fields!
         $results = parent::fetch($params);
 
@@ -1230,7 +1189,7 @@ class ObjectStore extends TableStore {
         return $results;
     }
 
-    function post($params) {
+    function post($params = null) {
         $return = array();
 
         // TODO apenas se o field OID for VARCHAR 36

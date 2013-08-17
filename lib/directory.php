@@ -87,3 +87,15 @@ function ow_set_current_user($user) {
 }
 
 
+class Acl extends OWFilter {
+
+    var $id = "acl";
+
+    function post($domain, $data) {
+        if(isset($this->handler->table->fields['_owner']) && empty($data['_owner'])) {
+            $data['_owner'] = current_user('oid');
+        }
+
+        return $data;
+    }
+}
