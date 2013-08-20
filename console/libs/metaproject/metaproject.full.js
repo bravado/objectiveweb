@@ -522,10 +522,10 @@
             var instance = this;
 
             data = data || {};
-
+            var computeds = {};
             $.each(defaults, function (i, e) {
                 if (typeof(e) === 'function') {
-                    instance[i] = ko.computed({ read: e, deferEvaluation: true }, instance);
+                    computeds[i] = ko.computed({ read: e, deferEvaluation: true }, instance);
                 }
                 else {
                     if (undefined === data[i]) {
@@ -537,6 +537,9 @@
             // data = $.extend({}, defaults, data);
 
             ko.mapping.fromJS(data, mapping || {}, instance);
+
+            // computeds will override other fields
+            $.extend(instance, computeds);
 
         };
 
@@ -614,7 +617,7 @@
         Model.prototype.load = function(id, callback) {
             var instance = this;
 
-            return Model.getDataSource().get(id, instance).success(callback);
+            return Model.getDataSource().get(id, instance,callback);
         };
 
         return Model;

@@ -616,6 +616,7 @@ class TableStore extends OWHandler {
             )
         );
 
+        // TODO move this to OWHandler
         $this->params = array_merge($defaults, $params);
 
         $this->hasOne = $this->params['hasOne'];
@@ -774,11 +775,12 @@ class TableStore extends OWHandler {
              * If directory is enabled and we have a _owner field with a foreign key set to ow_directory, join that table
              * We won't overwrite a user-defined owner though
              */
-            if (OW_DIRECTORY && in_array('_owner', $_fields) && !in_array('owner', $_fields) && !isset($this->belongsTo['owner'])) {
+            if (OW_DIRECTORY && isset($this->table->fields['_owner']) // TODO verify if there's a foreign key pointing to OW_DIRECTORY
+                && !isset($this->belongsTo['owner'])) {
 
-                // TODO verify if there's a foreign key pointing to OW_DIRECTORY
+
                 $this->belongsTo['owner'] = array(
-                    'table' => 'ow_directory',
+                    'table' => OW_DIRECTORY,
                     // 'fields' => array('oid', 'displayName', 'identifier', 'photoURL', 'created'),
                     'key' => array(
                         'oid' => '_owner',
@@ -855,7 +857,7 @@ class TableStore extends OWHandler {
 
     function _insert_or_update_hasmany($data) {
         foreach ($this->hasMany as $hasMany => $hasMany_params) {
-            if (!empty($data[$hasMany])) {
+            if (@$hasMany_params['cascade'] && !empty($data[$hasMany])) {
                 foreach ($data[$hasMany] as $hasMany_data) {
                     $table = new Table($hasMany_params['table']);
 
