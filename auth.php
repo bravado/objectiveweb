@@ -21,7 +21,7 @@ function auth_get($provider = null) {
         if (current_user('oid')) {
             return current_user();
         } else {
-            throw new Exception('Not authorized', 403);
+            throw new Exception('Not logged in', 401);
         }
     }
 

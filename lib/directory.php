@@ -92,10 +92,36 @@ class Acl extends OWFilter {
     var $id = "acl";
 
     function post($domain, $data) {
-        if(isset($this->handler->table->fields['_owner']) && empty($data['_owner'])) {
-            $data['_owner'] = current_user('oid');
+
+        $current_user = current_user();
+
+        if($current_user) {
+            if(isset($this->handler->table->fields['_owner']) && empty($data['_owner'])) {
+                $data['_owner'] = $current_user['oid'];
+            }
+        }
+        else {
+            if(!@$this->params['public']) {
+                throw new Exception('Not logged in', 401);
+            }
         }
 
         return $data;
     }
+
+    function put($id, $data) {
+        $current_user = current_user();
+
+        if($current_user) {
+
+        }
+        else {
+            if(!@$this->params['public']) {
+                throw new Exception('Not logged in', 401);
+            }
+        }
+
+        return $data;
+    }
+
 }

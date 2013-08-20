@@ -71,6 +71,12 @@ define(function (require) {
                 userMenu = new UserMenuComponent(moduleContext);
 
 
+            $(document).ajaxError(function(event, jqXHR, settings) {
+                if(jqXHR.status === 401) {
+                    moduleContext.notify('disconnected');
+                }
+            });
+
             loginWindow.activate($('body'));
             userMenu.activate($('.user-menu'));
 

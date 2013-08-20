@@ -45,6 +45,7 @@ define(['Boiler', 'text!./view.html'], function (Boiler, template) {
                     });
 
 
+                    // Perform auth request
                     moduleContext.notify('auth');
 
                 }
