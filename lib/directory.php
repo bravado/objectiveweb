@@ -21,8 +21,7 @@ register_domain('directory', array(
     'get' => 'directory_get',
     'put' => 'directory_put',
     'post' => 'directory_post',
-    'filter' => array(
-        ''
+    'with' => array(
     )
 ));
 

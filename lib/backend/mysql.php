@@ -592,9 +592,6 @@ class Table {
 
 class TableStore extends OWHandler {
 
-    // Initialization parameters
-    var $params = array();
-
     // The main table
     var $table = null;
     var $joins = array();
@@ -605,6 +602,7 @@ class TableStore extends OWHandler {
     var $belongsTo = array();
 
     function init() {
+
         $defaults = array(
             'table' => $this->id,
             'extends' => null,
@@ -1161,11 +1159,6 @@ class TableStore extends OWHandler {
  *
  */
 class ObjectStore extends TableStore {
-
-    function init() {
-
-        // TODO check if all necessary tables exist (meta, versioning, etc)
-    }
 
     function get($oid, $params = array()) {
         $object = parent::get($oid, $params);

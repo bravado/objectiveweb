@@ -1,57 +1,80 @@
 <!doctype html>
 <html>
 <head>
-
+    <title>Objectiveweb Console</title>
     <meta charset="utf-8">
-    <link rel="stylesheet" href="libs/metaproject/bootstrap.css"/>
-    <link rel="stylesheet" href="libs/metaproject/metaproject.min.css"/>
+    <link rel="stylesheet"
+          href="bower_components/metaproject/build/bootstrap.css"/>
+    <link rel="stylesheet"
+          href="bower_components/metaproject/build/metaproject.css"/>
+    <link rel="stylesheet" href="app/style.css"/>
 
 </head>
 
-<body class="light-gray with-header">
+<body class="with-header">
 <section id="page-content">
-<header class="navbar navbar-fixed-top">
-    <nav class="navbar-inner">
-        <div class="container-fluid main-menu">
-            <div class="pull-right user-menu"></div>
-            <div class="pull-right notification-area"></div>
-            <a class="brand" href="../" target="_blank">Console</a>
-        </div>
-    </nav>
-</header>
+    <header class="navbar navbar-fixed-top">
+        <nav class="navbar-inner">
+            <div class="container-fluid">
+                <div class="pull-right user-menu"></div>
+                <div class="pull-right notification-area"></div>
+                <div class="pull-right module-menu"></div>
+                <div class="app-menu">
+                    <div class="main-menu">
+                        <ul>
+                            <li class="active"><a href="#/">Objectiveweb Console</a></li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </nav>
+
+    </header>
 
 
-<div id="main-content" class="container page appcontent">
-</div>
+    <div id="main-content" class="container-fluid appcontent">
+    </div>
 
 </section>
 <section class="overlays">
 
 </section>
-<script src="./libs/underscore/underscore-1.3.3.js" type="text/javascript" charset="utf-8"></script>
-<script src="./libs/signals/signals.min.js" type="text/javascript" charset="utf-8"></script>
-<script src="./libs/crossroads/crossroads.min.js" type="text/javascript" charset="utf-8"></script>
-<script src="./libs/hasher/hasher.min.js" type="text/javascript" charset="utf-8"></script>
-<script src="./libs/pubsub/pubsub-20120708.js" type="text/javascript" charset="utf-8"></script>
+<script src="bower_components/underscore/underscore-min.js"
+        type="text/javascript" charset="utf-8"></script>
+<script src="bower_components/js-signals/dist/signals.min.js"
+        type="text/javascript" charset="utf-8"></script>
+<script src="bower_components/crossroads/dist/crossroads.min.js"
+        type="text/javascript" charset="utf-8"></script>
+<script src="bower_components/hasher/dist/js/hasher.min.js"
+        type="text/javascript" charset="utf-8"></script>
+<script src="../objectiveweb/console/libs/pubsub/pubsub-20120708.js"
+        type="text/javascript" charset="utf-8"></script>
 
 <!-- metaproject -->
-<script type="text/javascript" src="./libs/metaproject/libs/jquery/jquery-1.8.2.min.js"></script>
-<script type="text/javascript" src="./libs/metaproject/libs/jquery/jquery-ui-1.9.1.custom.min.js"></script>
+<script type="text/javascript"
+        src="bower_components/jquery/jquery.min.js"></script>
+<script type="text/javascript"
+        src="bower_components/jquery-ui/ui/minified/jquery-ui.min.js"></script>
 
-<script type="text/javascript" src="./libs/metaproject/libs/modernizr.js"></script>
-<script type="text/javascript" src="./libs/metaproject/libs/bootstrap.min.js"></script>
+<script type="text/javascript"
+        src="bower_components/modernizr/modernizr.js"></script>
+<script type="text/javascript"
+        src="bower_components/metaproject/build/libs/bootstrap.min.js"></script>
 
-<script type="text/javascript" src="./libs/metaproject/libs/knockout/knockout-2.2.0.js"></script>
-<script src="./libs/metaproject/libs/knockout/knockout.mapping-latest.js" type="text/javascript" charset="utf-8"></script>
-<script src="./libs/metaproject/libs/knockout/knockout-postbox.min.js" type="text/javascript" charset="utf-8"></script>
+<script type="text/javascript"
+        src="bower_components/knockout.js/knockout.js"></script>
+<script type="text/javascript"
+        src="bower_components/knockout-postbox/build/knockout-postbox.min.js"></script>
+<script type="text/javascript"
+        src="bower_components/knockout-mapping/build/output/knockout.mapping-latest.js"
+        charset="utf-8"></script>
 
-<script src="./libs/metaproject/metaproject.min.js"></script>
+<script type="text/javascript"
+        src="bower_components/metaproject/build/metaproject.full.js"></script>
+
 <!-- /metaproject -->
 
-<script src="./libs/flot/jquery.flot.min.js" type="text/javascript" charset="utf-8"></script>
-<script src="./libs/flot/jquery.flot.resize.js" type="text/javascript" charset="utf-8"></script>
-<script src="./libs/boilerplate/groundwork.js" type="text/javascript" charset="utf-8"></script>
-
-<script type="text/javascript" data-main="app/main" src="./libs/require/require.js"></script>
+<script type="text/javascript" data-main="app/main"
+        src="../objectiveweb/console/libs/require/require.js"></script>
 </body>
 </html>

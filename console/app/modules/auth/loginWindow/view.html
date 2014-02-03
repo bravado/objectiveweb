@@ -1,0 +1,26 @@
+<div id="login-window" class="modal hide fade" tabindex="-1" role="dialog" data-keyboard="false" data-backdrop="static">
+    <form id="login-form">
+    <div class="modal-header">
+        <h3 id="myModalLabel">Login</h3>
+    </div>
+    <div class="modal-body">
+        <div class="pull-right">
+            <img width="150" class="img-polaroid" src="http://www.idfpr.com/DPR/images/fingerprint.gif"/>
+        </div>
+        <p>Acesso</p>
+
+        <label>Login:</label><input type='text' class="identifier">
+        <label>Senha:</label><input type='password' class="password">
+        <div class="alert alert-error authfail hide">
+            Login/senha incorretos
+        </div>
+
+        <div class="alert alert-error connfail hide">
+            Erro na conexão
+        </div>
+    </div>
+    <div class="modal-footer">
+        <button type="submit" class="btn btn-primary" data-loading-text="Logging in...">Login</button>
+    </div>
+    </form>
+</div>
