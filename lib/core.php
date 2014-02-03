@@ -29,6 +29,7 @@ function ow_version() {
 }
 
 function delete($domain, $id) {
+    /** @var $handler OWHandler */
     $handler = get($domain);
 
     $handler->apply_filters('delete', $id);
@@ -44,11 +45,13 @@ function fetch($domain, $params = array()) {
 
     preg_match('/([a-z]+)\/?_?([a-z]*)\/?(.*)/', $domain, $m);
 
+    // Handle views (/domain/_view)
     $handler = get($m[1]);
 
     if ($m[2]) {
         $view_handler = @$handler->params['views'][$m[2]];
 
+        // if the view is an array, perform this query
         if (is_array($view_handler)) {
             $params = array_merge($params, $view_handler);
         } elseif (is_callable($view_handler)) {
@@ -59,11 +62,13 @@ function fetch($domain, $params = array()) {
     }
 
     if (isset($handler->params['fetch'])) {
-        return call_user_func_array($handler->params['fetch'], array($handler, $params));
+        $result = call_user_func_array($handler->params['fetch'], array($handler, $params));
     } else {
-        return $handler->fetch($params);
+        $result = $handler->fetch($params);
     }
 
+
+    return $handler->apply_filters('get', null, $result);
 }
 
 
@@ -89,11 +94,10 @@ function get($domain_id, $id = null, $params = array()) {
 
         $instance = new $_domains[$domain_id]['handler']($domain_id, $_domains[$domain_id]);
 
-        $instance->_init($domain_id, $_domains[$domain_id]);
-
         $_domains[$domain_id]['instance'] = $instance;
     }
 
+    /** @var $handler OWHandler */
     $handler = $_domains[$domain_id]['instance'];
 
     $handler->apply_filters('fetch', $id);
@@ -130,9 +134,10 @@ function options($domain) {
 
 function post($domain, $data) {
 
+    /** @var $handler OWHandler */
     $handler = get($domain);
 
-    $data = $handler->apply_filters('post', $domain, $data);
+    $data = $handler->apply_filters('post', $data);
 
     if (isset($handler->params['post'])) {
         return call_user_func_array($handler->params['post'], array($handler, $data));
@@ -402,26 +407,27 @@ class OWHandler {
 
     var $id;
     var $with = array();
+    var $params = array();
 
-    function _init($id, $params = array()) {
+    function OWHandler($id, $params = array()) {
         $this->id = $id;
 
-        $opts = array_merge(array('with' => array('acl', 'attachments')), $params);
+        $this->params = array_merge(array('with' => array('acl', 'attachments')), $params);
 
-        foreach ($opts['with'] as $service) {
-            $this->with[] = new $service($this);
+        foreach ($this->params['with'] as $service) {
+            $this->$service = new $service($this);
         }
 
-        $this->init($params);
+        $this->init();
     }
 
     function apply_filters($method, $id, $data = null) {
 
 
-        foreach ($this->with as $filter) {
+        foreach ($this->params['with'] as $filter) {
 
-            if (is_callable(array($filter, $method))) {
-                $data = $filter->$method($id, $data);
+            if (is_callable(array($this->$filter, $method))) {
+                $data = $this->$filter->$method($id, $data);
             }
 
         }
@@ -429,7 +435,7 @@ class OWHandler {
         return $data;
     }
 
-    function init($params) {
+    function init() {
 
     }
 
@@ -522,7 +528,7 @@ class OWFilter {
      * @param $data Array with the new resource contents
      * @return Array Modified data which will be persisted
      */
-    function post($domain, $data) {
+    function post($data) {
 
         return $data;
     }
@@ -560,12 +566,13 @@ class FileStore extends OWHandler {
 
     var $root;
 
-    function init($params) {
-        if (!is_dir($params['root'])) {
-            throw new Exception('Invalid Directory Root ' . $params['root']);
+    function init() {
+        if (!is_dir($this->params['root'])) {
+            throw new Exception('Invalid Directory Root ' . $this->params['root']);
+
         }
 
-        $this->root = $params['root'];
+        $this->root = $this->params['root'];
     }
 
     function get_metadata($file) {

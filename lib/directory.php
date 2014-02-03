@@ -1,20 +1,23 @@
 <?php
 /**
  * Objectiveweb Directory
- * Provides the /directory domain, for storing arbitrary user/app data and handlers for authentication
+ * Provides the /directory domain, for storing arbitrary user data and handlers for authentication
  *
  * User: guigouz
  * Date: 03/01/12
  * Time: 15:29
  */
 
+// We depend on phpgacl for permission management
+require(dirname(__FILE__).'/phpgacl/gacl.class.php');
+
 // Default directory table
 defined('OW_DIRECTORY') or define('OW_DIRECTORY', 'ow_directory');
 
 // Register the "directory" domain
 register_domain('directory', array(
-    'handler' => 'ObjectStore',
     'table' => OW_DIRECTORY,
+    'handler' => 'ObjectStore',
     'get' => 'directory_get',
     'put' => 'directory_put',
     'post' => 'directory_post',
@@ -91,7 +94,7 @@ class Acl extends OWFilter {
 
     var $id = "acl";
 
-    function post($domain, $data) {
+    function post($data) {
 
         $current_user = current_user();
 
@@ -101,7 +104,7 @@ class Acl extends OWFilter {
             }
         }
         else {
-            if(!@$this->params['public']) {
+            if(!@$this->handler->params['public']) {
                 throw new Exception('Not logged in', 401);
             }
         }
@@ -116,7 +119,7 @@ class Acl extends OWFilter {
 
         }
         else {
-            if(!@$this->params['public']) {
+            if(!@$this->handler->params['public']) {
                 throw new Exception('Not logged in', 401);
             }
         }

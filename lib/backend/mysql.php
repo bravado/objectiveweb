@@ -604,7 +604,7 @@ class TableStore extends OWHandler {
     var $hasMany = array();
     var $belongsTo = array();
 
-    function init($params) {
+    function init() {
         $defaults = array(
             'table' => $this->id,
             'extends' => null,
@@ -617,7 +617,7 @@ class TableStore extends OWHandler {
         );
 
         // TODO move this to OWHandler
-        $this->params = array_merge($defaults, $params);
+        $this->params = array_merge($defaults, $this->params);
 
         $this->hasOne = $this->params['hasOne'];
         $this->hasMany = $this->params['hasMany'];
@@ -705,8 +705,8 @@ class TableStore extends OWHandler {
 
                         $hasMany_params = array_merge($hasMany_defaults, $hasMany_params);
 
-                        $table = new TableStore();
-                        $table->init($hasMany_params);
+                        $table = new TableStore($hasMany_id, $hasMany_params);
+
                         $select_params = array(
                             "{$hasMany_params['key']}" => $result[$this->table->pk]
                         );
@@ -1162,8 +1162,7 @@ class TableStore extends OWHandler {
  */
 class ObjectStore extends TableStore {
 
-    function init($params) {
-        parent::init($params);
+    function init() {
 
         // TODO check if all necessary tables exist (meta, versioning, etc)
     }
