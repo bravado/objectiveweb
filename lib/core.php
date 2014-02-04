@@ -100,7 +100,7 @@ function get($domain_id, $id = null, $params = array()) {
     /** @var $handler OWHandler */
     $handler = $_domains[$domain_id]['instance'];
 
-    $handler->apply_filters('fetch', $id);
+    $params = $handler->apply_filters('fetch', $id, $params);
 
     if ($id) {
 

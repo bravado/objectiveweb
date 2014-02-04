@@ -37,7 +37,10 @@ class Attachments extends OWFilter {
     var $id = 'attachments';
 
     function get($id, $data) {
-        $data['_attachments'] = attachment_list($this->domain, $id);
+
+        if($id) {
+            $data['_attachments'] = attachment_list($this->domain, $id);
+        }
 
         return $data;
     }
