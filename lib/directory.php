@@ -23,25 +23,56 @@ if(!defined('OW_SITE_KEY') || strlen(OW_SITE_KEY) < 40) {
 require_once('ulogin/config/all.inc.php');
 require_once('ulogin/main.inc.php');
 
-// We depend on phpgacl for permission management
-require(dirname(__FILE__).'/phpgacl/gacl.class.php');
-
 // Start a secure session if none is running
 if (!sses_running())
     sses_start();
 
+// We depend on phpgacl for permission management
+require(dirname(__FILE__).'/phpgacl/gacl.class.php');
 
+function accounts_mapper($data) {
+    $data['profile'] = json_decode($data['profile']);
+
+    return $data;
+}
+
+register_domain('_accounts', array(
+    'table' => 'ow_accounts',
+    'handler' => 'TableStore',
+    'mapper' => 'accounts_mapper'
+));
 
 // Register the "directory" domain
 register_domain('directory', array(
-    'table' => OW_DIRECTORY,
-    'handler' => 'ObjectStore',
-    'get' => 'directory_get',
+    'table' => "ow_aro",
+    'handler' => 'TableStore',
+    'hasMany' => array(
+        'accounts' => array(
+            'table' => 'ow_accounts',
+            'key' => 'aro_id'
+        ),
+        'meta' => array(
+            'table' => 'ow_directory',
+            'key' => 'aro_id'
+        )
+    ),
+    'mapper' => 'directory_mapper',
+    //'get' => 'directory_get',
     'put' => 'directory_put',
     'post' => 'directory_post',
     'with' => array(
     )
 ));
+
+function directory_mapper($data) {
+    return array(
+        'id' => $data['id'],
+        'username' => $data['value'],
+        'email' => $data['name'],
+        'date_created' => $data['date_created'],
+        'last_login' => $data['last_login']
+    );
+}
 
 function directory_get($self, $id) {
     if (is_numeric($id) || is_array($id)) {
@@ -101,11 +132,6 @@ function directory_put($self, $id, $data) {
  */
 function auth_login($uid, $username, $ulogin)
 {
-    $_SESSION[OW_SESSION_KEY] = array(
-        'oid' => $uid,
-        'username' => $username
-    );
-
     if (isset($_SESSION['appRememberMeRequested']) && ($_SESSION['appRememberMeRequested'] === true)) {
         // Enable remember-me
         if (!$ulogin->SetAutologin($username, true))
@@ -118,6 +144,8 @@ function auth_login($uid, $username, $ulogin)
             throw new Exception("Cannot disable autologin", 500);
     }
 
+    // uid will always exist on the directory
+    $_SESSION[OW_SESSION_KEY] = get('directory', $uid);
 
 //    function ow_set_current_user($user) {
 //        if (is_array($user)) {
@@ -142,7 +170,7 @@ function auth_fail($uid, $username, $ulogin) {
 }
 
 function ow_logged_in() {
-    return isset($_SESSION[OW_SESSION_KEY]['oid']);
+    return isset($_SESSION[OW_SESSION_KEY]['id']);
 }
 
 
@@ -210,12 +238,14 @@ class Acl extends OWFilter {
 
 
 /**
+ * Returns the currently logged in user or NULL
+ *
  * @param null $field
  * @return mixed
  * @throws Exception
  */
-function current_user($field = null) {
-    $_current_user = @$_SESSION['current_user'];
+function ow_user($field = null) {
+    $_current_user = @$_SESSION[OW_SESSION_KEY];
 
     if ($_current_user && $field) {
         $field = explode(".", $field);

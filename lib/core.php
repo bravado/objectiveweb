@@ -43,7 +43,7 @@ function delete($domain, $id) {
 
 function fetch($domain, $params = array()) {
 
-    preg_match('/([a-z]+)\/?_?([a-z]*)\/?(.*)/', $domain, $m);
+    preg_match('/(_?[a-z]+)\/?_?([a-z]*)\/?(.*)/', $domain, $m);
 
     // Handle views (/domain/_view)
     $handler = get($m[1]);

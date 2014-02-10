@@ -1,6 +1,12 @@
 <?php
 /**
- * Created by IntelliJ IDEA.
+ * Objectiveweb Authentication Controller
+ *
+ * GET /
+ * GET /logout      Logs out
+ * POST /
+ *
+ *
  * User: guigouz
  * Date: 8/14/13
  * Time: 12:09 AM
@@ -11,28 +17,45 @@ include "_init.php";
 
 require_once(OW_LIB . '/hybridauth/Hybrid/Auth.php');
 
+/**
+ * GET /
+ *  Returns the current authenticated user or 401 if not authenticated
+ *
+ * GET /logout
+ *  Logs out
+ *
+ * GET /{Provider}
+ *  Authenticates with oAuth {Provider}
+ */
 route("GET /(\\S*)?", "auth_get");
 
+/**
+ * POST /
+ *  Authenticates a user { username, password, remember = 0/1 }
+
+ */
 route("POST /?", "authenticate_user");
 
 function auth_get($provider = null)
 {
 
     if (!$provider) {
-        if (current_user('oid')) {
-            return current_user();
+        if (ow_user()) {
+            return ow_user();
         } else {
+            // TODO if not AJAX, show login page
             throw new Exception('Not logged in', 401);
         }
     }
 
-    // Perform auth using HybridAuth
+    // As $provider was specified, configure HybridAuth
     $config = array(
         "base_url" => OW_URL . '/lib/hybridauth/',
         "providers" => array(),
         "debug" => DEBUG
     );
 
+    // Process Facebook Credentials
     if (defined('AUTH_FACEBOOK_ID')) {
         $config['providers']['Facebook'] = array(
             "enabled" => true,
@@ -45,36 +68,44 @@ function auth_get($provider = null)
 
     switch ($provider) {
         case 'logout':
-            session_destroy();
+            ow_logout();
             $hybridauth->logoutAllProviders();
             break;
         default:
             if ($hybridauth->isConnectedWith($provider)) {
-                $adapter = $hybridauth->getAdapter($provider);
-                $user_profile = (Array)$adapter->getUserProfile();
-                $namespace = 'HA::' . $provider;
-                $local_profile = get('directory')->get(array(
-                        'namespace' => $namespace,
-                        'identifier' => $user_profile['identifier'])
-                );
 
-                if (!$local_profile) {
-                    $user_profile['namespace'] = $namespace;
-                    $user_profile['oid'] = current_user('oid');
-
-                    // TODO post deve retornar OID também (objectstore SE tiver field oid)
-                    $r = post('directory', $user_profile);
-
-                    $local_profile = get('directory', $r['id']);
+                if(empty($_SESSION[OW_SESSION_KEY])) {
+                    $_SESSION[OW_SESSION_KEY] = array();
                 }
 
-//                    if(isset($_SESSION['current_user'])) copiar o displayName, email, etc
+                $adapter = $hybridauth->getAdapter($provider);
+                $user_profile = (Array)$adapter->getUserProfile();
+
+                $local_profile = get('_accounts',array(
+                    'provider' => $provider,
+                    'identifier' => $user_profile['identifier']));
+
+                if(!$local_profile) {
+
+                        $account = array(
+                            'aro_id' => ow_user('id'),
+                            'provider' => $provider,
+                            'identifier' => $user_profile['identifier'],
+                            'profile' => $user_profile
+                        );
+                        $account_id = post('_accounts', $account);
+
+                        $account['id'] = $account_id['id'];
+                        $_SERVER[OW_SESSION_KEY][$provider] = $account;
+                }
+
+//              if(isset($_SESSION['current_user'])) copiar o displayName, email, etc
                 return $local_profile;
 
             } else {
-                if (isset($_GET['authenticate'])) {
+//                if (isset($_GET['authenticate'])) {
                     $hybridauth->authenticate($provider);
-                }
+//                }
 
                 return null;
             }

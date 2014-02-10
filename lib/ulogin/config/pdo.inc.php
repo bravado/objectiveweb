@@ -15,6 +15,9 @@ define('UL_PDO_CON_STRING', 'mysql:host='.MYSQL_HOST.';dbname='.MYSQL_DB);
 // table prefix support
 define('UL_TABLE_PREFIX', 'ow_');
 
+// store logins table as access request objects
+define('UL_LOGINS', 'ow_aro');
+
 // SQL query to execute at the start of each PDO connection.
 // For example, "SET NAMES 'UTF8'" if your database engine supports it.
 // Unused if empty.
