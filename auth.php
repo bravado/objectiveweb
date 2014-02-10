@@ -13,11 +13,12 @@ require_once(OW_LIB . '/hybridauth/Hybrid/Auth.php');
 
 route("GET /(\\S*)?", "auth_get");
 
-route("POST /?", "auth_post");
+route("POST /?", "authenticate_user");
 
-function auth_get($provider = null) {
+function auth_get($provider = null)
+{
 
-    if(!$provider) {
+    if (!$provider) {
         if (current_user('oid')) {
             return current_user();
         } else {
@@ -80,33 +81,11 @@ function auth_get($provider = null) {
     }
 }
 
-function auth_post() {
+function authenticate_user()
+{
     $data = parse_post_body();
 
-    $account = get('directory', array(
-        'namespace' => '',
-        'identifier' => $data['identifier']));
+    ow_login($data['username'], $data['password'], @$data['remember'] == 1);
 
-    if (!$account) {
-        throw new Exception('User not found', 404);
-    }
-    else {
-        $userPassword = null;
-        switch (strlen($account['userPassword'])) {
-            case 32:
-                $userPassword = md5($data['password']);
-                break;
-            default:
-                $userPassword = $data['password'];
-        }
 
-        if ($account['userPassword'] == $userPassword) {
-            $user = get('directory', $account['oid']);
-            ow_set_current_user($user);
-            return $user;
-        }
-        else {
-            throw new Exception('Invalid password supplied', 403);
-        }
-    }
 }
