@@ -137,7 +137,7 @@ function post($domain, $data) {
     /** @var $handler OWHandler */
     $handler = get($domain);
 
-    $data = $handler->apply_filters('post', $data);
+    $data = $handler->apply_filters('post', null, $data);
 
     if (isset($handler->params['post'])) {
         return call_user_func_array($handler->params['post'], array($handler, $data));
@@ -506,7 +506,7 @@ class OWFilter {
     }
 
     /**
-     * Called before fetching data or domain (id may be null)
+     * Called before fetching a resource or domain (id may be null)
      * @param $id
      */
     function fetch($id = null) {

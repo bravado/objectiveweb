@@ -158,11 +158,12 @@ class ulPdoLoginBackend extends ulLoginBackend
 
 		$now = ulUtils::nowstring();
 		$past = date_format(date_create('1000 years ago'), UL_DATETIME_FORMAT);
-		$stmt = ulPdoDb::Prepare('update', 'INSERT INTO '.UL_LOGINS.' (value, password, date_created, last_login, block_expires) VALUES (?, ?, ?, ?, ?)');
+		$stmt = ulPdoDb::Prepare('update', 'INSERT INTO '.UL_LOGINS.' (name, value, password, date_created, last_login, block_expires) VALUES (?, ?, ?, ?, ?, ?)');
 		if (!ulPdoDb::BindExec(
 			$stmt,
 			NULL,		// output
 			array(		// input
+                &$profile, 'str',
 				&$username, 'str',
 				&$hashed_password, 'str',
 				&$now, 'str',

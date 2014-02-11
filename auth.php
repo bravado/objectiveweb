@@ -73,39 +73,44 @@ function auth_get($provider = null)
             break;
         default:
             if ($hybridauth->isConnectedWith($provider)) {
-
-                if(empty($_SESSION[OW_SESSION_KEY])) {
+                if (empty($_SESSION[OW_SESSION_KEY])) {
                     $_SESSION[OW_SESSION_KEY] = array();
                 }
 
                 $adapter = $hybridauth->getAdapter($provider);
                 $user_profile = (Array)$adapter->getUserProfile();
 
-                $local_profile = get('_accounts',array(
-                    'provider' => $provider,
-                    'identifier' => $user_profile['identifier']));
+                $aro_id = ow_user('id');
 
-                if(!$local_profile) {
+                try {
+                    $account = get('_accounts', array(
+                        'provider' => $provider,
+                        'identifier' => $user_profile['identifier']));
 
-                        $account = array(
-                            'aro_id' => ow_user('id'),
-                            'provider' => $provider,
-                            'identifier' => $user_profile['identifier'],
-                            'profile' => $user_profile
-                        );
-                        $account_id = post('_accounts', $account);
+                    if($account['aro_id'] != $aro_id) {
+                        put('_accounts', $account['id'], array('aro_id' => $aro_id));
+                    }
+                }
+                catch(Exception $ex) {
+                    // New account
+                    $account = array(
+                        'aro_id' => $aro_id,
+                        'provider' => $provider,
+                        'identifier' => $user_profile['identifier'],
+                        'profile' => $user_profile
+                    );
+                    $account_id = post('_accounts', $account);
 
-                        $account['id'] = $account_id['id'];
-                        $_SERVER[OW_SESSION_KEY][$provider] = $account;
+                    $account['id'] = $account_id['id'];
                 }
 
-//              if(isset($_SESSION['current_user'])) copiar o displayName, email, etc
-                return $local_profile;
+                $_SESSION[OW_SESSION_KEY]['accounts'][$provider] = $account;
 
+
+                // TODO if not ajax, redirect
+                return $account;
             } else {
-//                if (isset($_GET['authenticate'])) {
-                    $hybridauth->authenticate($provider);
-//                }
+                $hybridauth->authenticate($provider);
 
                 return null;
             }
@@ -116,7 +121,9 @@ function authenticate_user()
 {
     $data = parse_post_body();
 
-    ow_login($data['username'], $data['password'], @$data['remember'] == 1);
+    if(ow_login($data['username'], $data['password'], @$data['remember'] == 1)) {
+        return "Ok";
+    };
 
 
 }

@@ -8,6 +8,8 @@
 // ------------------------------------------------------------------------
 //	HybridAuth End Point
 // ------------------------------------------------------------------------
+require dirname(dirname(dirname(__FILE__))).'/_init.php';
+
 
 // start a new session 
 session_start();

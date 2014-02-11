@@ -28,15 +28,6 @@ require_once OW_CONFIG;
 
 defined('DEBUG') or define('DEBUG', FALSE);
 
-// Default database Tables
-defined('OW_META') or define('OW_META', 'ow_meta');
-defined('OW_INDEX') or define('OW_INDEX', 'ow_index');
-defined('OW_VERSION') or define('OW_VERSION', 'ow_version');
-defined('OW_LINKS') or define('OW_LINKS', 'ow_links');
-defined('OW_ACL') or define('OW_ACL', 'ow_acl');
-defined('OW_SEQUENCE') or define('OW_SEQUENCE', 'ow_sequence');
-
-
 // Additional utility functions
 require_once OW_LIB.'/util.php';
 
