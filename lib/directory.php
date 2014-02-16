@@ -237,7 +237,7 @@ function ow_login($username, $password, $remember = false)
 }
 
 
-class Acl extends OWFilter
+class Acl extends OWService
 {
 
     var $id = "acl";

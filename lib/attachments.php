@@ -31,7 +31,7 @@ define('ATTACHMENT_UNLINK', 1);
 define('ATTACHMENT_OVERWRITE', 2);
 
 
-class Attachments extends OWFilter {
+class Attachments extends OWService {
 
     // Service ID
     var $id = 'attachments';
@@ -47,13 +47,19 @@ class Attachments extends OWFilter {
 
     function service($id) {
 
-        $connector = new elFinderConnector(attachment_manager($this->domain, $id));
+        $connector = new elFinderConnector(_attachments($this->domain, $id));
         $connector->run();
     }
 
 }
 
-function attachment_manager($domain, $id) {
+/**
+ * Returns an AttachmentManager to interact with the elFinder API
+ * @param $domain
+ * @param $id
+ * @return OWAttachmentManager
+ */
+function _attachments($domain, $id) {
     $opts = array(
         // 'debug' => true, TODO set debug
         'roots' => array(
@@ -86,8 +92,13 @@ function hide_dot_files($attr, $path, $data, $volume) {
 }
 
 
-
-
+/**
+ * Downloads an attachment
+ *
+ * @param $domain String Domain
+ * @param $id String Resource ID
+ * @param $filename String Attachment Filename
+ */
 function attachment_get($domain, $id, $filename) {
     $attachments = _attachments($domain, $id);
 
@@ -113,13 +124,12 @@ function attach($domain, $id, $attachment, $content = null, $params = 0) {
         }
     }
 
-
     // TODO save metadata to database (/attachments domain?)
     if (is_resource($content)) {
         $fp = fopen($filename, "wb");
-        while (!feof($content)) {
-            fwrite($fp, fread($content, 8192));
-        }
+
+        stream_copy_to_stream($content, $fp);
+
         fclose($fp);
     }
     else {
@@ -176,10 +186,11 @@ function attachment_delete($domain, $id, $attachment) {
  * @param $attachment Array|string|null $data describing the attachment or filename. If null returns the attachment directory
  *  array("name" => "file_name.ext", "type" => "mime/type", "data" => "file_data")
  *  "file_name.ext"
+ * @param $create Create a local directory to store the attachments
  * @return string
  * @throws Exception If the attachment's parent already exists and is not a directory
  */
-function attachment_filename($domain, $id, $attachment = null) {
+function attachment_filename($domain, $id, $attachment = null, $create = true) {
 
     $hashed = '';
     if(is_array($id)) {
@@ -226,14 +237,14 @@ function attachment_filename($domain, $id, $attachment = null) {
  * @param $id
  */
 function attachment_list($domain, $id) {
-    $dir = @opendir(attachment_filename($domain, $id));
+    $dir = @opendir(attachment_filename($domain, $id, null, false));
 
     $files = array();
 
     if($dir !== FALSE) {
         while (($file = readdir($dir)) != null) {
 
-
+            // TODO list directories also ?
             if (!is_dir($file)) {
                 $files[] = attachment_meta($domain, $id, $file);
 

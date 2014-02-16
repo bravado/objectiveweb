@@ -76,7 +76,7 @@ function fetch($domain, $params = array()) {
  * @throws Exception
  * @param $domain_id
  * @param null $id
- * @return OW_Handler
+ * @return OWHandler
  */
 function get($domain_id, $id = null, $params = array()) {
     global $_domains;
@@ -487,7 +487,7 @@ class OWHandler {
     }
 }
 
-class OWFilter {
+class OWService {
     var $id = null;
     var $domain;
     var $handler;

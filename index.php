@@ -54,9 +54,18 @@ route('DELETE /(\w+)/([\w-]+)/?', 'delete');
 function handle_attachment_post($domain, $id, $attachment_id = null) {
     $files = array();
     if ($attachment_id) {
-        // TODO if $_FILES put($domain,$id, $attachment_id, fopen($_FILES['tmp_file']), $metadata);
+        // TODO if $_FILES foreach $_FILES attach($domain,$id, $attachment_id, fopen($_FILES['tmp_file']));
         if(empty($_FILES)) {
-            $files[] = attach($domain, $id, $attachment_id, $fp = fopen('php://input', "rb"), ATTACHMENT_OVERWRITE);
+
+            $fp = fopen('php://input', "rb");
+
+            // If the input is base64-encoded, attach a decoder
+            if(fread($fp, 5) == 'data:') {
+                rewind($fp);
+                stream_filter_append($fp, 'convert.base64-decode');
+            }
+
+            $files[] = attach($domain, $id, $attachment_id, $fp, ATTACHMENT_OVERWRITE);
             fclose($fp);
         }
         else {
@@ -83,10 +92,16 @@ function handle_attachment_post($domain, $id, $attachment_id = null) {
     respond($files);
 }
 
+/**
+ * @param $domain
+ * @param $id
+ * @param $plugin
+ */
 function handle_plugin($domain, $id, $plugin) {
 
     $handler = get($domain);
 
+    /** @var $filter OWService */
     foreach($handler->with as $filter) {
         if($filter->id == $plugin) {
             $filter->service($id);
