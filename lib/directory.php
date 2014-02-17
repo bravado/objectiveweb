@@ -245,7 +245,7 @@ class Acl extends OWService
 
     function put($id, $data)
     {
-        $current_user = current_user();
+        $current_user = ow_user();
 
         if ($current_user) {
 
