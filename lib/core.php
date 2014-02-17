@@ -528,7 +528,7 @@ class OWService {
      * @param $data Array with the new resource contents
      * @return Array Modified data which will be persisted
      */
-    function post($data) {
+    function post($id, $data) {
 
         return $data;
     }

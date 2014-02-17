@@ -9,7 +9,7 @@
  */
 
 // Default directory table
-defined('OW_DIRECTORY') or define('OW_DIRECTORY', 'ow_directory');
+defined('OW_DIRECTORY') or define('OW_DIRECTORY', 'ow_aro');
 
 defined('OW_SESSION_KEY') or define('OW_SESSION_KEY', 'OW_AUTH');
 
@@ -47,17 +47,13 @@ register_domain('_accounts', array(
 
 // Register the "directory" domain
 register_domain('directory', array(
-    'table' => "ow_aro",
+    'table' => OW_DIRECTORY,
     'handler' => 'TableStore',
     'hasMany' => array(
         'accounts' => array(
             'table' => 'ow_accounts',
             'key' => 'aro_id',
             'mapper' => 'accounts_mapper'
-        ),
-        'meta' => array(
-            'table' => 'ow_directory',
-            'key' => 'aro_id'
         )
     ),
     'mapper' => 'directory_mapper',
@@ -69,54 +65,26 @@ register_domain('directory', array(
 
 function directory_mapper($data)
 {
-    return array(
-        'id' => $data['id'],
-        'username' => $data['value'],
-        'email' => $data['name'],
-        'date_created' => $data['date_created'],
-        'last_login' => $data['last_login']
-    );
-}
-
-function directory_get($self, $id)
-{
-    if (is_numeric($id) || is_array($id)) {
-        return $self->get($id);
-    } else {
-        $entries = $self->fetch("oid=$id");
-        if (count($entries)) {
-            $result = array('oid' => $id);
-            foreach ($entries as $entry) {
-                if (empty($entry['namespace'])) {
-                    foreach ($entry as $k => $v) {
-                        $result[$k] = $v;
-                    }
-                } else {
-                    $result[$entry['namespace']] = $entry;
-                }
-            }
-        } else {
-            $result = null;
-        }
-
-        return $result;
+    if(!empty($data['oid'])) {
+        return array(
+            'id' => $data['id'],
+            'oid' => $data['oid'],
+            'username' => $data['value'],
+            'email' => $data['name'],
+            'date_created' => $data['date_created'],
+            'last_login' => $data['last_login'],
+            'profile' => json_decode($data['profile'], true)
+        );
     }
-}
-
-function directory_password_filter($data)
-{
-    if (empty($data['namespace']) && !empty($data['password'])) {
-        $data['userPassword'] = md5($data['password']);
-        unset($data['password']);
+    else {
+        return $data;
     }
-
-    return $data;
 }
 
 function directory_post($handler, $data)
 {
 
-    if ($data['password'] != $data['confirm']) {
+    if (isset($data['confirm']) && $data['password'] != $data['confirm']) {
         throw new Exception('Passwords don\'t match');
     }
 
@@ -131,13 +99,16 @@ function directory_post($handler, $data)
     $now = ulUtils::nowstring();
     $past = date_format(date_create('1000 years ago'), UL_DATETIME_FORMAT);
 
+
     $aro = $handler->post(array(
         'name' => $data['email'],
         'value' => $data['username'],
+        'oid' => empty($data['oid']) ? ow_oid() : $data['oid'],
         'password' => $hashed_password,
         'date_created' => $now,
         'last_login' => $now,
-        'block_expires' => $past
+        'block_expires' => $past,
+        'profile' => empty($data['profile']) ? '{}' : $data['profile']
     ));
 
     $accounts = ow_user('accounts');
@@ -158,7 +129,19 @@ function directory_put($self, $id, $data)
         throw new Exception("Invalid ID for put (must be numeric)", 405);
     }
 
-    return $self->put($id, directory_password_filter($data));
+    $put = array(
+        'name' => $data['email'],
+        'profile' => $data['profile']
+    );
+
+    if(!empty($data['password'])) {
+        if (isset($data['confirm']) && $data['password'] != $data['confirm']) {
+            throw new Exception('Passwords don\'t match');
+        }
+        $put['password'] = ulPassword::Hash($data['password'], UL_PWD_FUNC);
+    }
+
+    return $self->put($id, $put);
 }
 
 
@@ -242,7 +225,7 @@ class Acl extends OWService
 
     var $id = "acl";
 
-    function post($data)
+    function post($id, $data)
     {
 
         $current_user = ow_user();

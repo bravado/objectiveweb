@@ -56,8 +56,8 @@ function query($query, $mapper = null)
         if ($mapper) {
             while($data = $result->fetch_assoc()) {
                 $r = call_user_func($mapper, $data);
+                $results[] = $r;
             }
-            $results[] = $r;
         } else {
             while ($data = $result->fetch_row()) {
                 /* Get field information for all columns */
@@ -86,8 +86,9 @@ function query($query, $mapper = null)
                         }
                     }
                 }
+                $results[] = $r;
             }
-            $results[] = $r;
+
         }
     }
 
@@ -810,9 +811,9 @@ class TableStore extends OWHandler
                 $this->belongsTo['owner'] = array(
                     'table' => OW_DIRECTORY,
                     // 'fields' => array('oid', 'displayName', 'identifier', 'photoURL', 'created'),
+                    // $value is a field on the main table
                     'key' => array(
-                        'oid' => '_owner',
-                        'namespace' => ''
+                        'oid' => '_owner'
                     )
                 );
             }

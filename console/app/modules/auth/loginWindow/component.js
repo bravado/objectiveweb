@@ -37,7 +37,7 @@ define(['Boiler', 'text!./view.html'], function (Boiler, template) {
                         $('#login-window button').button('loading');
 
                         moduleContext.notify('login', {
-                            identifier: $('#login-form .identifier').val(),
+                            username: $('#login-form .username').val(),
                             password: $('#login-form .password').val()
                         });
 
@@ -50,7 +50,7 @@ define(['Boiler', 'text!./view.html'], function (Boiler, template) {
 
                 }
                 panel.show();
-                $('#login-form .identifier').focus();
+                $('#login-form .username').focus();
             },
             deactivate:function () {
 

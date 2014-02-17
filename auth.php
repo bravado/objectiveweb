@@ -122,7 +122,10 @@ function authenticate_user()
     $data = parse_post_body();
 
     if(ow_login($data['username'], $data['password'], @$data['remember'] == 1)) {
-        return "Ok";
+        return ow_user();
+    }
+    else {
+        respond('Invalid login name or password', 403);
     };
 
 
