@@ -65,7 +65,7 @@ class uLogin
 	private function AuthSuccess($uid, $username)
 	{
 		// Change session id to fight attacks on the session
-		sses_regenerate_id(true);
+		//sses_regenerate_id(true);
 
 		// Update last login timestamp
 		$this->Backend->UpdateLastLoginTime($uid);

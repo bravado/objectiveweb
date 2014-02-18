@@ -188,7 +188,7 @@ define('UL_SITE_ROOT_DIR', ROOT);
 
 // If true, a secure session will be automatically started on every page
 // without having to call sses_start().
-define('UL_SESSION_AUTOSTART', true);
+define('UL_SESSION_AUTOSTART', false);
 
 // Do we want secure sessions to expire automatically?
 // If there is no user activity (page load), the session

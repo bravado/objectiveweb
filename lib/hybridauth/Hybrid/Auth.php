@@ -36,8 +36,8 @@ class Hybrid_Auth
 	*/
 	function __construct( $config )
 	{
-		if ( ! sses_running() ){
-			if( ! sses_start() ){
+		if ( ! session_id() ){
+			if( ! session_start() ){
 				throw new Exception( "Hybridauth requires the use of 'session_start()' at the start of your script, which appears to be disabled.", 1 );
 			}
 		}

@@ -41,6 +41,5 @@ foreach($extensions as $extension)
 		require_once($file);
 }
 
-require_once(UL_INC_DIR.'/session.inc.php');
+//require_once(UL_INC_DIR.'/session.inc.php');
 require_once(UL_INC_DIR.'/PageInit.inc.php');
-?>
