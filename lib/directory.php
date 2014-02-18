@@ -24,8 +24,10 @@ require_once('ulogin/config/all.inc.php');
 require_once('ulogin/main.inc.php');
 
 // Start a secure session if none is running
-if (!sses_running())
-    sses_start();
+//if(!sess)
+//if (!sses_running())
+//    sses_start();
+session_start();
 
 // We depend on phpgacl for permission management
 require(dirname(__FILE__) . '/phpgacl/gacl.class.php');
@@ -81,6 +83,12 @@ function directory_mapper($data)
     }
 }
 
+/**
+ * @param $handler OWHandler
+ * @param $data
+ * @return OWHandler
+ * @throws Exception
+ */
 function directory_post($handler, $data)
 {
 
@@ -123,7 +131,14 @@ function directory_post($handler, $data)
 
 }
 
-function directory_put($self, $id, $data)
+/**
+ * @param $handler OWHandler
+ * @param $id
+ * @param $data
+ * @return mixed
+ * @throws Exception
+ */
+function directory_put($handler, $id, $data)
 {
     if (!is_numeric($id)) {
         throw new Exception("Invalid ID for put (must be numeric)", 405);
@@ -141,7 +156,7 @@ function directory_put($self, $id, $data)
         $put['password'] = ulPassword::Hash($data['password'], UL_PWD_FUNC);
     }
 
-    return $self->put($id, $put);
+    return $handler->put($id, $put);
 }
 
 
