@@ -1,6 +1,6 @@
 {
   "name": "metaproject",
-  "version": "0.9.0",
+  "version": "0.9.1",
   "homepage": "https://github.com/bravado/metaproject",
   "authors": [
     "Guilherme Barile <guigouz@gmail.com>"
@@ -29,6 +29,7 @@
     "modernizr": "~2.7.1",
     "knockout-mapping": "~2.4.1",
     "knockout-postbox": "~0.4.2",
-    "knockout.js": "~3.0.0"
+    "knockout.js": "~3.0.0",
+    "knockout.punches": "v0.3.0"
   }
 }

@@ -77,7 +77,7 @@ Add your application to the core adding the following directive to ow-config.php
 
 This registers an application stored on the "application" directory.
 
-A sample app named "skeleton" is available at [https://github.com/bravado/skeleton](https://github.com/bravado/skeleton)
+A sample app named "skeleton" is available at [https://github.com/objectiveweb/skeleton](https://github.com/objectiveweb/skeleton)
 
 License
 -------

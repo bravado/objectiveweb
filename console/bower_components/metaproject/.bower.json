@@ -28,13 +28,14 @@
     "modernizr": "~2.7.1",
     "knockout-mapping": "~2.4.1",
     "knockout-postbox": "~0.4.2",
-    "knockout.js": "~3.0.0"
+    "knockout.js": "~3.0.0",
+    "knockout.punches": "v0.3.0"
   },
-  "_release": "9a20f3c761",
+  "_release": "21b908b84c",
   "_resolution": {
     "type": "branch",
     "branch": "master",
-    "commit": "9a20f3c761e532ef6608b15eabfe4a7e44e31630"
+    "commit": "21b908b84c7005c1d70ea657b58dea87108f3b7b"
   },
   "_source": "git://github.com/bravado/metaproject.git",
   "_target": "*",
