@@ -31,11 +31,11 @@
     "knockout.js": "~3.0.0",
     "knockout.punches": "v0.3.0"
   },
-  "_release": "21b908b84c",
+  "_release": "8e177426b4",
   "_resolution": {
     "type": "branch",
     "branch": "master",
-    "commit": "21b908b84c7005c1d70ea657b58dea87108f3b7b"
+    "commit": "8e177426b4fb4bf1fb8394bc19a9bb8d1584f20e"
   },
   "_source": "git://github.com/bravado/metaproject.git",
   "_target": "*",

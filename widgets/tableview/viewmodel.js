@@ -15,7 +15,7 @@ define(['Boiler'], function (Boiler) {
 
         // TODO if empty cols, montar grid a partir do model
         jQuery.each(params.cols, function (i, e) {
-            columns.push({ label: i, text: e });
+            columns.push({ label: i, value: e });
         });
 
         self.grid = new metaproject.ui.Grid(nav, {

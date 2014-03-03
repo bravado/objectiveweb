@@ -1,30 +1,5 @@
 <section data-bind="html: header"></section>
-<section style="padding-bottom: 60px;">
-    <table class="table table-striped table-condensed" data-bind="with: grid">
-        <thead>
-        <tr>
-            <!-- ko foreach: columns -->
-            <th data-bind="html: label"></th>
-            <!-- /ko -->
-            <!-- ko if: actions.length > 0 -->
-            <th></th>
-            <!-- /ko -->
-        </tr>
-        </thead>
-        <tbody data-bind="foreach: data">
-        <tr data-bind="">
-            <!-- ko foreach: $parent.columns -->
-            <td data-bind="html: typeof text == 'function' ? text($parent) : $parent[text]"></td>
-            <!-- /ko -->
-            <td data-bind="foreach: $parent.actions">
-                <button class="btn" data-bind="click: function() { fn($parent); }, html: label, css: $data.css || {}"></button>
-            </td>
-        </tr>
-        </tbody>
-    </table>
-
-
-</section>
+<section style="padding-bottom: 60px;" data-bind="grid: grid"></section>
 <footer class="navbar navbar-fixed-bottom">
 
     <div class="navbar-inner" data-bind="with: paginator">
