@@ -87,7 +87,7 @@ class uLogin
 		$this->AuthResult = false;
 
 		// Change session id to fight attacks on the session
-		sses_regenerate_id(true);
+		session_regenerate_id(true);
 
 		// Log authentication attempt
 		ulLog::Log('auth-fail', $username, ulUtils::GetRemoteIP(false));

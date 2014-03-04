@@ -220,7 +220,6 @@ function ow_logout()
 
 function ow_login($username, $password, $remember = false)
 {
-
     $ulogin = new uLogin('auth_login', 'auth_fail');
 
     // remember-me
