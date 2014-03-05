@@ -478,6 +478,10 @@
         // Model instances will share this DataSource
         var _datasource = null;
 
+        /**
+         *
+         * @returns {metaproject.DataSource}
+         */
         Model.getDataSource = function () {
             if (_datasource) {
                 return _datasource;
@@ -693,6 +697,13 @@
 
 
         // For instantiated models
+        Model.prototype.destroy = function(callback) {
+            var instance = this,
+                datasource = Model.getDataSource();
+
+            return datasource.destroy(instance, callback);
+        };
+
         Model.prototype.save = function (callback) {
             var instance = this,
                 datasource = Model.getDataSource(),
@@ -704,7 +715,6 @@
             else {
                 return datasource.post(ko.mapping.toJSON(instance), callback);
             }
-
         };
 
         return Model;

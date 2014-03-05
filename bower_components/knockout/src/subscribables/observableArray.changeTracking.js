@@ -59,9 +59,9 @@ ko.extenders['trackArrayChanges'] = function(target) {
 
     function getChanges(previousContents, currentContents) {
         // We try to re-use cached diffs.
-        // The only scenario where pendingNotifications > 1 is when using the KO 'deferred updates' plugin,
-        // which without this check would not be compatible with arrayChange notifications. Without that
-        // plugin, notifications are always issued immediately so we wouldn't be queueing up more than one.
+        // The scenarios where pendingNotifications > 1 are when using rate-limiting or the Deferred Updates
+        // plugin, which without this check would not be compatible with arrayChange notifications. Normally,
+        // notifications are issued immediately so we wouldn't be queueing up more than one.
         if (!cachedDiff || pendingNotifications > 1) {
             cachedDiff = ko.utils.compareArrays(previousContents, currentContents, { 'sparse': true });
         }
@@ -81,7 +81,7 @@ ko.extenders['trackArrayChanges'] = function(target) {
             offset = 0;
 
         function pushDiff(status, value, index) {
-            diff.push({ 'status': status, 'value': value, 'index': index });
+            return diff[diff.length] = { 'status': status, 'value': value, 'index': index };
         }
         switch (operationName) {
             case 'push':
@@ -106,13 +106,15 @@ ko.extenders['trackArrayChanges'] = function(target) {
                 var startIndex = Math.min(Math.max(0, args[0] < 0 ? arrayLength + args[0] : args[0]), arrayLength),
                     endDeleteIndex = argsLength === 1 ? arrayLength : Math.min(startIndex + (args[1] || 0), arrayLength),
                     endAddIndex = startIndex + argsLength - 2,
-                    endIndex = Math.max(endDeleteIndex, endAddIndex);
+                    endIndex = Math.max(endDeleteIndex, endAddIndex),
+                    additions = [], deletions = [];
                 for (var index = startIndex, argsIndex = 2; index < endIndex; ++index, ++argsIndex) {
                     if (index < endDeleteIndex)
-                        pushDiff('deleted', rawArray[index], index);
+                        deletions.push(pushDiff('deleted', rawArray[index], index));
                     if (index < endAddIndex)
-                        pushDiff('added', args[argsIndex], index);
+                        additions.push(pushDiff('added', args[argsIndex], index));
                 }
+                ko.utils.findMovesInArrayComparison(deletions, additions);
                 break;
 
             default:
