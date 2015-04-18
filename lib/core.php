@@ -418,6 +418,7 @@ class OWHandler {
             $this->$service = new $service($this);
         }
 
+
         $this->init();
     }
 

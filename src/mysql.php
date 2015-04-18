@@ -20,12 +20,7 @@
  * Time: 20:39
  */
 
-defined('MYSQL_HOST') or define('MYSQL_HOST', 'localhost');
-defined('MYSQL_USER') or define('MYSQL_USER', 'objectiveweb');
-defined('MYSQL_PASS') or define('MYSQL_PASS', null);
-defined('MYSQL_DB') or define('MYSQL_DB', 'objectiveweb');
-
-$mysqli = new mysqli(MYSQL_HOST, MYSQL_USER, MYSQL_PASS, MYSQL_DB);
+$mysqli = new mysqli(OW_DB_HOST, OW_DB_USER, OW_DB_PASS, OW_DB);
 
 if ($mysqli === FALSE) {
     throw new Exception($mysqli->error);
@@ -614,8 +609,19 @@ class Table
     }
 }
 
-class TableStore extends OWHandler
+class TableStore extends \Objectiveweb\Handler
 {
+
+    protected $defaults = array(
+        'extends' => null,
+        'hasOne' => array(),
+        'hasMany' => array(),
+        'belongsTo' => array(),
+        'mapper' => null,
+        'views' => array(
+            'page' => 'tablestore_page'
+        )
+    );
 
     // The main table
     var $table = null;
@@ -629,20 +635,9 @@ class TableStore extends OWHandler
     function init()
     {
 
-        $defaults = array(
-            'table' => $this->id,
-            'extends' => null,
-            'hasOne' => array(),
-            'hasMany' => array(),
-            'belongsTo' => array(),
-            'mapper' => null,
-            'views' => array(
-                'page' => 'tablestore_page'
-            )
-        );
-
-        // TODO move this to OWHandler
-        $this->params = array_merge($defaults, $this->params);
+        if(empty($this->params['table'])) {
+            throw new Exception("Please specify the table for domain $this->id", 500);
+        }
 
         $this->hasOne = $this->params['hasOne'];
         $this->hasMany = $this->params['hasMany'];
@@ -803,20 +798,20 @@ class TableStore extends OWHandler
              * If directory is enabled and we have a _owner field with a foreign key set to ow_directory, join that table
              * We won't overwrite a user-defined owner though
              */
-            if (OW_DIRECTORY && isset($this->table->fields['_owner']) // TODO verify if there's a foreign key pointing to OW_DIRECTORY
-                && !isset($this->belongsTo['owner'])
-            ) {
-
-
-                $this->belongsTo['owner'] = array(
-                    'table' => OW_DIRECTORY,
-                    // 'fields' => array('oid', 'displayName', 'identifier', 'photoURL', 'created'),
-                    // $value is a field on the main table
-                    'key' => array(
-                        'oid' => '_owner'
-                    )
-                );
-            }
+//            if (OW_DIRECTORY && isset($this->table->fields['_owner']) // TODO verify if there's a foreign key pointing to OW_DIRECTORY
+//                && !isset($this->belongsTo['owner'])
+//            ) {
+//
+//
+//                $this->belongsTo['owner'] = array(
+//                    'table' => OW_DIRECTORY,
+//                    // 'fields' => array('oid', 'displayName', 'identifier', 'photoURL', 'created'),
+//                    // $value is a field on the main table
+//                    'key' => array(
+//                        'oid' => '_owner'
+//                    )
+//                );
+//            }
 
             foreach ($this->belongsTo as $k => $v) {
 

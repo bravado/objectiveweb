@@ -1,0 +1,13 @@
+<IfModule mod_rewrite.c>
+RewriteEngine On
+
+RewriteRule ^app/ - [L]
+
+RewriteCond app/$0 -F
+RewriteRule .* app/$0 [L]
+
+RewriteCond app/index.html -F
+RewriteRule ^/?$ app/index.html [L]
+
+RewriteRule ^(.*)$ app/index.php/$1 [L,E=PATH_INFO:/$1]
+</IfModule>

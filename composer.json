@@ -1,0 +1,42 @@
+{
+  "name": "bravado/objectiveweb",
+  "description": "RESTful interface for relational data",
+  "license": "MIT",
+  "authors": [
+    {
+      "name": "Guilherme Barile"
+    }
+  ],
+  "support": {
+    "issues": "https://github.com/bravado/objectiveweb/issues"
+  },
+  "repositories": [
+    {
+      "type": "git",
+      "url": "git://github.com/objectiveweb/router.git"
+    },
+    {
+      "type": "git",
+      "url": "git://github.com/objectiveweb/db.git"
+    },
+    {
+      "type": "git",
+      "url": "git://github.com/objectiveweb/auth.git"
+    }
+  ],
+  "require": {
+    "objectiveweb/router": "dev-master",
+    "objectiveweb/db": "dev-master",
+    "objectiveweb/auth": "dev-master",
+    "league/oauth2-server": "2.1.x",
+    "league/oauth2-client": "0.3"
+  },
+  "autoload": {
+    "classmap": [
+      "src/Objectiveweb.php"
+    ],
+    "psr-4": {
+      "Objectiveweb\\": "src/Objectiveweb"
+    }
+  }
+}
