@@ -512,7 +512,6 @@ class Table
      */
     function update($key, $data)
     {
-
         global $mysqli;
 
         if (empty($key)) throw new Exception('A condition is required for UPDATEs', 405);
@@ -636,7 +635,7 @@ class TableStore extends \Objectiveweb\Handler
     {
 
         if(empty($this->params['table'])) {
-            throw new Exception("Please specify the table for domain $this->id", 500);
+            throw new Exception("table parameter missing on $this->id", 500);
         }
 
         $this->hasOne = $this->params['hasOne'];

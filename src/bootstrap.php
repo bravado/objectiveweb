@@ -31,7 +31,7 @@ require_once __DIR__.'/mysql.php';
 
 // Register the directory
 register_domain('directory', array(
-    'handler' => '\Objectiveweb\Directory',
+    'handler' => '\Objectiveweb\Handler\Directory',
     'db_table_prefix' => 'ow_',
     'db_type' => OW_DB_DRIVER,
     'db_host' => OW_DB_HOST,

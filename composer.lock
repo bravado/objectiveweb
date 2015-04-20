@@ -4,7 +4,7 @@
         "Read more about it at http://getcomposer.org/doc/01-basic-usage.md#composer-lock-the-lock-file",
         "This file is @generated automatically"
     ],
-    "hash": "ba5ab29a424cd049912ae9fa45119163",
+    "hash": "592d4ecc3cb2cc0f21e8284bce480118",
     "packages": [
         {
             "name": "guzzle/guzzle",
@@ -291,7 +291,7 @@
             "source": {
                 "type": "git",
                 "url": "git://github.com/objectiveweb/router.git",
-                "reference": "c53b1add1035629c18ca6a5b034543027523c7aa"
+                "reference": "f1ec50f265f3cf93512fa8a4cf177a0df51d760d"
             },
             "type": "library",
             "autoload": {
@@ -308,7 +308,7 @@
                 }
             ],
             "description": "Objectiveweb's URL Router",
-            "time": "2014-06-09 16:51:04"
+            "time": "2015-04-12 15:31:38"
         },
         {
             "name": "symfony/event-dispatcher",
