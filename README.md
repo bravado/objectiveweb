@@ -6,33 +6,23 @@ organized things well, the algorithms will almost always be
 self-evident. Data structures, not algorithms, are central to
 programming. (Rob Pike, 1989)
 
-## This is a work in progress
+## Getting ready for release
 
-This current version **does not** enforce any kind of authorization
-on the resources exported via `objectiveweb/index.php`.
-
-This won't affect custom controllers, which may implement their own
-authorization schema.
-
-### Workarounds
-
- * Use plain http authentication (.htaccess) for the /objectiveweb
-directory
- * Enforce permissions on the ow-config.php file
-
-    if(!current_user()) { respond('Not authenticated', 403); }
-
+Objectiveweb 0.10 will be the first stable release of the framework.
 
 ### TODO
 
- * 0.6 release
+ * 0.10 release
+	* Package the libs properly (to be used with composer) [OK]
+		* Use some OO stuff (ie namespaces) [OK]
+	* Integrate phpgacl into the Directory [OK]
+	* Implement/Test the Attachments service
+	* Implement/Test the Acl service
 	* Finish implementing elfinder-based attachments
-	* Integrate phpgacl
 
- * Post-0.6 release
-	* Use PDO instead of mysqli (bravado/db) for the backend
-	* Package the lib properly (to be used with composer)
-		* Use some OO stuff (ie namespaces)
+ * Post-0.10 release
+	* Port TableStore and ObjectStore to the SQLStore using PDO (objectiveweb/db) 
+	instead of mysqli for the backend
 
 # Usage
 
@@ -47,11 +37,12 @@ Check your instalation on the objectiveweb/ url
 
     http://my-server/objectiveweb/
 
-You should receive a JSON document with the server info. If debug is enabled, this document will also contain information about which apps are loaded.
+You should receive a JSON document with the server info. 
+If debug is enabled, this document will also contain information about which domains are loaded.
 
     {
-        "objectiveweb": "0.4",
-        "apps": [ ]
+        "objectiveweb": "0.10",
+        "domains": [ ]
     }
 
 That's it for the backend installation.
