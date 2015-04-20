@@ -33,6 +33,10 @@ class Directory extends Handler {
 
         $id = $this->gacl->get_object_id('users', $user, 'aro');
 
+        if($id === FALSE) {
+            throw new \Exception('User not found', 404);
+        }
+
         return $this->gacl->get_object_data($id, 'aro')[0];
 
     }

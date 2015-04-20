@@ -78,15 +78,7 @@ class Objectiveweb {
                 $rsrc = $handler->get($id, $params);
             }
 
-            // Filter result
-            if ($rsrc) {
-                $rsrc = $handler->apply_filters('get', $id, $rsrc);
-            }
-            else {
-                throw new Exception(sprintf(_('%s %s not found'), $domain_id, $id), 404);
-            }
-
-            return $rsrc;
+            return $handler->apply_filters('get', $id, $rsrc);
         } else {
             return $handler;
         }
@@ -110,7 +102,7 @@ class Objectiveweb {
 
     function put($domain, $id, $data) {
 
-        $handler = get($domain);
+        $handler = $this->get($domain);
 
         $data = $handler->apply_filters('put', $id, $data);
 
