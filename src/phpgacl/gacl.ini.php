@@ -1,4 +1,4 @@
-;<?eae if (; //Cause parse error to hide from prying eyes?>
+;<?php if (; //Cause parse error to hide from prying eyes?>
 ;
 ; *WARNING* 
 ;
@@ -16,7 +16,7 @@ debug 			= FALSE
 db_type 		= "mysql"
 db_host			= "localhost"
 db_user			= "root"
-db_password		= "root"
+db_password		= ""
 db_name			= "objectiveweb"
 db_table_prefix		= "ow_"
 

@@ -2772,7 +2772,7 @@ class gacl_api extends gacl {
 		}
 
 		if ($rs->RecordCount() < 1) {
-			$this->debug_text('get_object_data(): Returned  '. $row_count .' rows');
+			$this->debug_text('get_object_data(): Returned  '. $rs->RecordCount() .' rows');
 			return FALSE;
 		}
 
